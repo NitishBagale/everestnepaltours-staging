@@ -1,0 +1,20 @@
+POST http://localhost:4000/review/
+Content-Type: application/json
+
+{
+     "guestName": "Rajesh Sharma",
+    "country": "India",
+    "travelDate": "2025-07-10",
+    "tourTitle": "Bhutan Cultural Tour",
+    "title": "Beautiful Bhutan Experience",
+    "reviewText": "Bhutan is a magical country. The tour was well-planned, the hotels were comfortable, and the driver was friendly and safe. I highly recommend Everest Vacation.",
+    "rating": 4.7,
+    "packageTourId": 5
+}
+
+###
+GET http://localhost:4000/review/
+
+
+###
+GET http://localhost:4000/review/average-rating

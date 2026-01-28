@@ -1,0 +1,56 @@
+
+POST http://localhost:4000/seo/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A
+
+{
+  "metaTitle": "Learn Node.js Backend Development | Free Course",
+  "page": "learn-node-js",
+  "metaDescription": "Master backend development with Node.js. Complete beginner-friendly tutorials, examples, and real projects.",
+  "tags": ["nodejs", "backend", "javascript", "api", "express"],
+  "keywords": "nodejs, backend development, express js, javascript tutorial",
+  "ogTitle": "Learn Node.js Backend Development",
+  "ogDescription": "Build real-world backend applications using Node.js and Express.",
+  "ogImage": "https://example.com/images/nodejs-course.png",
+  "canonicalUrl": "https://example.com/learn-node-js"
+}
+
+###
+GET http://localhost:4000/seo/cfb7db3e-58d8-4d98-8632-f25afa8eaf98
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A
+
+###
+GET http://localhost:4000/seo/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A
+
+###
+PUT http://localhost:4000/seo/cfb7db3e-58d8-4d98-8632-f25afa8eaf98
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A
+
+{
+  "metaTitle": "Learn Node.js Backend Development | Free Course - Updated",
+  "page": "learn-node-js",
+  "metaDescription": "Master backend development with Node.js. Complete beginner-friendly tutorials, examples, and real projects. Updated content!",
+  "tags": ["nodejs", "backend", "javascript", "api", "express", "updated"],
+  "keywords": "nodejs, backend development, express js, javascript tutorial, updated",
+  "ogTitle": "Learn Node.js Backend Development - Updated",
+  "ogDescription": "Build real-world backend applications using Node.js and Express. Now with updated content!",
+  "ogImage": "https://example.com/images/nodejs-course-updated.png",
+  "canonicalUrl": "https://example.com/learn-node-js"
+}
+###
+DELETE http://localhost:4000/seo/81554c4f-44ca-487f-96fc-e868b0a01858
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A
+
+###
+GET http://localhost:4000/seo/tag/api
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A
+
+###
+GET http://localhost:4000/seo/page/learn-node-js
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A

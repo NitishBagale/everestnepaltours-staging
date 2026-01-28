@@ -1,0 +1,23 @@
+
+POST http://localhost:4000/category/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTUxNjE2MywiZXhwIjoxNzY1NjAyNTYzfQ.GOTQlzAhaYjqxBahmBym4nt6i71qL3yTrvXd0qeiXAA
+
+
+  {
+    
+    "name": "Nepal Bhutan Tour"
+  }
+###
+GET http://localhost:4000/category/24
+
+###
+PUT http://localhost:4000/category/20e66939-9773-4d37-8de4-45acae8575ee
+Content-Type: application/json
+Authorization:  Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIwZTY2OTM5LTk3NzMtNGQzNy04ZGU0LTQ1YWNhZTg1NzVlZSIsImlhdCI6MTc2NDU4NDU2NCwiZXhwIjoxNzY0NjcwOTY0fQ.SC0M3dxJpNLxDnpL9s2LElmOzMuok2kadCGFpPtJF1o
+
+{
+  "name": "Everest Base Camp Trek Updated"
+}
+###
+DELETE http://localhost:4000/category/20e66939-9773-4d

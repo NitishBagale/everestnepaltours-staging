@@ -1,0 +1,30 @@
+services:
+
+  # Backend Services
+  everest-vacation-backend:
+    container_name: everest-vacation-backend
+    image: sxnmgxr/everest-vacation-backend:latest
+    ports:
+      - "8008:8008"
+    env_file:
+      - /home/azureuser/everest-vacation/server/.env
+    restart: always
+    depends_on:
+      - postgres
+
+  # PostgreSQL Service
+  postgres:
+    container_name: everest-vacation-database
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: everest_vacation
+    ports:
+      - "5555:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres-data:

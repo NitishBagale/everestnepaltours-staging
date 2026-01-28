@@ -1,0 +1,34 @@
+### TEST - Create booking and auto-create traveller
+POST http://localhost:4000/booking/create
+Content-Type: application/json
+
+{
+  "bookingDate": "2025-12-10",
+  "pickupDate": "2025-12-15",
+  "returnDate": "2025-12-20",
+  "totalAmount": "2000",
+  "status": "pending",
+  "paymentStatus": "unpaid",
+  "pickUp": "Kathmandu",
+  "destination": "Everest Base Camp",
+  "trvellerInfo": {
+    "fullName": "Test User December",
+    "email": "testuser.dec@example.com",
+    "contactNumber": "9876543210",
+    "travelDate": "2025-12-15",
+    "noOfTravellers": 2,
+    "accommodation": "4-Star Hotel",
+    "passport": "TEST123456",
+    "details": "Test booking to check traveller auto-creation feature"
+  },
+  "packageName": "Everest Base Camp Trek",
+  "details": "Test booking for traveller auto-creation"
+}
+
+###
+### Check all travellers (should include auto-created one)
+GET http://localhost:4000/traveller/
+
+###
+### Check specific traveller by email search
+GET http://localhost:4000/traveller/

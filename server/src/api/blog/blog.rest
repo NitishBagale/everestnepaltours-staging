@@ -1,0 +1,38 @@
+POST http://localhost:4000/blog/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTM1OTIzNiwiZXhwIjoxNzY1NDQ1NjM2fQ.zBlxLtySASqTu5Y-fkgugGjOqAhnnY_HEesJhoAamPk
+
+
+{
+  "mainTitle": "Which route is the Best for traveling between Nepal, Tibet, and Bhutan?",
+  "slug": "which-route-is-best-for-traveling-between-nepal-tibet-bhutan",
+  "description": "This guide explains the best and most practical travel route between Nepal, Tibet, and Bhutan based on visa procedures, altitude, flights, and accessibility.",
+  "coverImage": "https://everestnepaltours.com/wp-content/uploads/2025/06/Best-travel-route-of-nepal-tibet-bhutan-trip.jpg",
+  "date": "June 9, 2025",
+  "blogContant": "The journey to these three beautiful countries is adventurous and spiritually fulfilling. The travel is rewarding regardless of which route you choose, but selecting the right path can make the experience smoother depending on visas, permits, altitude and accessibility.\n\nKey Factors for Selecting the Best Route\nWe evaluated Nepal, Bhutan and Tibet based on three major travel aspects:\n\n1. Based on visa and entry requirements:\n- Nepal: Easy visa-on-arrival, embassy issuance, or multiple entry options. Kathmandu is convenient for Tibet permit processing.\n- Bhutan: Requires online visa via tour operator and Sustainable Development Fee (SDF). Visa is processed after booking a tour package.\n- Tibet: Requires China Visa + Tibet Travel Permit when entering through China. When entering through Nepal, Tibet Group Visa is mandatory. Many nationalities are visa-free to China/Tibet until Dec 2025.\n\n2. Based on altitude and acclimatization:\n- Nepal: Low altitude cities mean low risk of altitude sickness.\n- Bhutan: Medium acclimatization needed, especially for high points like Tiger’s Nest.\n- Tibet: High altitude — acclimatization is essential.\n\n3. Based on direct flights and road access:\n- Nepal: Direct flights to Tibet & Bhutan. Easiest international access.\n- Bhutan: Flights from Paro connect to Kathmandu, Bangkok, Delhi & Singapore. No direct Bhutan–Tibet route.\n- Tibet: Direct flights to Kathmandu & Chinese mainland cities. Overland entry via Kerung is possible.\n\nConclusion — Best Recommended Route:\nNepal → Bhutan → Nepal → Tibet → Nepal/China Mainland\n\nWhy this route is ideal:\n- Smooth visa and permit handling\n- Gradual altitude gain for safer acclimatization\n- Frequent flights & road connectivity through Nepal\n- Minimum travel complications\n\nIt may look longer on a map but is the most convenient and stress-free way to explore all three Himalayan destinations. This itinerary reduces paperwork hassles and improves safety while enjoying the spiritual and landscape beauty of Nepal, Tibet, and Bhutan.\n\nHave a wonderful journey ahead!"
+}
+
+
+
+###
+GET http://localhost:4000/blog/related?slug=tibet-nepal-bhutan-combined-trip-from-singapore-or-southeast-asia
+
+
+###
+DELETE http://localhost:4000/blog/by-name?name=Ganden and Samye Monasteries in Tibet
+
+###
+PUT  http://localhost:4000/blog/by-name?name=Which route is the Best for traveling between Nepal, Tibet, and Bhutan?
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NTE3MDc3MiwiZXhwIjoxNzY1MjU3MTcyfQ.6trPwE4IYWbeaYzR6KGeyOsGsbMsP4gGZDpECZAeJps
+
+{
+  "mainTitle": "Which route is the Best for traveling between Nepal, Tibet, and Bhutan? - Updated",
+  "slug": "which-route-is-best-for-traveling-between-nepal-tibet-bhutan",
+  "description": "This guide explains the best and most practical travel route between Nepal, Tibet, and Bhutan based on visa procedures, altitude, flights, and accessibility.",
+  "coverImage": "https://everestnepaltours.com/wp-content/uploads/2025/06/Best-travel-route-of-nepal-tibet-bhutan-trip.jpg",
+  "date": "June 10, 2025",
+  "blogContant": "The journey to these three beautiful countries is adventurous and spiritually fulfilling. The travel is rewarding regardless of which route you choose, but selecting the right path can make the experience smoother depending on visas, permits, altitude and accessibility.\\n\\nKey Factors for Selecting the Best Route\\nWe evaluated Nepal, Bhutan and Tibet based on three major travel aspects:\\n\\n1. Based on visa and entry requirements:\\n- Nepal: Easy visa-on-arrival, embassy issuance, or multiple entry options. Kathmandu is convenient for Tibet permit processing.\\n- Bhutan: Requires online visa via tour operator and Sustainable Development Fee (SDF). Visa is processed after booking a tour package.\\n- Tibet: Requires China Visa + Tibet Travel Permit when entering through China. When entering through Nepal, Tibet Group Visa is mandatory. Many nationalities are visa-free to China/Tibet until Dec 2025.\\n\\n2. Based on altitude and acclimatization:\\n- Nepal: Low altitude cities mean low risk of altitude sickness.\\n- Bhutan: Medium acclimatization needed, especially for high points like Tiger's Nest.\\n- Tibet: High altitude — acclimatization is essential.\\n\\n3. Based on direct flights and road access:\\n- Nepal: Direct flights to Tibet & Bhutan. Easiest international access.\\n- Bhutan: Flights from Paro connect to Kathmandu, Bangkok, Delhi & Singapore. No direct Bhutan–Tibet route.\\n- Tibet: Direct flights to Kathmandu & Chinese mainland cities. Overland entry via Kerung is possible.\\n\\nConclusion — Best Recommended Route:\\nNepal → Bhutan → Nepal → Tibet → Nepal/China Mainland\\n\\nWhy this route is ideal:\\n- Smooth visa and permit handling\\n- Gradual altitude gain for safer acclimatization\\n- Frequent flights & road connectivity through Nepal\\n- Minimum travel complications\\n\\nIt may look longer on a map but is the most convenient and stress-free way to explore all three Himalayan destinations. This itinerary reduces paperwork hassles and improves safety while enjoying the spiritual and landscape beauty of Nepal, Tibet, and Bhutan.\\n\\nHave a wonderful journey ahead! - Updated"
+}
+###
+GET http://localhost:4000/blog/

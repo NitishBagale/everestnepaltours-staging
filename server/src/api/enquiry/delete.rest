@@ -1,0 +1,1 @@
+DELETE http://localhost:3000/enquiry/delete?id=17fc25a4-b56e-4900-80df-849a16dc9c66

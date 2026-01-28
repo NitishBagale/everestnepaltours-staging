@@ -1,0 +1,9 @@
+POST http://localhost:4000/enquiry/create
+Content-Type: application/json
+
+{
+    "name":"Aaryan Sharma",
+    "email":"lazyfox916@gmail.com",
+    "contact":"+977 9764849910",
+    "message":"Hello this is a test"
+}

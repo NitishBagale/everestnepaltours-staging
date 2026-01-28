@@ -1,0 +1,71 @@
+h1 {
+  color: black !important;
+  font-size: 30px;
+  font-weight: 900;
+  background: transparent !important;
+}
+
+.prose h1 {
+  color: black !important;
+  font-size: 30px;
+  font-weight: 900;
+  background: transparent !important;
+}
+
+.prose-lg h1 {
+  color: black !important;
+  font-size: 30px;
+  font-weight: 900;
+  background: transparent !important;
+}
+
+/* For dynamically rendered content */
+div[class*="prose"] h1 {
+  color: black !important;
+  font-size: 30px;
+  font-weight: 900;
+  background: transparent !important;
+}
+
+/* Quill editor content */
+.ql-editor h1 {
+  color: black !important;
+  font-size: 30px;
+  font-weight: 900;
+  background: transparent !important;
+}
+
+h2 {
+  color: green !important;
+  font-size: 26px;
+  font-weight: 800;
+  background: transparent !important;
+}
+
+.prose h2 {
+  color: green !important;
+  font-size: 26px;
+  font-weight: 800;
+  background: transparent !important;
+}
+
+.prose-lg h2 {
+  color: green !important;
+  font-size: 26px;
+  font-weight: 800;
+  background: transparent !important;
+}
+
+div[class*="prose"] h2 {
+  color: green !important;
+  font-size: 26px;
+  font-weight: 800;
+  background: transparent !important;
+}
+
+.ql-editor h2 {
+  color: green !important;
+  font-size: 26px;
+  font-weight: 800;
+  background: transparent !important;
+}

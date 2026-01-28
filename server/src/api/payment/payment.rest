@@ -1,0 +1,94 @@
+
+POST  http://localhost:4000/payment-cancellation-policy/
+Content-Type: application/json
+
+
+  {
+  "payment_and_cancellation_policy": {
+    "payment": {
+      "currency": "Foreign Exchange",
+      "advance_payment": "20% of cost for land tour",
+      "methods": [
+        {
+          "option": "Telex Transfer",
+          "details": {
+            "account_number": "12005499960015",
+            "bank_name": "Himalayan Bank Ltd.",
+            "branch": "Hiti Durbar Branch, Kathmandu Nepal",
+            "swift_code": "HIMANPKA",
+            "beneficiary": "Everest Vacation Pvt Ltd",
+            "address": "Suryabinayak-4, Bhaktapur, Nepal"
+          }
+        },
+        {
+          "option": "Credit Card",
+          "details": {
+            "note": "Please Contact Us",
+            "extra_charge": "4% bank service charge",
+            "requirements": [
+              "Use 3DS (3D secured) card",
+              "OTP (One Time Password) required for card holder authentication"
+            ],
+            "description": "3D Secure is an additional layer of card holder authentication. If the bank detects suspicious activity, the card holder is redirected to a 3DS page for extra verification."
+          }
+        }
+      ]
+    },
+    "cancellations": {
+      "notice_period": "60 days prior to arrival",
+      "charges": [
+        {
+          "days_before_arrival": 60,
+          "charge": "25% of total land tour"
+        },
+        {
+          "days_before_arrival": 30,
+          "charge": "50% of total land tour"
+        },
+        {
+          "days_before_arrival": 15,
+          "charge": "100% of total land tour"
+        }
+      ],
+      "notes": [
+        "Internal/Inter-country flight cancellation cost depends on time and airlines.",
+        "Luxury hotels cancellation policy as per their rules."
+      ]
+    },
+    "re_routing_alteration": {
+      "note": "Alteration of tour could be necessary due to weather, political restrictions, or causes beyond our control.",
+      "disclaimer": "No refund or compensation will be available for any changes to service."
+    },
+    "refunds": {
+      "policy": "If Everest Vacation cancels your trip, an alternative tour will be offered. If unsuitable, a full refund will be made. The company is not liable for any damages or claims."
+    },
+    "liability": {
+      "policy": "Everest Vacation acts only as an agent and is not responsible for accidents, damages, loss, delays, flight cancellations, or inconvenience caused by factors beyond control. Bookings are accepted with care, but no responsibility is undertaken for deviations beyond control."
+    },
+    "insurance": {
+      "policy": "Personal travel insurance is not included. Travelers are required to have comprehensive travel insurance."
+    }
+  }
+}
+
+###
+GET  http://localhost:4000/payment-cancellation-policy/
+
+###
+GET  http://localhost:4000/payment-cancellation-policy/1
+
+###
+PUT http://localhost:4000/payment-cancellation-policy/1
+Content-Type: application/json
+
+  {
+  "payment_and_cancellation_policy": {
+    "payment": {
+      "currency": "USD",
+      "advance_payment": "30% of cost for land tour"
+    }
+  }
+}
+
+###
+DELETE http://localhost:4000/payment-cancellation-policy/1

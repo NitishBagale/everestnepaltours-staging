@@ -1,0 +1,28 @@
+POST http://localhost:4000/admin/login
+Content-Type: application/json
+
+{
+    "email":"dev@santoshdahal.info.np",
+    "password":"Test@123"
+}
+
+### Response
+
+POST http://localhost:4000/admin/login
+Content-Type: application/json
+
+{
+    "email":"newadmin@example.com",
+    "password":"securepassword123"
+
+}
+
+###
+GET http://localhost:4000/admin/getAll
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDc1OTU4OCwiZXhwIjoxNzY0ODQ1OTg4fQ.
+
+###
+DELETE  http://localhost:4000/admin/delete?id=40877ed7-5bc0-4d94-8eb2-0b04a7761c47
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDc1OTc4NCwiZXhwIjoxNzY0ODQ2MTg0fQ.7v0zsboOkOiWZTkWlyQSVyLTYX2h8aeI-9w_jyjGy3g

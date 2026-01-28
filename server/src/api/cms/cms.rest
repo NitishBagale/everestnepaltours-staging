@@ -1,0 +1,63 @@
+### Create new CMS section (use PUT to update existing)
+POST http://localhost:4000/cms/
+Content-Type: application/json
+<<<<<<< HEAD
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NzA3ODk2NiwiZXhwIjoxNzY3MTY1MzY2fQ.ofs6D7CwQZ9LZ3pvlVERk_wr04-K5v_l6YkeHGWL3qg
+=======
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NzExNSwiZXhwIjoxNzY3MDczNTE1fQ.F2OM3zQNo9a_o4z4tATTqhhMeLFYs2SKJvjGM0kIB9E
+>>>>>>> d61379cf320893889541fd80302a5dbb83ba1514
+
+{
+  "section": "Culture, Nature & Religionn",
+  "categoryId": "nepal-tours",
+  "contentTitle": "Nepal Tours Package",
+  "publish": true,
+  "status": true,
+  "content": {
+    "subtitle": "Culture, Nature & Religion",
+    "heading": "Nepal Tours Package",
+    "paragraphs": [
+      "Nepal Tours Package is an excellent combination of Culture, Nature, and Religion which is a great opportunity for travelers to immerse themselves in the rich cultural and natural marvels of Nepal. Enjoy this incredible journey that offers overall experiences from cultural involvement, religious heritages, and captivating wilderness.",
+      "Tour around century-old temples carved in aesthetic architectural beauty and explore the vibrant traditions and customs of Nepal. Get deep insights into interesting rituals and experience the spiritual essence of this charismatic land. Jungle tours in the beautiful natural surroundings and get glimpses of exotic wildlife and lush flora. Nepal Tours Package promises a memorable experience in Nepal."
+    ]
+  },
+  "slug": "nepal-tours-package",
+  "tags": ["culture", "nature", "religion", "nepal", "tours"]
+}
+
+### Get CMS by tags (query parameter)
+GET http://localhost:4000/cms/tags?tags=culture
+
+
+
+
+
+
+###
+GET http://localhost:4000/cms/
+
+
+###
+GET http://localhost:4000/cms/Kathmandu Tour
+
+### 
+GET http://localhost:4000/cms/book-with-confidencee
+
+### Update existing CMS section
+PUT http://localhost:4000/cms/book-with-confidence
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDA0ODg2MywiZXhwIjoxNzY0MTM1MjYzfQ.wo73x1b-IekjU7RtG3D8eKDGZd7FcfjNZ8FzeoHm8CM
+
+{
+  "content": {
+    "title": "Book with Confidence - Updated",
+    "subtitle": "Flexibility Plans and Easy Safe Booking"
+  },
+  "status": true
+}
+
+###
+DELETE http://localhost:4000/cms/Payment & Cancellation Policy
+
+###
+GET http://localhost:4000/cms/category/24

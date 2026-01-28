@@ -1,0 +1,10 @@
+PATCH http://localhost:3000/settings/update?id=f96de33f-7b8b-4b2a-8a31-73e6878558fa
+Content-Type: application/json
+
+{
+   "name":"Hero",
+   "settings":{
+    "image":"http://hello.image.jpg",
+    "header":"This is update test"
+   }
+}

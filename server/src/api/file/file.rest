@@ -1,0 +1,9 @@
+### Upload Single File
+POST http://localhost:4000/file/single
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDIyMzM1NCwiZXhwIjoxNzY0MzA5NzU0fQ.Gv-N2SHLEQ3KlWEe8OpmXYfsOq72Sw_p5edovqc7JkQ
+
+
+### Upload Multiple Files
+POST http://localhost:4000/file/multiple
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDIyMzM1NCwiZXhwIjoxNzY0MzA5NzU0fQ.Gv-N2SHLEQ3KlWEe8OpmXYfsOq72Sw_p5edovqc7JkQ
+

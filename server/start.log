@@ -1,0 +1,27 @@
+
+> express@0.0.0 start
+> node ./bin/www
+
+Cloudinary Config: { cloud_name: undefined, api_key: 'MISSING', api_secret: 'MISSING' }
+[2026-01-16 16:16:34] DEBUG Creating transport: nodemailer (6.10.1; +https://nodemailer.com/; SMTP/6.10.1[client:6.10.1])
+Review controller loaded
+undefined
+(node:5518) Warning: Accessing non-existent property 'get' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+/Users/pasangrumba/Documents/Work/JavaScript_Projects/everest-vacation/server/bin/www:97
+      throw error;
+      ^
+
+Error: listen EPERM: operation not permitted 0.0.0.0:4000
+    at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 4000
+}
+
+Node.js v24.11.1

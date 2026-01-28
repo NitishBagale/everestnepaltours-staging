@@ -1,0 +1,187 @@
+doctype html
+html
+  head
+    title New Expert Enquiry
+    style.
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 30px;
+        text-align: center;
+        color: #ffffff;
+      }
+
+      .header p {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .intro-text {
+        font-size: 16px;
+        color: #555;
+        margin-bottom: 25px;
+        line-height: 1.6;
+      }
+
+      .info-section {
+        background: #f9fafb;
+        border-left: 4px solid #10b981;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+      }
+
+      .info-row {
+        margin-bottom: 15px;
+      }
+
+      .info-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .label {
+        font-weight: 600;
+        color: #6b7280;
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .value {
+        color: #1f2937;
+        font-size: 15px;
+        line-height: 1.5;
+        word-wrap: break-word;
+      }
+
+      .message-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        padding: 15px;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-style: italic;
+      }
+
+      .footer {
+        background: #f9fafb;
+        padding: 20px 30px;
+        text-align: center;
+        font-size: 13px;
+        color: #6b7280;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .divider {
+        height: 1px;
+        background: #e5e7eb;
+        margin: 20px 0;
+      }
+
+      a {
+        color: #10b981;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .action-buttons {
+        margin-top: 25px;
+        text-align: center;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 12px 30px;
+        background: #10b981;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        margin: 0 5px;
+      }
+
+      .btn:hover {
+        background: #059669;
+        text-decoration: none;
+      }
+
+  body
+    .email-container
+      .header
+        p 🎯 New Expert Enquiry
+        .badge Ask an Expert Form
+
+      .content
+        p.intro-text A customer has submitted an enquiry through the "Ask an Expert" form. Please review the details below and respond promptly.
+
+        .info-section
+          .info-row
+            span.label Customer Name
+            div.value= name
+
+          .divider
+
+          .info-row
+            span.label Email Address
+            div.value
+              a(href=`mailto:${email}`)= email
+
+          .divider
+
+          .info-row
+            span.label Contact Number
+            div.value= contact
+
+        .info-section
+          .info-row
+            span.label Enquiry Message
+            .message-box.value= message
+
+        .action-buttons
+          a.btn(href=`mailto:${email}`) Reply to Customer
+
+      .footer
+        p This is an automated notification from your "Ask an Expert" form.
+        p To respond, click the button above or email directly to 
+          a(href=`mailto:${email}`)= email
+        p.
+          Submitted on #{new Date().toLocaleString('en-US', { 
+            dateStyle: 'long', 
+            timeStyle: 'short' 
+          })}

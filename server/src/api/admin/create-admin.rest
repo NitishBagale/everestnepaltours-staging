@@ -1,0 +1,15 @@
+
+POST  http://localhost:4000/admin/create
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIwZTY2OTM5LTk3NzMtNGQzNy04ZGU0LTQ1YWNhZTg1NzVlZSIsImlhdCI6MTc2NDU4NDU2NCwiZXhwIjoxNzY0NjcwOTY0fQ.SC0M3dxJpNLxDnpL9s2LElmOzMuok2kadCGFpPtJF1o
+
+{
+    "name": "editor user",
+    "password": "securepassword123",
+    "email": "newadmin@example.com",
+    "role": "editor"
+}
+
+###
+GET   http://localhost:4000/admin/getAll
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTQ1MTIxMCwiZXhwIjoxNzY1NTM3NjEwfQ.8XGs0zQsibZYLoGOrUNLSJdMHa1-6HfxXzcaQqAMNPs

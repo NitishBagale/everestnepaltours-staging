@@ -1,0 +1,67 @@
+
+POST http://localhost:4000/booking/create
+Content-Type: application/json
+
+{
+  "bookingDate": "2025-01-10",
+  "pickupDate": "2025-01-12",
+  "returnDate": "2025-01-18",
+  "totalAmount": "1500",
+  "status": "pending",
+  "paymentStatus": "unpaid",
+  "pickUp": "Kathmandu",
+  "destination": "Pokhara",
+  "anotherDestination": "Lumbini",
+  "trvellerInfo": {
+    "fullName": "mr.pakhrin",
+    "email": "test@gmail.com",
+    "contactNumber": "9800000000",
+    "travelDate": "2025-01-12",
+    "noOfTravellers": 4,
+    "accommodation": "3-Star Hotel",
+    "passport": "N12345678",
+    "details": "Need vegetarian food and mountain view hotel."
+  },
+  "packageName": "Nepal, Bhutan, Tibet Overland EBC Kathmandu Tour",
+  "details": "Travel package including sightseeing, hotel & guide"
+}
+
+###
+PUT  http://localhost:4000/booking/verify
+Content-Type: application/json
+
+
+{
+  "email": "psandesh956@gmail.com",
+    "OTP": "556335"
+}
+
+###
+
+PUT http://localhost:4000/booking/confirm/fa559193-eb67-45eb-891a-475e68fc458e
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDY2OTU4OCwiZXhwIjoxNzY0NzU1OTg4fQ.irTzPr9IhEYhruOszRjVhjy8i7LGEeXWVdZzI750BoU
+Content-Type: application/json
+
+{
+  "status": "confirmed"
+}
+
+###
+
+
+PUT http://localhost:4000/booking/cancel/4c0833b1-7bf3-4a70-8286-5b04992da3d1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDY2OTU4OCwiZXhwIjoxNzY0NzU1OTg4fQ.irTzPr9IhEYhruOszRjVhjy8i7LGEeXWVdZzI750BoU
+Content-Type: application/json
+
+{
+  "reason": "Change of plans"
+}
+
+###
+GET http://localhost:4000/booking/get
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NDU2Njg1MCwiZXhwIjoxNzY0NjUzMjUwfQ.aVMu5YDrofwa3uNXqP2Lr1x3U7MLW0dv5Upo3Kh7Nto
+###
+GET http://localhost:4000/booking/get/4c0833b1-7bf3-4a70-8286-5b04992da3d1
+
+###
+GET  http://localhost:4000/traveller/

@@ -1,0 +1,35 @@
+
+POST http://localhost:4000/contact-form/
+Content-Type: application/json
+
+{
+  "fullName": "Maila DON",
+  "email": "mailaaaa.don@example.com",
+  "subject": "Inquiry about Nepal Tour Packages",
+  "message": "Hello, I am interested in learning more about your Nepal tour packages. Could you please provide more details about the itineraries and pricing? Thank you!",
+  "qr": "https://everestnepaltours.com/wp-content/uploads/2025/01/WeChat-Contact-s-1-288x300.jpg"
+}
+
+
+###
+GET http://localhost:4000/contact-form/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2NTI2MDU3MSwiZXhwIjoxNzY1MzQ2OTcxfQ.YO2d3KZCXyZR3lL2YaAN5ZRxSyNnAdNVpEitJXt8sAs
+
+
+###
+GET http://localhost:4000/contact-form/1
+
+###
+PUT http://localhost:4000/contact-form/1
+Content-Type: application/json
+
+{
+  "fullName": "Jane Smith",
+  "email": "jane.smith@example.com",
+    "subject": "Updated Inquiry about Nepal Tour Packages",
+    "message": "Hello, I would like to update my previous inquiry about your Nepal tour packages. Could you please provide more details about the itineraries and pricing? Thank you!",
+    "qr": "images.unsplash.com/photo-1503023345310-bd7c1de61c7d"
+}
+
+###
+DELETE http://localhost:4000/contact-form/1

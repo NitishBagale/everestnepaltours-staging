@@ -1,0 +1,32 @@
+
+POST  http://localhost:4000/traveller/
+Content-Type: application/json
+
+{
+  "fullName": "John Doeeeeee",
+  "email": "johnnn.doe@example.com",
+  "password": "securePassword123",
+  "passport": "A12345678",
+  "cantactNumber": "9845678901",
+  "trvelDate": "2024-12-15",
+  "noOfTravellers": 4,
+  "accomodation": "4 stars",
+  "description": "Looking forward to an adventurous trek in the Himalayas with my family."
+}
+###
+
+GET  http://localhost:4000/traveller/
+
+###
+GET  http://localhost:4000/traveller/1
+
+###
+PUT http://localhost:4000/traveller/1
+Content-Type: application/json
+
+{
+    "noOfTravellers": 10
+}
+
+###
+DELETE http://localhost:4000/traveller/1

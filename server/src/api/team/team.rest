@@ -1,0 +1,30 @@
+POST  http://localhost:4000/team/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTM1OTIzNiwiZXhwIjoxNzY1NDQ1NjM2fQ.zBlxLtySASqTu5Y-fkgugGjOqAhnnY_HEesJhoAamPk
+
+{
+    "name": "Alice Johnson",
+    "designation": "Tour Guide",
+    "description": "Alice has over 10 years of experience leading trekking tours in the Himalayas. She is passionate about sharing her knowledge of local culture and nature with travelers.",
+    "imageUrl": "http://example.com/images/alice.jpg   "
+}
+
+###
+GET http://localhost:4000/team/
+
+###
+GET http://localhost:4000/team/search/Alice Johnson
+
+###
+PUT http://localhost:4000/team/Alice Johnson
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTM1OTIzNiwiZXhwIjoxNzY1NDQ1NjM2fQ.zBlxLtySASqTu5Y-fkgugGjOqAhnnY_HEesJhoAamPk
+
+{
+    "designation": "Senior Tour Guide",
+    "description": "Alice has over 12 years of experience leading trekking tours in the Himalayas. She is passionate about sharing her knowledge of local culture and nature with travelers."
+}
+
+###
+DELETE http://localhost:4000/team/Alice Johnson
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTM1OTIzNiwiZXhwIjoxNzY1NDQ1NjM2fQ.zBlxLtySASqTu5Y-fkgugGjOqAhnnY_HEesJhoAamPk

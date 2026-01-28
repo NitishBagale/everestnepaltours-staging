@@ -1,0 +1,118 @@
+doctype html
+html
+  head
+    title Booking Confirmation
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #eeeeee;
+        margin: 0;
+        padding: 40px 0;
+        display: flex;
+        justify-content: center;
+      }
+      .container {
+        background-color: #f3fbff;
+        max-width: 600px;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      }
+      .header {
+        text-align: center;
+        color: #888;
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
+      .car-img {
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        margin-bottom: 20px;
+      }
+      .car-img img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .car-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .subtext {
+        color: #888;
+        margin-bottom: 10px;
+      }
+      .info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #444;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid #ccc;
+        margin: 15px 0;
+      }
+      .section-title {
+        font-weight: bold;
+        color: #222;
+        margin-top: 10px;
+        margin-bottom: 3px;
+      }
+      ul {
+        padding-left: 0;
+        margin: 10px 0;
+      }
+      li {
+        list-style: none;
+        margin: 4px 0;
+        font-size: 14px;
+        color: #222;
+      }
+      li:before {
+        content: "✓ ";
+        color: green;
+        font-weight: bold;
+      }
+
+  body
+    .container
+      p.header Your booking request Successful !!!
+      .car-img
+        img(src="https://images.unsplash.com/photo-1608652763120-59c6b909e3a2", alt="Car Image")
+
+      p.car-title Car
+      p.subtext asdfnnsdfij
+
+      .info
+        span 🧍‍♂️
+        span 12 seats
+
+      .info
+        span 🚗
+        span License: MH5327232
+
+      hr
+
+      .section
+        p.section-title 📍 Pickup
+        p Thamel
+        p Jun 18, 2025 | 12:30 AM
+
+      .section
+        p.section-title 📍 Destination
+        p Baneshwor
+        p Jun 18, 2025 | 12:30 AM
+
+      .section
+        p.section-title Your booking overview:
+        ul
+          li 24/7 Roadside Assistance Hotline
+          li GPS
+          li Limited Miles
+          li Booking option: Best price - pay now, cancel and rebook for a fee

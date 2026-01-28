@@ -1,0 +1,143 @@
+doctype html
+html
+  head
+    title Contact Form Submission
+    style.
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #10b981;
+        color: #ffffff;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        text-align: center;
+        color: #ffffff;
+      }
+
+      .header p {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .intro-text {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 25px;
+        line-height: 1.6;
+      }
+
+      .info-section {
+        background: #f9f9f9;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+      }
+
+      .info-row {
+        margin-bottom: 15px;
+      }
+
+      .info-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .label {
+        font-weight: 600;
+        color: #555;
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .value {
+        color: #333;
+        font-size: 15px;
+        line-height: 1.5;
+        word-wrap: break-word;
+      }
+
+      .message-box {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        padding: 15px;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .footer {
+        background: #f5f5f5;
+        padding: 20px 30px;
+        text-align: center;
+        font-size: 13px;
+        color: #888;
+        border-top: 1px solid #e0e0e0;
+      }
+
+      .divider {
+        height: 1px;
+        background: #e0e0e0;
+        margin: 20px 0;
+      }
+
+      a {
+        color: #667eea;
+        text-decoration: none;
+      }
+
+  body
+    .email-container
+      .header
+        p 📬 New Contact Form Submission
+
+      .content
+        p.intro-text You have received a new contact form submission from your website.
+
+        .info-section
+          .info-row
+            span.label Full Name
+            div.value= fullName
+
+          .divider
+
+          .info-row
+            span.label Email Address
+            div.value
+              a(href=`mailto:${email}`)= email
+
+          .divider
+
+          .info-row
+            span.label Subject
+            div.value= subject
+
+        .info-section
+          .info-row
+            span.label Message
+            .message-box.value= message
+
+      .footer
+        p This email was automatically generated from your website's contact form.
+        p Please respond to the sender directly at 
+          a(href=`mailto:${email}`)= email

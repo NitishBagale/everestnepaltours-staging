@@ -1,0 +1,25 @@
+### Content Block API Tests - FIXED
+
+@baseUrl = http://localhost:4000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2Njk4NjYzNCwiZXhwIjoxNzY3MDczMDM0fQ.Up_-H3JL73Z9fPA0lWbG6ZgI1Y6Lv-VW7Qahv1rjT2A
+
+### ⚠️ IMPORTANT: First run this to get a valid packageId
+GET {{baseUrl}}/package-tour
+Content-Type: application/json
+
+### Look at the response above and find the "id" field of any package
+### Replace PACKAGE_ID_HERE below with that actual id number
+
+### Create Content Block
+POST {{baseUrl}}/content-block
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "packageId": 27,
+  "type": "after_description",
+  "title": "Why Choose This Tour",
+  "content": "<h2>Exclusive Benefits</h2><p>Experience breathtaking views and cultural immersion.</p>",
+  "order": 1,
+  "isActive": true
+}

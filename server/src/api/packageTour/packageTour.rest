@@ -1,0 +1,126 @@
+### Step 1: Upload images first (using form-data with file upload)
+POST http://localhost:4000/package-tour/upload-images
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsImlhdCI6MTc2MzQ2MTA1MywiZXhwIjoxNzYzNTQ3NDUzfQ.Re38dGjVKcG-d1fC-dBXG_pCezfU5mKR7Cb_Ov4sbLM
+# Use multipart/form-data and attach image files with field name "images"
+
+### Step 2: Create package tour with the image URLs from step 1
+POST http://localhost:4000/package-tour/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxLTBkZWMtNGFkYy1hYjA2LTZkNWJiNGEzMGZmNiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NzE2NjI5NiwiZXhwIjoxNzY3MjUyNjk2fQ.8giONvfSFYWBtslfyiFPgRvWR-V4rxvyV8RcJROax6Q
+
+{
+  "package":{
+  "title": "Spectacular Champadevi Hikeeere",
+  "descriptions": "Jomsom Muktinath Trekking in Nepal is a beautiful and culturally rich trekking route in the Annapurna region. The trek begins with a drive from Kathmandu to Pokhara and then to Nayapul where the journey on foot begins. The trail leads through local villages, apple orchards, barren landscapes, and Buddhist-influenced settlements. The major highlight is the sacred Muktinath Temple at 3,800m, a highly revered pilgrimage site for both Hindus and Buddhists. The trek offers scenic mountain landscapes, local culture, and religious importance, making it a perfect blend of nature and spirituality.",
+  "duration": "13 Days",
+  "tour_type": "Challenging",
+  "rating": "Excellent",
+  "mainImage": "https://everestnepaltours.com/wp-content/uploads/2023/12/hiking-hattiban-to-champadevi-to-machchhegaun-350x250.jpg",
+  "categoryId": 1,
+
+  "itinerary": [
+    {
+      "day": 1,
+      "title": "Drive Kathmandu to Pokhara",
+      "activities": ["6-7 hours drive to Pokhara", "Elevation: 910m"]
+    },
+    {
+      "day": 2,
+      "title": "Drive Pokhara to Nayapul (1050m) & Trek to Tikhedhunga",
+      "activities": ["3-4 hours trek", "Elevation: 1570m"]
+    },
+    {
+      "day": 3,
+      "title": "Tikhedhunga to Ghorepani",
+      "activities": ["5-6 hours hike through stone steps and villages", "Elevation: 2860m"]
+    },
+    {
+      "day": 4,
+      "title": "Ghorepani to Tatopani",
+      "activities": ["6-7 hours trekking", "Pass through rhododendron forests", "Elevation: 1190m"]
+    },
+    {
+      "day": 5,
+      "title": "Tatopani to Ghasa",
+      "activities": ["5-6 hours walking", "Explore hot springs & Kali Gandaki valley", "Elevation: 2010m"]
+    },
+    {
+      "day": 6,
+      "title": "Ghasa to Marpha",
+      "activities": ["5-6 hours trek", "Visit Marpha village, famous for apple farming & brandy", "Elevation: 2680m"]
+    },
+    {
+      "day": 7,
+      "title": "Marpha to Kagbeni",
+      "activities": ["Trek 5-6 hours through windy valley", "Elevation: 2810m"]
+    },
+    {
+      "day": 8,
+      "title": "Kagbeni to Muktinath",
+      "activities": ["4-5 hours trek to holy Muktinath Temple", "Elevation: 3800m"]
+    },
+    {
+      "day": 9,
+      "title": "Muktinath to Jomsom",
+      "activities": ["6-7 hour trek descending to Jomsom", "Elevation: 2720m"]
+    },
+    {
+      "day": 10,
+      "title": "Fly Jomsom to Pokhara & Drive to Kathmandu",
+      "activities": ["30-minute scenic mountain flight", "Drive back to Kathmandu"]
+    }
+  ],
+
+  "imageGallary": [
+    "https://everestnepaltours.com/wp-content/uploads/2023/12/hiking-resort-to-champadevi-ascend-1.jpg",
+    "https://everestnepaltours.com/wp-content/uploads/2023/12/champadevi-temple.jpg",
+    "https://everestnepaltours.com/wp-content/uploads/2023/12/kathmandu-valley-view-from-champadevi-height.jpg",
+    "https://everestnepaltours.com/wp-content/uploads/2023/12/hiking-way-1.jpg",
+    "https://everestnepaltours.com/wp-content/uploads/2023/12/mountain-view-from-champadevi.jpg",
+    "https://everestnepaltours.com/wp-content/uploads/2023/12/hattiban-resort.jpg"
+  ],
+
+  "tags": [
+    "Jomsom",
+    "Muktinath",
+    "Annapurna",
+    "Trekking",
+    "13 Days",
+    "Nepal"
+  ],
+  "cost": "1300"
+}
+}
+
+
+
+
+
+### Get all package tours
+GET http://localhost:4000/package-tour/
+
+### Get package tour by ID
+GET http://localhost:4000/package-tour/17
+
+### Search package tour by title (query parameter)
+GET http://localhost:4000/package-tour/search?title=Nepal, Bhutan, Tibet Overland EBC Tour
+
+###
+POST http://localhost:4000/package-tour/1/review
+Content-Type: application/json
+
+{
+  "guestName": "Alice Johnson",
+  "country": "USA",
+  "travelDate": "2025-08-15",
+  "tourTitle": "Nepal, Bhutan, Tibet Overland EBC Kathmandu Tour",
+  "title": "An Unforgettable Journey!",
+  "reviewText": "This tour was absolutely incredible! From the stunning landscapes of Nepal to the rich culture of Bhutan and the spiritual aura of Tibet, every moment was magical. The guides were knowledgeable and friendly, making the experience even more enjoyable. Highly recommend Everest Vacation for anyone looking to explore these beautiful countries!",
+  "rating": 5
+}
+
+###
+GET http://localhost:4000/package-tour/3
+
+###
+GET http://localhost:4000/package-tour/tags/Kathmandu
