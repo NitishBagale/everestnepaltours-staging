@@ -47,7 +47,7 @@ jobs:
         run: npm install -g vercel
 
       - name: Pull Vercel environment (Production)
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} --cwd ./client
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy to Vercel (Production)
-        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --cwd ./client
+        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
