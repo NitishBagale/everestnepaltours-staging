@@ -2,6 +2,8 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const {
+  DATABASE_URL,
+  DIRECT_DATABASE_URL,
   DB_NAME,
   DB_USERNAME,
   DB_PASSWORD,
@@ -15,9 +17,12 @@ const {
   SMTP_PASSWORD,
   SECRET_KEY,
   PORT,
+  NODE_ENV,
 } = process.env;
 
 module.exports = {
+  DATABASE_URL,
+  DIRECT_DATABASE_URL,
   DB_NAME,
   DB_USERNAME,
   DB_PASSWORD,
@@ -31,4 +36,5 @@ module.exports = {
   SMTP_PASSWORD,
   SECRET_KEY,
   PORT,
+  NODE_ENV,
 };

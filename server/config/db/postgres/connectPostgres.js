@@ -1,6 +1,8 @@
 // db.js
 const { Sequelize } = require("sequelize");
 const {
+  DATABASE_URL,
+  DIRECT_DATABASE_URL,
   DB_NAME,
   DB_USERNAME,
   DB_PASSWORD,
@@ -8,66 +10,86 @@ const {
   DB_DIALECT,
   DB_PORT,
   SSL,
+  NODE_ENV,
 } = require("../../env");
 
 // Create a single Sequelize instance
-const postgres = new Sequelize(DB_NAME, DB_USERNAME, DB_PASSWORD, {
-  host: DB_HOST,
-  dialect: DB_DIALECT || "postgres",
-  port: DB_PORT,
-  timezone: "+05:45",
-  logging: false, 
-  pool: {
-    max: 3,          // Reduced to 3 connections (conservative for Aiven)
-    min: 0,          // No minimum idle connections
-    acquire: 30000,  // 30 seconds to acquire connection
-    idle: 10000,     // Close idle connections after 10 seconds
-    evict: 5000,     // Check for idle connections every 5 seconds
-  },
+const connectionUrl = DATABASE_URL || DIRECT_DATABASE_URL;
+const shouldUseSsl = SSL === "true" && !DATABASE_URL;
 
-  dialectOptions: {
-    ssl:
-      SSL === "true"
-        ? { require: true, rejectUnauthorized: false }
-        : false,
+const baseOptions = {
+  dialect: DB_DIALECT || "postgres",
+  timezone: "+05:45",
+  logging: false,
+  pool: {
+    max: 3, // Reduced to 3 connections (conservative for pooled DBs)
+    min: 0,
+    acquire: 30000,
+    idle: 10000,
+    evict: 5000,
   },
   retry: {
-    max: 3,          // Reduced retry attempts
+    max: 3,
   },
-});
+};
+
+if (shouldUseSsl) {
+  baseOptions.dialectOptions = {
+    ssl: { require: true, rejectUnauthorized: false },
+  };
+}
+
+const postgres = connectionUrl
+  ? new Sequelize(connectionUrl, baseOptions)
+  : new Sequelize(DB_NAME, DB_USERNAME, DB_PASSWORD, {
+      ...baseOptions,
+      host: DB_HOST,
+      port: DB_PORT,
+      dialectOptions:
+        SSL === "true"
+          ? { ssl: { require: true, rejectUnauthorized: false } }
+          : undefined,
+    });
 
 const testPostgresConnection = async () => {
   try {
     await postgres.authenticate();
     console.info("✅ Database connection authenticated.");
 
-    await postgres.query(
-      'ALTER TABLE "Categories" ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;'
-    );
-    console.info('✅ Ensured "Categories.sort_order" column exists.');
+    const shouldSync =
+      NODE_ENV !== "production" && process.env.ENABLE_DB_SYNC === "true";
 
-    await postgres.query(
-      'ALTER TABLE "Reviews" ADD COLUMN IF NOT EXISTS "packageIds" INTEGER[] DEFAULT \'{}\'::INTEGER[];'
-    );
-    console.info('✅ Ensured "Reviews.packageIds" column exists.');
+    if (shouldSync) {
+      await postgres.query(
+        'ALTER TABLE "Categories" ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;'
+      );
+      console.info('✅ Ensured "Categories.sort_order" column exists.');
 
-    await postgres.query(
-      'ALTER TABLE "Reviews" ADD COLUMN IF NOT EXISTS "image" JSONB;'
-    );
-    console.info('✅ Ensured "Reviews.image" column exists.');
+      await postgres.query(
+        'ALTER TABLE "Reviews" ADD COLUMN IF NOT EXISTS "packageIds" INTEGER[] DEFAULT \'{}\'::INTEGER[];'
+      );
+      console.info('✅ Ensured "Reviews.packageIds" column exists.');
 
-    await postgres.query(
-      'ALTER TABLE "Reviews" ADD COLUMN IF NOT EXISTS "sort_order" INTEGER DEFAULT 0;'
-    );
-    console.info('✅ Ensured "Reviews.sort_order" column exists.');
+      await postgres.query(
+        'ALTER TABLE "Reviews" ADD COLUMN IF NOT EXISTS "image" JSONB;'
+      );
+      console.info('✅ Ensured "Reviews.image" column exists.');
 
-    await postgres.query(
-      'ALTER TABLE "Reviews" ALTER COLUMN "tourTitle" DROP NOT NULL;'
-    );
-    console.info('✅ Ensured "Reviews.tourTitle" is nullable.');
+      await postgres.query(
+        'ALTER TABLE "Reviews" ADD COLUMN IF NOT EXISTS "sort_order" INTEGER DEFAULT 0;'
+      );
+      console.info('✅ Ensured "Reviews.sort_order" column exists.');
 
-    await postgres.sync({ alter: true });
-    console.info("👾 Database synced successfully.");
+      await postgres.query(
+        'ALTER TABLE "Reviews" ALTER COLUMN "tourTitle" DROP NOT NULL;'
+      );
+      console.info('✅ Ensured "Reviews.tourTitle" is nullable.');
+
+      await postgres.sync({ alter: true });
+      console.info("👾 Database synced successfully.");
+    } else {
+      console.info("ℹ️ Skipping schema sync (set ENABLE_DB_SYNC=true to enable).");
+    }
     
     // Log current connection info
     const pool = postgres.connectionManager.pool;

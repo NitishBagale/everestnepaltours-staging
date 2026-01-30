@@ -54,6 +54,10 @@ app.use(express.urlencoded({ limit: "50mb", extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use("/", indexRouter);
 app.use("/traveller", travellerRouter);
 app.use("/admin", adminRouter);
