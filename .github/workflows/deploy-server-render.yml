@@ -58,5 +58,11 @@ jobs:
       - name: Run database migrations
         run: npm run db:migrate
 
+      - name: Sync schema (one-time override)
+        if: ${{ secrets.RUN_DB_SYNC == 'true' }}
+        env:
+          ALLOW_DB_SYNC_IN_PROD: true
+        run: npm run db:sync
+
       - name: Trigger Render deploy hook
         run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"

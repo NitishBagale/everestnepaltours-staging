@@ -54,11 +54,13 @@ Required:
 
 Optional (recommended if Neon requires direct connections for migrations):
 - `DIRECT_DATABASE_URL`
+- `RUN_DB_SYNC` (set to `true` only for a one-time schema sync if migrations are empty)
 
 ## Migrations
 - Run via `npm run db:migrate` in `server/` (uses `sequelize-cli`).
 - CI chooses `DIRECT_DATABASE_URL` if present; otherwise uses `DATABASE_URL`.
 - App startup no longer performs schema sync in production; set `ENABLE_DB_SYNC=true` for local-only sync.
+- One-time emergency sync: set GitHub secret `RUN_DB_SYNC=true` to run `npm run db:sync` on deploy.
 
 ## Notes
 - Ensure `client/.env.example` and `server/.env.example` are copied to `.env` for local development.
