@@ -21,7 +21,16 @@ import toast, { Toaster } from "react-hot-toast";
 // Initial state for form reset
 const initialFormData = {
   name: "",
+  slug: "",
 };
+
+const createSlug = (text = "") =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 const SortableCategoryItem = ({ category, onEdit, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -53,6 +62,11 @@ const SortableCategoryItem = ({ category, onEdit, onDelete }) => {
           <p className="text-xs text-gray-500 truncate">
             ID: {String(category.id).substring(0, 8)}...
           </p>
+          {category.slug ? (
+            <p className="text-xs text-gray-500 truncate">
+              Slug: {category.slug}
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="space-x-4 flex shrink-0">
@@ -79,19 +93,45 @@ const CategoryAdminPage = () => {
   const [listLoading, setListLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [editCategoryId, setEditCategoryId] = useState(null);
+  const [slugEdited, setSlugEdited] = useState(false);
 
   // ====================== UTILITY FUNCTIONS ======================
   const getToken = () => {
-    return Cookies.get("accessToken") || Cookies.get("token");
+    return (
+      Cookies.get("accessToken") ||
+      Cookies.get("token") ||
+      localStorage.getItem("admin_token") ||
+      sessionStorage.getItem("admin_token")
+    );
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "name") {
+      setFormData((prev) => {
+        const next = { ...prev, name: value };
+        if (!slugEdited || !prev.slug) {
+          next.slug = createSlug(value);
+        }
+        return next;
+      });
+      return;
+    }
+
+    if (name === "slug") {
+      setSlugEdited(true);
+      setFormData((prev) => ({ ...prev, slug: value }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleCancelEdit = () => {
     setEditCategoryId(null);
     setFormData(initialFormData);
+    setSlugEdited(false);
   };
 
   // ====================== CRUD - READ (Fetch List) ======================
@@ -126,10 +166,14 @@ const CategoryAdminPage = () => {
 
   // ====================== CRUD - EDIT (Load Data to Form) ======================
   const handleEdit = (categoryData) => {
+    const derivedSlug =
+      categoryData.slug || createSlug(categoryData.name || "");
     setEditCategoryId(categoryData.id);
     setFormData({
       name: categoryData.name || "",
+      slug: derivedSlug,
     });
+    setSlugEdited(Boolean(categoryData.slug));
     const scrollContainer = document.getElementById("admin-scroll-area");
     if (scrollContainer) {
       scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
@@ -151,8 +195,11 @@ const CategoryAdminPage = () => {
         return;
       }
 
+      const slugValue =
+        formData.slug?.trim() || createSlug(formData.name || "");
       const payload = {
         name: formData.name,
+        slug: slugValue,
       };
 
       let successMessage;
@@ -282,6 +329,7 @@ const CategoryAdminPage = () => {
             `${BASE_URL}/category/${cat.id}`,
             {
               name: cat.name,
+              slug: cat.slug || createSlug(cat.name || ""),
               sort_order: index + 1,
             },
             {
@@ -330,6 +378,23 @@ const CategoryAdminPage = () => {
                   placeholder="e.g., Nepal Tours"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">
+                  Slug
+                </label>
+                <input
+                  type="text"
+                  name="slug"
+                  value={formData.slug}
+                  onChange={handleChange}
+                  className="w-full border p-3 rounded focus:outline-[var(--admin-primary)] text-base"
+                  placeholder="e.g., nepal-tours"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Auto-generated from the name. You can edit it.
+                </p>
               </div>
 
               {/* Action Buttons */}

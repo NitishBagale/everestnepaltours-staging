@@ -21,14 +21,14 @@ const categoryRouter = require("./src/routes/category");
 const packageTourRouter = require("./src/routes/packageTour");
 const reviewRouter = require("./src/routes/review");
 const contactFormRouter = require("./src/routes/contactForm");
-const commentRouter = require("./src/routes/comment");
 const travellerRouter = require("./src/routes/traveller");
 const teamRouter = require("./src/routes/team");
 const mediaRouter = require("./src/routes/media");
 const seoRouter = require("./src/routes/seo");
-const contentBlockRouter = require("./src/routes/contentBlock");
+const travelInfoRouter = require("./src/routes/travelInfo.route");
 
 const app = express();
+require("./models/travelInfo.model");
 testPostgresConnection();
 
 app.set("views", path.join(__dirname, "/src/views"));
@@ -72,10 +72,9 @@ app.use("/package-tour", packageTourRouter);
 app.use("/review", reviewRouter);
 app.use("/contact-form", contactFormRouter);
 app.use("/team", teamRouter);
-app.use("/comment", commentRouter);
 app.use("/media", mediaRouter);
 app.use("/seo", seoRouter);
-app.use("/content-block", contentBlockRouter);
+app.use("/travel-info", travelInfoRouter);
 
 app.get("/api/search", async (req, res) => {
   const { q } = req.query;

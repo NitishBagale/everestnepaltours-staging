@@ -1,4 +1,5 @@
 import TravelBlogClient from "./TravelBlogClient";
+import { getMediaObject, getMediaUrl } from "@/lib/media";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const DEFAULT_TITLE = "Travel Blog | Everest Vacation";
@@ -23,32 +24,64 @@ const fetchBlogList = async () => {
   }
 };
 
+const fetchBlogCms = async () => {
+  try {
+    const res = await fetch(`${BASE_URL}/cms/`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const list = json?.data || [];
+    return list.find((item) => item.slug === "travel-blog") || null;
+  } catch {
+    return null;
+  }
+};
+
 export const generateMetadata = async () => {
-  const posts = await fetchBlogList();
-  const ogImage = posts?.[0]?.coverImage || DEFAULT_IMAGE;
+  const [posts, cms] = await Promise.all([fetchBlogList(), fetchBlogCms()]);
+  const cmsTitle = cms?.meta_title || DEFAULT_TITLE;
+  const cmsDescription = cms?.meta_description || DEFAULT_DESCRIPTION;
+  const cmsKeywords = cms?.meta_keywords || DEFAULT_KEYWORDS;
+  const bannerMedia =
+    cms?.content?.pageBannerImage ||
+    cms?.content?.coverImage ||
+    posts?.[0]?.coverImage ||
+    DEFAULT_IMAGE;
+  const bannerImage = getMediaUrl(getMediaObject(bannerMedia), "large") || DEFAULT_IMAGE;
+  const ogImage = bannerImage;
 
   return {
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-    keywords: DEFAULT_KEYWORDS,
+    title: cmsTitle,
+    description: cmsDescription,
+    keywords: cmsKeywords,
     openGraph: {
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
+      title: cmsTitle,
+      description: cmsDescription,
       type: "website",
       images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
+      title: cmsTitle,
+      description: cmsDescription,
       images: ogImage ? [ogImage] : undefined,
     },
   };
 };
 
 const BlogListingPage = async () => {
-  const posts = await fetchBlogList();
-  return <TravelBlogClient posts={posts} />;
+  const [posts, cms] = await Promise.all([fetchBlogList(), fetchBlogCms()]);
+  const bannerMedia =
+    cms?.content?.pageBannerImage || cms?.content?.coverImage || "";
+  const contentTitle = cms?.content?.title || "Travel Blog";
+  const contentSubtitle = cms?.content?.subtitle || "";
+  return (
+    <TravelBlogClient
+      posts={posts}
+      bannerImage={bannerMedia}
+      contentTitle={contentTitle}
+      contentSubtitle={contentSubtitle}
+    />
+  );
 };
 
 export default BlogListingPage;

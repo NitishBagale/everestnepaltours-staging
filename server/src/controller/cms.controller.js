@@ -1,5 +1,4 @@
 const CmsContent = require("../../models/cms.model");
-const { Op } = require("sequelize");
 
 const slugify = (value) => {
   if (!value) return "";
@@ -182,7 +181,8 @@ exports.getAllCMSByCategoryId = async(req,res)=>{
     const categoryId = req.params.categoryId;
     const cmsSections = await CmsContent.findAll({
       where: {categoryId},
-      attributes: ['section', 'slug']
+      attributes: ['section', 'slug', 'sort_order', 'content'],
+      order: [['sort_order', 'ASC']]
     });
     res.status(200).json({
       success: true,
@@ -196,28 +196,4 @@ exports.getAllCMSByCategoryId = async(req,res)=>{
   }
 }
 
-exports.getCmsByTags = async (req,res) =>{
-  try {
-    const tags = req.query.tags;
-    
-    // Convert to array if it's a single tag string
-    const tagArray = Array.isArray(tags) ? tags : [tags];
-    
-    const cmsSections = await CmsContent.findAll({
-      where: {
-        tags: {
-          [Op.overlap]: tagArray
-        }
-      }
-    });
-    res.status(200).json({
-      success: true,
-      data: cmsSections,
-    }); 
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-}
+// getCmsByTags removed: cms_contents no longer stores tags

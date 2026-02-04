@@ -42,6 +42,7 @@ const fetchBlogBySlug = async (slug) => {
   return { blog: null, related: [] };
 };
 
+
 export const generateMetadata = async ({ params } = {}) => {
   const resolvedParams = params ? await params : {};
   const slugs = resolvedParams?.slugs ?? "";

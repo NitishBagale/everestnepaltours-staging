@@ -1,5 +1,13 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { BASE_URL } from "@/config/Config";
@@ -11,7 +19,6 @@ const initialFormData = {
   slug: "",
   status: true,
   description: "",
-  details: "",
   meta_title: "",
   meta_description: "",
   meta_keywords: "",
@@ -22,6 +29,7 @@ const TravelInformationAdminPage = () => {
   const [loading, setLoading] = useState(false);
   const [editPageId, setEditPageId] = useState(null);
   const [pages, setPages] = useState([]);
+  const [sortedPages, setSortedPages] = useState([]);
   const [listLoading, setListLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -46,17 +54,14 @@ const TravelInformationAdminPage = () => {
     setListLoading(true);
     try {
       const token = Cookies.get("accessToken") || Cookies.get("token");
-      const response = await axios.get(`${BASE_URL}/cms/`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.get(`${BASE_URL}/travel-info/`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
-      // Filter only travel information pages
-      const travelPages =
-        response.data.data?.filter((page) =>
-          page.section?.startsWith("travel-info-")
-        ) || [];
-
-      setPages(travelPages);
+      const travelPages = response.data?.data || response.data || [];
+      const normalized = Array.isArray(travelPages) ? travelPages : [];
+      setPages(normalized);
+      setSortedPages(normalized);
     } catch (error) {
       console.error("Fetch Pages Error:", error);
       toast.error("Failed to load travel information pages.");
@@ -65,6 +70,45 @@ const TravelInformationAdminPage = () => {
       setListLoading(false);
     }
   }, []);
+
+  const handleDragEnd = async ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const oldIndex = sortedPages.findIndex((page) => page.id === active.id);
+    const newIndex = sortedPages.findIndex((page) => page.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const nextOrder = arrayMove(sortedPages, oldIndex, newIndex).map(
+      (page, index) => ({
+        ...page,
+        sort_order: index + 1,
+      })
+    );
+
+    setSortedPages(nextOrder);
+    setPages(nextOrder);
+
+    try {
+      const token = Cookies.get("accessToken") || Cookies.get("token");
+      if (!token) {
+        toast.error("Authentication required. Please login again.");
+        return;
+      }
+      await axios.post(
+        `${BASE_URL}/travel-info/reorder`,
+        {
+          orderUpdates: nextOrder.map((page, index) => ({
+            id: page.id,
+            sort_order: index + 1,
+          })),
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error("Failed to save travel info order:", error);
+      toast.error("Failed to save travel info order");
+      fetchTravelInfoPages();
+    }
+  };
 
   useEffect(() => {
     fetchTravelInfoPages();
@@ -106,13 +150,12 @@ const TravelInformationAdminPage = () => {
   };
 
   const handleEdit = (pageData) => {
-    setEditPageId(pageData.section);
+    setEditPageId(pageData.id || null);
     setFormData({
-      title: pageData.content?.title || "",
+      title: pageData.title || "",
       slug: pageData.slug || "",
-      status: pageData.status || false,
-      description: pageData.content?.description || "",
-      details: pageData.content?.details || "",
+      status: pageData.status !== undefined ? pageData.status : false,
+      description: pageData.description || "",
       meta_title: pageData.meta_title || "",
       meta_description: pageData.meta_description || "",
       meta_keywords: pageData.meta_keywords || "",
@@ -129,16 +172,10 @@ const TravelInformationAdminPage = () => {
     e.preventDefault();
     setLoading(true);
 
-    const section = `travel-info-${formData.slug}`;
-
     const payload = {
-      section: section,
       slug: formData.slug,
-      content: {
-        title: formData.title?.trim() || null,
-        description: formData.description,
-        details: formData.details,
-      },
+      title: formData.title?.trim() || null,
+      description: formData.description,
       status: formData.status,
       meta_title: formData.meta_title,
       meta_description: formData.meta_description,
@@ -151,11 +188,14 @@ const TravelInformationAdminPage = () => {
       let successMessage;
 
       if (editPageId) {
-        const encodedSection = encodeURIComponent(section);
-        await axios.put(`${BASE_URL}/cms/${encodedSection}`, payload, config);
+        await axios.put(
+          `${BASE_URL}/travel-info/${encodeURIComponent(editPageId)}`,
+          payload,
+          config
+        );
         successMessage = "Travel information updated successfully!";
       } else {
-        await axios.post(`${BASE_URL}/cms/`, payload, config);
+        await axios.post(`${BASE_URL}/travel-info/`, payload, config);
         successMessage = "Travel information created successfully!";
       }
 
@@ -183,7 +223,7 @@ const TravelInformationAdminPage = () => {
     }
   };
 
-  const handleDelete = async (section, title) => {
+  const handleDelete = async (id, title) => {
     const confirmed = await new Promise((resolve) => {
       toast(
         (t) => (
@@ -222,9 +262,9 @@ const TravelInformationAdminPage = () => {
     const deleteToastId = toast.loading(`Deleting ${title}...`);
     try {
       const token = Cookies.get("accessToken") || Cookies.get("token");
-      const encodedSection = encodeURIComponent(section);
+      const encodedId = encodeURIComponent(id);
 
-      await axios.delete(`${BASE_URL}/cms/${encodedSection}`, {
+      await axios.delete(`${BASE_URL}/travel-info/${encodedId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -243,15 +283,76 @@ const TravelInformationAdminPage = () => {
 
 
   const filteredPages = useMemo(() => {
-    if (!searchQuery.trim()) return pages;
+    const source = sortedPages.length ? sortedPages : pages;
+    if (!searchQuery.trim()) return source;
 
     const query = searchQuery.toLowerCase();
-    return pages.filter((page) => {
-      const title = page.content?.title?.toLowerCase() || "";
+    return source.filter((page) => {
+      const title = page.title?.toLowerCase() || "";
       const slug = page.slug?.toLowerCase() || "";
       return title.includes(query) || slug.includes(query);
     });
-  }, [pages, searchQuery]);
+  }, [pages, sortedPages, searchQuery]);
+
+  const SortableRow = ({ page }) => {
+    const id = page.id;
+    const { attributes, listeners, setNodeRef, transform, transition } =
+      useSortable({ id });
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="py-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+      >
+        <div className="flex items-start gap-3 min-w-0">
+          <span
+            className="mt-1 text-gray-400 cursor-grab select-none"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag handle"
+          >
+            ⋮⋮
+          </span>
+          <div className="min-w-0">
+            <p className="text-base md:text-lg font-semibold truncate">
+              {page.title || "N/A"}
+            </p>
+            <p className="text-xs md:text-sm text-gray-500 truncate">
+              Slug: {page.slug} | Status:{" "}
+              {page.status ? "Published" : "Draft"}
+            </p>
+            <a
+              href={`/travel-information/${page.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-[var(--admin-primary)] hover:underline"
+            >
+              View on website →
+            </a>
+          </div>
+        </div>
+        <div className="space-x-4 shrink-0">
+          <button
+            onClick={() => handleEdit(page)}
+            className="text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)] font-medium"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleDelete(page.id, page.title || "Page")}
+            className="text-red-600 hover:text-red-900 font-medium"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const inputClass =
     "w-full p-2 border border-gray-300 rounded focus:ring-[var(--admin-primary-ring)] focus:border-[var(--admin-primary-border)]";
@@ -332,14 +433,6 @@ const TravelInformationAdminPage = () => {
             />
           </div>
 
-          <div>
-            <label className={labelClass}>Detailed Content</label>
-            <RichEditor
-              value={formData.details}
-              onChange={(value) => handleQuillChange("details", value)}
-              height="h-80"
-            />
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
@@ -439,48 +532,18 @@ const TravelInformationAdminPage = () => {
             No pages match your search.
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {filteredPages.map((page, index) => (
-              <div
-                key={page._id || `page-${index}`}
-                className="py-4 flex justify-between items-center"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-base md:text-lg font-semibold truncate">
-                    {page.content?.title || "N/A"}
-                  </p>
-                  <p className="text-xs md:text-sm text-gray-500 truncate">
-                    Slug: {page.slug} | Status:{" "}
-                    {page.status ? "Published" : "Draft"}
-                  </p>
-                  <a
-                    href={`/travel-information/${page.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-[var(--admin-primary)] hover:underline"
-                  >
-                    View on website →
-                  </a>
-                </div>
-                <div className="space-x-4">
-                  <button
-                    onClick={() => handleEdit(page)}
-                    className="text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)] font-medium"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleDelete(page.section, page.content?.title || "Page")
-                    }
-                    className="text-red-600 hover:text-red-900 font-medium"
-                  >
-                    Delete
-                  </button>
-                </div>
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext
+              items={filteredPages.map((page) => page.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="divide-y divide-gray-200">
+                {filteredPages.map((page) => (
+                  <SortableRow key={page.id} page={page} />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>

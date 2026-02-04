@@ -4,17 +4,19 @@ const { verifyJwtToken } = require("../lib/jwt/jwt");
 async function isAuthenticated(req, res, next) {
   try {
     console.log('isAuthenticated - req.body:', req.body);
-    let tokenString = req.headers.authorization || req.cookies.token;
+    const headerToken = req.headers.authorization;
+    const cookieToken = req.cookies.token || req.cookies.accessToken;
+    let tokenString = headerToken ? headerToken : cookieToken;
 
-    if (!tokenString) {
+    if (tokenString && tokenString.startsWith("Bearer ")) {
+      tokenString = tokenString.split(" ")[1];
+    }
+
+    if (!tokenString || tokenString === "undefined" || tokenString === "null") {
       return res.status(401).json({
         success: false,
         message: "Authorization token missing",
       });
-    }
-
-    if (tokenString.startsWith("Bearer ")) {
-      tokenString = tokenString.split(" ")[1];
     }
 
     const result = await verifyJwtToken(tokenString, JWT_SECRET);

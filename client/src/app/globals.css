@@ -175,12 +175,12 @@ div[class*="prose"] img {
     @apply border-border outline-ring/50;
   }
   html {
-    font-size: 20px;
+    font-size: 18px;
   }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-poppins), "Poppins", sans-serif;
-    font-size: 20px;
+    font-size: 18px;
     line-height: 1.7;
   }
   h1 {
@@ -229,6 +229,60 @@ div[class*="prose"] img {
   color: #4b5563;
 }
 
+.main-content {
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.main-content p,
+.main-content li {
+  font-size: inherit;
+}
+
+.custom-section-description ul,
+.custom-section-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+#disqus_thread,
+#disqus_thread * {
+  color: #111111 !important;
+  background-color: #ffffff !important;
+}
+
+.custom-section-description li,
+.custom-section-list-item {
+  position: relative;
+  padding-left: 2rem;
+  margin: 0 0 0.75rem 0;
+}
+
+.custom-section-description--include li::before,
+.custom-section-list--include .custom-section-list-item::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0.1rem;
+  color: #35a576;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.custom-section-description--exclude li::before,
+.custom-section-list--exclude .custom-section-list-item::before {
+  content: "✕";
+  position: absolute;
+  left: 0;
+  top: 0.1rem;
+  color: #ef4444;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .other-info-list ul {
   list-style: none;
   padding-left: 0;
@@ -253,42 +307,42 @@ div[class*="prose"] img {
 
 @layer utilities {
   .text-xs {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
   }
   .text-sm {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
   .text-base {
     font-size: 1rem;
   }
   .text-lg {
-    font-size: 1.1875rem;
+    font-size: 1.125rem;
   }
   .text-xl {
-    font-size: 1.3125rem;
+    font-size: 1.25rem;
   }
   .text-2xl {
-    font-size: 1.5625rem;
+    font-size: 1.5rem;
   }
   .text-3xl {
-    font-size: 1.9375rem;
+    font-size: 1.875rem;
   }
   .text-4xl {
-    font-size: 2.3125rem;
+    font-size: 2.25rem;
   }
   .text-5xl {
-    font-size: 3.0625rem;
+    font-size: 3rem;
   }
   .text-6xl {
-    font-size: 3.8125rem;
+    font-size: 3.75rem;
   }
   .text-7xl {
-    font-size: 4.5625rem;
+    font-size: 4.5rem;
   }
   .text-8xl {
-    font-size: 6.0625rem;
+    font-size: 6rem;
   }
   .text-9xl {
-    font-size: 8.0625rem;
+    font-size: 8rem;
   }
 }

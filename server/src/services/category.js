@@ -1,4 +1,5 @@
 const Category = require("../../models/category");
+const { generateUniqueSlug } = require("../utils/slugGenerator");
 
  async function createCategoryServices(categoryData) {
     try {
@@ -7,7 +8,9 @@ const Category = require("../../models/category");
         if (existing) {
             throw new Error("Category name already exists");
         }
-        return await Category.create({ ...categoryData });
+        const slugSource = categoryData.slug || categoryData.name;
+        const slug = await generateUniqueSlug(slugSource, Category);
+        return await Category.create({ ...categoryData, slug });
     } catch (error) {
         throw new Error(error.message);
     }
@@ -34,6 +37,10 @@ const Category = require("../../models/category");
         const category = await Category.findByPk(id);
         if (!category) {
             throw new Error("Category not found");
+        }
+        if (updateData.slug || updateData.name) {
+            const slugSource = updateData.slug || updateData.name;
+            updateData.slug = await generateUniqueSlug(slugSource, Category, id);
         }
         return await category.update(updateData);
     } catch (error) {

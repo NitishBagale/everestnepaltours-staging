@@ -537,7 +537,7 @@ const AdminHomePage = () => {
       );
 
       toast.dismiss();
-      toast.success(`Successfully saved ${newFiles.length} image(s)!`);
+      toast.success("Successfully saved!");
     } catch (error) {
       console.error("Upload Error:", error);
       toast.dismiss();

@@ -64,7 +64,7 @@ const RichEditor = ({
   ];
 
   return (
-    <div className={`prose-editor border rounded-xl overflow-hidden ${className}`}>
+    <div className={`prose-editor border rounded-xl overflow-visible mb-10 ${className}`}>
       <ReactQuill
         ref={quillRef}
         theme="snow"

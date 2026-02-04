@@ -8,7 +8,6 @@ const validateCms = require("../validator/cms");
 
 // Specific routes with fixed patterns should come BEFORE generic :section routes
 cmsrouter.get("/category/:categoryId", cmsController.getAllCMSByCategoryId);
-cmsrouter.get("/tags", cmsController.getCmsByTags);
 cmsrouter.post(
   "/reorder",
   isAuthenticated,

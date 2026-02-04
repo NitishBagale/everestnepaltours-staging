@@ -21,12 +21,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE1MDJjODAxL
       "Tour around century-old temples carved in aesthetic architectural beauty and explore the vibrant traditions and customs of Nepal. Get deep insights into interesting rituals and experience the spiritual essence of this charismatic land. Jungle tours in the beautiful natural surroundings and get glimpses of exotic wildlife and lush flora. Nepal Tours Package promises a memorable experience in Nepal."
     ]
   },
-  "slug": "nepal-tours-package",
-  "tags": ["culture", "nature", "religion", "nepal", "tours"]
+  "slug": "nepal-tours-package"
 }
 
-### Get CMS by tags (query parameter)
-GET http://localhost:4000/cms/tags?tags=culture
 
 
 

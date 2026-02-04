@@ -11,7 +11,7 @@ import RichEditor from "@/components/editor/RichEditor";
 const initialFormData = {
   mainTitle: "",
   slug: "",
-  description: "",
+  excerpt: "",
   date: new Date().toISOString().split("T")[0],
   blogContant: "",
   coverImage: "",
@@ -53,7 +53,7 @@ const mapBlogToForm = (postData) => {
   return {
     mainTitle: resolvedTitle,
     slug: resolvedSlug,
-    description: source.description || "",
+    excerpt: source.excerpt || source.description || "",
     date: toDateInputValue(source.date),
     blogContant: source.blogContant || "",
     coverImage: normalizeCoverMedia(source.coverImage),
@@ -166,6 +166,7 @@ const BlogAdminPage = () => {
 
       const payload = {
         ...formData,
+        description: formData.excerpt || "",
         coverImage: finalCoverImageUrl,
       };
 
@@ -325,59 +326,17 @@ const BlogAdminPage = () => {
                 </div>
               </div>
 
-              <div>
+              <div className="mt-6">
                 <label className="block text-sm font-semibold mb-2">
-                  Description
+                  Excerpt
                 </label>
                 <textarea
-                  name="description"
-                  value={formData.description}
+                  name="excerpt"
+                  value={formData.excerpt}
                   onChange={handleChange}
                   className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm"
                   rows="3"
                   placeholder="Short summary for the blog"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Meta Title
-                  </label>
-                  <input
-                    type="text"
-                    name="meta_title"
-                    value={formData.meta_title}
-                    onChange={handleChange}
-                    className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm"
-                    placeholder="SEO title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Meta Keywords
-                  </label>
-                  <input
-                    type="text"
-                    name="meta_keywords"
-                    value={formData.meta_keywords}
-                    onChange={handleChange}
-                    className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm"
-                    placeholder="keyword1, keyword2"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Meta Description
-                </label>
-                <textarea
-                  name="meta_description"
-                  value={formData.meta_description}
-                  onChange={handleChange}
-                  className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm"
-                  rows="3"
-                  placeholder="SEO description"
                 />
               </div>
 
@@ -424,7 +383,7 @@ const BlogAdminPage = () => {
                 </button>
               </div>
 
-              <div>
+              <div className="mb-16">
                 <label className="block text-sm font-semibold mb-2">
                   Blog Content
                 </label>
@@ -432,6 +391,48 @@ const BlogAdminPage = () => {
                   value={formData.blogContant}
                   onChange={handleEditorChange}
                   height="h-[520px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-16">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Meta Title
+                  </label>
+                  <input
+                    type="text"
+                    name="meta_title"
+                    value={formData.meta_title}
+                    onChange={handleChange}
+                    className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm"
+                    placeholder="SEO title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Meta Keywords
+                  </label>
+                  <input
+                    type="text"
+                    name="meta_keywords"
+                    value={formData.meta_keywords}
+                    onChange={handleChange}
+                    className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm"
+                    placeholder="keyword1, keyword2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Meta Description
+                </label>
+                <textarea
+                  name="meta_description"
+                  value={formData.meta_description}
+                  onChange={handleChange}
+                  className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm"
+                  rows="3"
+                  placeholder="SEO description"
                 />
               </div>
 

@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   GripVertical,
   ChevronDown,
+  ChevronUp,
   FileText,
 } from "lucide-react";
 import axios from "axios";
@@ -71,6 +72,20 @@ const SortableItineraryCard = ({ id, children }) => {
   );
 };
 
+const SortableFaqCard = ({ id, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      {children({ attributes, listeners })}
+    </div>
+  );
+};
+
 const CreatePackage = () => {
   const router = useRouter();
   const [isPublishing, setIsPublishing] = useState(false);
@@ -83,6 +98,10 @@ const CreatePackage = () => {
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
   const [itineraryImageModalOpen, setItineraryImageModalOpen] = useState(false);
   const [activeItineraryIndex, setActiveItineraryIndex] = useState(null);
+  const [itineraryOpen, setItineraryOpen] = useState(false);
+  const [includedExcludedOpen, setIncludedExcludedOpen] = useState(false);
+  const [faqOpen, setFaqOpen] = useState(false);
+  const [additionalInfoOpen, setAdditionalInfoOpen] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor));
 
   const [formData, setFormData] = useState({
@@ -292,7 +311,14 @@ const CreatePackage = () => {
       ...formData,
       customSections: [
         ...formData.customSections,
-        { id: Date.now(), title: "", type: "list", content: [""], note: "" },
+        {
+          id: Date.now(),
+          title: "",
+          type: "list",
+          content: [],
+          note: "",
+          description: "",
+        },
       ],
     });
   };
@@ -377,6 +403,42 @@ const CreatePackage = () => {
     setFormData({ ...formData, faq: newFaqs });
   };
 
+  const handleFaqDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const oldIndex = prev.faq.findIndex((item) => item.id === active.id);
+      const newIndex = prev.faq.findIndex((item) => item.id === over.id);
+      return { ...prev, faq: arrayMove(prev.faq, oldIndex, newIndex) };
+    });
+  };
+
+  const handleAdditionalInfoDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const paragraphIndices = prev.customSections
+        .map((section, index) => (section.type === "paragraph" ? index : null))
+        .filter((index) => index !== null);
+      const paragraphSections = paragraphIndices.map(
+        (index) => prev.customSections[index]
+      );
+      const oldIndex = paragraphSections.findIndex(
+        (section) => section.id === active.id
+      );
+      const newIndex = paragraphSections.findIndex(
+        (section) => section.id === over.id
+      );
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      const reordered = arrayMove(paragraphSections, oldIndex, newIndex);
+      const nextSections = [...prev.customSections];
+      paragraphIndices.forEach((index, pos) => {
+        nextSections[index] = reordered[pos];
+      });
+      return { ...prev, customSections: nextSections };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -439,12 +501,27 @@ const CreatePackage = () => {
 
       const cleanedCustomSections = formData.customSections
         .filter((section) => section.title && section.title.trim() !== "")
-        .map((section) => ({
-          ...section,
-          note: section.note || "",
-          content: section.content.filter((item) => item && item.trim() !== ""),
-        }))
-        .filter((section) => section.content.length > 0 || section.note);
+        .map((section) => {
+          if (section.type === "list") {
+            return {
+              ...section,
+              note: section.note || "",
+              description: section.description || "",
+              content: [],
+            };
+          }
+          return {
+            ...section,
+            note: section.note || "",
+            content: section.content.filter((item) => item && item.trim() !== ""),
+          };
+        })
+        .filter(
+          (section) =>
+            section.note ||
+            section.description ||
+            section.content.length > 0
+        );
 
       const finalTags = [...formData.tags];
       // Clean FAQ data - remove id field for backend
@@ -733,10 +810,19 @@ const CreatePackage = () => {
 
           <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-gray-900">
+              <button
+                type="button"
+                onClick={() => setItineraryOpen((prev) => !prev)}
+                className="flex items-center gap-2 text-xl font-bold text-gray-900"
+              >
                 <MapPin className="w-5 h-5 text-[var(--admin-primary)]" />
-                Itinerary
-              </h2>
+                Day-to-Day Itinerary
+                {itineraryOpen ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={addItineraryDay}
@@ -747,45 +833,55 @@ const CreatePackage = () => {
               </button>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Itinerary Title
-              </label>
-              <input
-                type="text"
-                value={formData.itinerary_title}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    itinerary_title: e.target.value,
-                  }))
-                }
-                placeholder="Sample Itinerary (Customizable)"
-                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[var(--admin-primary-ring)]/20 focus:border-[var(--admin-primary-border)] outline-none transition-all text-sm"
-              />
-            </div>
+            {!itineraryOpen && (
+              <p className="text-sm text-gray-500">
+                {formData.itinerary.length > 0
+                  ? "Click the arrow next to the title to update the day-by-day itinerary."
+                  : "Click the arrow next to the title to add the day-by-day itinerary."}
+              </p>
+            )}
 
-            {formData.itinerary.length === 0 ? (
-              <div className="text-center py-10 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
-                <p className="text-sm text-gray-500">
-                  Add day-by-day itinerary here.
-                </p>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleItineraryDragEnd}
-              >
-                <SortableContext
-                  items={formData.itinerary.map((item) => item.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-6">
-                    {formData.itinerary.map((day, dIndex) => (
-                    <SortableItineraryCard key={day.id} id={day.id}>
-                      {({ attributes, listeners }) => (
-                        <div className="relative pl-6 sm:pl-12">
+            {itineraryOpen && (
+              <>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Itinerary Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.itinerary_title}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        itinerary_title: e.target.value,
+                      }))
+                    }
+                    placeholder="Sample Itinerary (Customizable)"
+                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[var(--admin-primary-ring)]/20 focus:border-[var(--admin-primary-border)] outline-none transition-all text-sm"
+                  />
+                </div>
+
+                {formData.itinerary.length === 0 ? (
+                  <div className="text-center py-10 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+                    <p className="text-sm text-gray-500">
+                      Add day-by-day itinerary here.
+                    </p>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleItineraryDragEnd}
+                  >
+                    <SortableContext
+                      items={formData.itinerary.map((item) => item.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-6">
+                        {formData.itinerary.map((day, dIndex) => (
+                        <SortableItineraryCard key={day.id} id={day.id}>
+                          {({ attributes, listeners }) => (
+                            <div className="relative pl-6 sm:pl-12">
                           <div className="absolute left-0 sm:left-2 top-0 bottom-0 w-0.5 bg-gray-200 rounded-full" />
                           <div className="absolute left-[-5px] sm:left-px top-6 w-6 h-6 bg-white border-2 border-[var(--admin-primary-border)] rounded-full flex items-center justify-center z-10">
                             <span className="w-2 h-2 bg-[var(--admin-primary)] rounded-full" />
@@ -1012,26 +1108,32 @@ const CreatePackage = () => {
                             </div>
 
                           </div>
-                        </div>
-                      )}
-                    </SortableItineraryCard>
-                  ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+                            </div>
+                          )}
+                        </SortableItineraryCard>
+                      ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </>
             )}
           </div>
 
           <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8">
             <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  Included / Excluded Sections
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Add list-style sections like Includes or Excludes.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIncludedExcludedOpen((prev) => !prev)}
+                className="text-lg font-bold text-gray-900 flex items-center gap-2"
+              >
+                Included / Excluded Sections
+                {includedExcludedOpen ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={addIncludedSection}
@@ -1040,116 +1142,110 @@ const CreatePackage = () => {
                 <Plus className="w-4 h-4" /> Add Section
               </button>
             </div>
+            {!includedExcludedOpen && (
+              <p className="text-sm text-gray-500">
+                {formData.customSections.filter((section) => section.type === "list")
+                  .length > 0
+                  ? "Click the arrow next to the title to update included/excluded sections."
+                  : "Click the arrow next to the title to add included/excluded sections."}
+              </p>
+            )}
 
-
-            <div className="space-y-6">
-              {formData.customSections
-                .map((section, sIndex) => ({ section, sIndex }))
-                .filter(({ section }) => section.type === "list")
-                .map(({ section, sIndex }) => (
-                  <div
-                    key={section.id}
-                    className="p-5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-300"
-                  >
-                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          placeholder="Section Title (e.g., Includes)"
-                          value={section.title}
-                          onChange={(e) =>
-                            handleCustomSectionChange(
-                              sIndex,
-                              "title",
-                              e.target.value
-                            )
-                          }
-                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeCustomSection(sIndex)}
-                        className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="mb-4">
-                      <label className="block text-xs font-semibold text-gray-600 mb-2">
-                        Note
-                      </label>
-                      <RichEditor
-                        value={section.note || ""}
-                        onChange={(value) =>
-                          handleCustomSectionChange(sIndex, "note", value)
-                        }
-                        height="h-28"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      {section.content.map((item, iIndex) => (
-                        <div key={iIndex} className="flex gap-3">
-                          <span className="text-gray-400 mt-2">•</span>
+            {includedExcludedOpen && (
+              <div className="space-y-6">
+                {formData.customSections
+                  .map((section, sIndex) => ({ section, sIndex }))
+                  .filter(({ section }) => section.type === "list")
+                  .map(({ section, sIndex }) => (
+                    <div
+                      key={section.id}
+                      className="p-5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-300"
+                    >
+                      <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                        <div className="flex-1">
                           <input
                             type="text"
-                            value={item}
+                            placeholder="Section Title (e.g., Includes)"
+                            value={section.title}
                             onChange={(e) =>
-                              handleCustomSectionItemChange(
+                              handleCustomSectionChange(
                                 sIndex,
-                                iIndex,
+                                "title",
                                 e.target.value
                               )
                             }
-                            placeholder="List item..."
-                            className="flex-1 p-2 border border-gray-200 rounded-lg text-sm focus:border-[var(--admin-primary-border)] outline-none"
+                            className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
                           />
-                          <button
-                            onClick={() =>
-                              removeCustomSectionItem(sIndex, iIndex)
-                            }
-                            className="text-gray-300 hover:text-red-500"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
                         </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => addCustomSectionItem(sIndex)}
-                        className="text-xs font-semibold text-[var(--admin-primary)] uppercase tracking-wide flex items-center gap-1 mt-2 hover:text-[var(--admin-primary-strong)]"
-                      >
-                        <Plus className="w-3 h-3" /> Add Item
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              {formData.customSections.filter((section) => section.type === "list")
-                .length === 0 && (
-                <div className="text-center py-8 bg-white border-2 border-dashed border-gray-200 rounded-xl">
-                  <p className="text-gray-400 text-sm">
-                    Add your includes or excludes list here.
-                  </p>
-                </div>
-              )}
-            </div>
+                        <button
+                          type="button"
+                          onClick={() => removeCustomSection(sIndex)}
+                          className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
 
+                      <div className="mb-4">
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">
+                          Note
+                        </label>
+                        <RichEditor
+                          value={section.note || ""}
+                          onChange={(value) =>
+                            handleCustomSectionChange(sIndex, "note", value)
+                          }
+                          height="h-24"
+                        />
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">
+                          Description
+                        </label>
+                        <RichEditor
+                          value={section.description || ""}
+                          onChange={(value) =>
+                            handleCustomSectionChange(
+                              sIndex,
+                              "description",
+                              value
+                            )
+                          }
+                          height="h-28"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                {formData.customSections.filter(
+                  (section) => section.type === "list"
+                ).length === 0 && (
+                  <div className="text-center py-8 bg-white border-2 border-dashed border-gray-200 rounded-xl">
+                    <p className="text-gray-400 text-sm">
+                      Add your includes or excludes note and description here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Frequently Asked Questions */}
           <div className="bg-white p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-gray-800 flex items-center gap-2">
-                  <AlertCircle size={18} className="text-[var(--admin-primary)]" />
-                  Frequently Asked Questions
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Add custom FAQ items for this package
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setFaqOpen((prev) => !prev)}
+                className="text-sm sm:text-base font-bold text-gray-800 flex items-center gap-2"
+              >
+                <AlertCircle size={18} className="text-[var(--admin-primary)]" />
+                Frequently Asked Questions
+                {faqOpen ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={addFaq}
@@ -1159,98 +1255,138 @@ const CreatePackage = () => {
                 Add FAQ
               </button>
             </div>
+            {!faqOpen && (
+              <p className="text-xs text-gray-500 mb-4">
+                {formData.faq.length > 0
+                  ? "Click the arrow next to the title to update the FAQs."
+                  : "Click the arrow next to the title to add FAQs for this package."}
+              </p>
+            )}
 
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-gray-600 mb-2">
-                Section Title
-              </label>
-              <input
-                type="text"
-                value={formData.faq_section_title}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    faq_section_title: e.target.value,
-                  }))
-                }
-                placeholder="FAQs"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-transparent transition-all"
-              />
-            </div>
+            {faqOpen && (
+              <>
+                <div className="mb-4">
+                  <label className="block text-xs font-semibold text-gray-600 mb-2">
+                    Section Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.faq_section_title}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        faq_section_title: e.target.value,
+                      }))
+                    }
+                    placeholder="FAQs"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-transparent transition-all"
+                  />
+                </div>
 
-            {formData.faq.length > 0 ? (
-              <div className="space-y-4">
-                {formData.faq.map((faq, index) => (
-                  <div
-                    key={faq.id}
-                    className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                {formData.faq.length > 0 ? (
+                  <DndContext
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleFaqDragEnd}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-xs font-semibold text-gray-500">
-                        FAQ #{index + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeFaq(index)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Remove FAQ"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    <SortableContext
+                      items={formData.faq.map((item) => item.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-4">
+                        {formData.faq.map((faq, index) => (
+                          <SortableFaqCard key={faq.id} id={faq.id}>
+                            {({ attributes, listeners }) => (
+                              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      className="text-gray-400 hover:text-gray-600"
+                                      {...attributes}
+                                      {...listeners}
+                                    >
+                                      <GripVertical className="w-4 h-4" />
+                                    </button>
+                                    <span className="text-xs font-semibold text-gray-500">
+                                      FAQ #{index + 1}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFaq(index)}
+                                    className="text-red-500 hover:text-red-700 transition-colors"
+                                    title="Remove FAQ"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
 
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                          Question
-                        </label>
-                        <input
-                          type="text"
-                          value={faq.question}
-                          onChange={(e) =>
-                            handleFaqChange(index, "question", e.target.value)
-                          }
-                          placeholder="Enter the question..."
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-transparent transition-all"
-                        />
-                      </div>
+                                <div className="space-y-3">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                                      Question
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={faq.question}
+                                      onChange={(e) =>
+                                        handleFaqChange(
+                                          index,
+                                          "question",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Enter the question..."
+                                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-transparent transition-all"
+                                    />
+                                  </div>
 
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                          Answer
-                        </label>
-                        <RichEditor
-                          value={faq.answer}
-                          onChange={(value) =>
-                            handleFaqChange(index, "answer", value)
-                          }
-                          height="h-32"
-                        />
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                                      Answer
+                                    </label>
+                                    <RichEditor
+                                      value={faq.answer}
+                                      onChange={(value) =>
+                                        handleFaqChange(index, "answer", value)
+                                      }
+                                      height="h-32"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </SortableFaqCard>
+                        ))}
                       </div>
-                    </div>
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  <div className="text-center py-8 px-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                    <AlertCircle size={32} className="text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      No FAQs added yet. Click "Add FAQ" to create one.
+                    </p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 px-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                <AlertCircle size={32} className="text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">
-                  No FAQs added yet. Click "Add FAQ" to create one.
-                </p>
-              </div>
+                )}
+              </>
             )}
           </div>
 
           <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8">
             <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  Additional Info Sections
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Add rich-text sections for extra details.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setAdditionalInfoOpen((prev) => !prev)}
+                className="text-lg font-bold text-gray-900 flex items-center gap-2"
+              >
+                Additional Info Sections
+                {additionalInfoOpen ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={addCustomTextSection}
@@ -1259,60 +1395,99 @@ const CreatePackage = () => {
                 <Plus className="w-4 h-4" /> Add Section
               </button>
             </div>
+            {!additionalInfoOpen && (
+              <p className="text-sm text-gray-500">
+                {formData.customSections.filter(
+                  (section) => section.type === "paragraph"
+                ).length > 0
+                  ? "Click the arrow next to the title to update additional info sections."
+                  : "Click the arrow next to the title to add additional info sections."}
+              </p>
+            )}
 
-            <div className="space-y-6">
-              {formData.customSections
-                .map((section, sIndex) => ({ section, sIndex }))
-                .filter(({ section }) => section.type === "paragraph")
-                .map(({ section, sIndex }) => (
-                  <div
-                    key={section.id}
-                    className="p-5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-300"
-                  >
-                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          placeholder="Section Title (e.g., Extra Info)"
-                          value={section.title}
-                          onChange={(e) =>
-                            handleCustomSectionChange(
-                              sIndex,
-                              "title",
-                              e.target.value
-                            )
-                          }
-                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeCustomSection(sIndex)}
-                        className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <RichEditor
-                      value={section.content[0] || ""}
-                      onChange={(value) =>
-                        handleCustomSectionItemChange(sIndex, 0, value)
-                      }
-                      height="h-32"
-                    />
+            {additionalInfoOpen && (
+              <div className="space-y-6">
+                {formData.customSections.filter(
+                  (section) => section.type === "paragraph"
+                ).length === 0 && (
+                  <div className="text-center py-8 bg-white border-2 border-dashed border-gray-200 rounded-xl">
+                    <p className="text-gray-400 text-sm">
+                      Add an extra info section here.
+                    </p>
                   </div>
-                ))}
-              {formData.customSections.filter(
-                (section) => section.type === "paragraph"
-              ).length === 0 && (
-                <div className="text-center py-8 bg-white border-2 border-dashed border-gray-200 rounded-xl">
-                  <p className="text-gray-400 text-sm">
-                    Add an extra info section here.
-                  </p>
-                </div>
-              )}
-            </div>
+                )}
+
+                {formData.customSections.filter(
+                  (section) => section.type === "paragraph"
+                ).length > 0 && (
+                  <DndContext
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleAdditionalInfoDragEnd}
+                  >
+                    <SortableContext
+                      items={formData.customSections
+                        .filter((section) => section.type === "paragraph")
+                        .map((section) => section.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-6">
+                        {formData.customSections
+                          .map((section, sIndex) => ({ section, sIndex }))
+                          .filter(({ section }) => section.type === "paragraph")
+                          .map(({ section, sIndex }) => (
+                            <SortableFaqCard key={section.id} id={section.id}>
+                              {({ attributes, listeners }) => (
+                                <div className="p-5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-300">
+                                  <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                                    <div className="flex-1 flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        className="text-gray-400 hover:text-gray-600"
+                                        {...attributes}
+                                        {...listeners}
+                                      >
+                                        <GripVertical className="w-4 h-4" />
+                                      </button>
+                                      <input
+                                        type="text"
+                                        placeholder="Section Title (e.g., Extra Info)"
+                                        value={section.title}
+                                        onChange={(e) =>
+                                          handleCustomSectionChange(
+                                            sIndex,
+                                            "title",
+                                            e.target.value
+                                          )
+                                        }
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
+                                      />
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeCustomSection(sIndex)}
+                                      className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-5 h-5" />
+                                    </button>
+                                  </div>
+
+                                  <RichEditor
+                                    value={section.content[0] || ""}
+                                    onChange={(value) =>
+                                      handleCustomSectionItemChange(sIndex, 0, value)
+                                    }
+                                    height="h-32"
+                                  />
+                                </div>
+                              )}
+                            </SortableFaqCard>
+                          ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1683,18 +1858,18 @@ const CreatePackage = () => {
           {/* Tags & SEO */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="font-bold text-gray-900 mb-3">SEO & Tags</h3>
-            <div className="flex gap-2 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
               <input
                 type="text"
                 value={tempTag}
                 onChange={(e) => setTempTag(e.target.value)}
                 onKeyDown={addTag}
                 placeholder="Type tag & hit enter..."
-                className="flex-1 p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
+                className="flex-1 w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
               />
               <button
                 onClick={addTag}
-                className="bg-gray-900 text-white px-4 rounded-lg text-sm font-medium hover:bg-black transition-colors"
+                className="bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-black transition-colors w-full sm:w-auto"
               >
                 Add
               </button>

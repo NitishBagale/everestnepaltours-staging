@@ -793,35 +793,52 @@ const TourDetailPage = ({
             <div className="space-y-8">
               {tourData.customSections
                 .filter((section) => section.type === "list")
-                .map((section, index) => (
+                .map((section, index) => {
+                  const isExclude = /exclude|excludes|not included|not include/i.test(
+                    section.title || ""
+                  );
+                  const listClass = isExclude
+                    ? "custom-section-list custom-section-list--exclude"
+                    : "custom-section-list custom-section-list--include";
+                  const descriptionClass = isExclude
+                    ? "custom-section-description custom-section-description--exclude"
+                    : "custom-section-description custom-section-description--include";
+                  return (
                   <div key={section.id || index}>
                     <h3 className="text-2xl font-bold text-[#35a576] mb-4">
                       {section.title}
                     </h3>
                     {section.note && (
                       <div
-                        className="custom-section-note prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed mb-6"
+                        className="custom-section-note prose prose-slate max-w-none text-slate-600 text-base italic leading-relaxed mb-4"
                         dangerouslySetInnerHTML={{ __html: section.note }}
                       />
                     )}
-                    <ul className="space-y-3">
-                      {Array.isArray(section.content) &&
-                        section.content.map((item, i) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-3 text-slate-600 text-lg"
-                          >
-                            <span className="mt-1 text-[#35a576] text-lg font-bold shrink-0">
-                              ✓
-                            </span>
-                            <span className="wrap-break-word break-all leading-relaxed">
-                              {item}
-                            </span>
-                          </li>
-                        ))}
-                    </ul>
+                    {section.description ? (
+                      <div
+                        className={`${descriptionClass} prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed`}
+                        dangerouslySetInnerHTML={{ __html: section.description }}
+                      />
+                    ) : (
+                      Array.isArray(section.content) &&
+                      section.content.length > 0 && (
+                        <ul className={`${listClass} space-y-3`}>
+                          {section.content.map((item, i) => (
+                            <li
+                              key={i}
+                              className="custom-section-list-item text-slate-600 text-lg"
+                            >
+                              <span className="wrap-break-word break-all leading-relaxed">
+                                {item}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )
+                    )}
                   </div>
-                ))}
+                );
+              })}
             </div>
           )}
         </div>

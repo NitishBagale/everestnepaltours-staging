@@ -36,10 +36,6 @@ CmsContent.init(
         type: DataTypes.STRING,
         allowNull: true,
       },
-      tags:{
-        type: DataTypes.ARRAY(DataTypes.STRING),
-        allowNull: true,
-      },
       meta_title: {
         type: DataTypes.STRING,
         allowNull: true,

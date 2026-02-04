@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
         className={`${poppins.variable} ${geistMono.variable} ${museoModerno.variable} antialiased`}
       >
         <Navbar />
-        {children}
+        <main className="main-content">{children}</main>
         <Footer />
       </body>
     </html>

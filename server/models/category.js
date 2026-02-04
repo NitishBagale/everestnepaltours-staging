@@ -15,6 +15,10 @@ Category.init(
       allowNull: false,
       unique: true,
     },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     sort_order: {
       type: DataTypes.INTEGER,
       allowNull: true,

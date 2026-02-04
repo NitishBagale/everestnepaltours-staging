@@ -3,13 +3,12 @@ const Joi = require("joi");
 
 const cmsSchema = new Joi.object({
     section : Joi.string().min(3).max(50).required(),    // Add this
-    categoryId : Joi.string().optional(),
+    categoryId : Joi.string().allow(null).empty("").optional(),
     contentTitle: Joi.string().optional(),  // Add this
     publish: Joi.boolean().optional(),      // Add this
     content : Joi.object().required(),
     status  : Joi.boolean().required(),
     slug : Joi.string().optional(),
-    tags: Joi.array().items(Joi.string()).optional(),
     meta_title: Joi.string().min(3).max(200).optional(),
     meta_description: Joi.string().min(3).max(500).optional(),
     meta_keywords: Joi.string().min(2).max(500).optional(),

@@ -9,13 +9,30 @@ import Cookies from "js-cookie";
 
 const AdminHeader = () => {
   const router = useRouter();
-  const [user, setUser] = useState({ name: "User", email: "", image: "" });
+  const [user, setUser] = useState({
+    name: "User",
+    email: "",
+    profileImage: "",
+  });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
-    const storedUser = Cookies.get("user");
+    const storedUser =
+      localStorage.getItem("admin_user") ||
+      sessionStorage.getItem("admin_user") ||
+      Cookies.get("user");
+
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUser({
+          name: parsed.name || parsed.fullName || parsed.username || "User",
+          email: parsed.email || "",
+          profileImage: parsed.profileImage || parsed.image || "",
+        });
+      } catch (error) {
+        console.error("Failed to parse stored user:", error);
+      }
     }
   }, []);
 
@@ -49,9 +66,9 @@ const AdminHeader = () => {
             className="flex items-center gap-3 focus:outline-none"
           >
             <div className="h-9 w-9 rounded-full bg-[var(--admin-primary-soft)] border border-[var(--admin-primary-border)] flex items-center justify-center overflow-hidden">
-              {user.image ? (
+              {user.profileImage ? (
                 <Image
-                  src={user.image}
+                  src={user.profileImage}
                   alt="User"
                   width={36}
                   height={36}

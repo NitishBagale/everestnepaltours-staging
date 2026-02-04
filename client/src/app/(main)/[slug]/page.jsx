@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { BASE_URL } from "@/config/Config";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
-import CmsPageClient from "./CmsPageClient";
+import CmsContentRenderer from "@/components/CmsContentRenderer";
 import PackageDetailClient from "@/components/PackageDetailClient";
 
 const slugify = (value) =>
@@ -173,7 +173,7 @@ const CmsPage = async ({ params }) => {
 
   const pageData = await getCmsBySlug(slug);
   const error = pageData ? null : "Page not found";
-  return <CmsPageClient pageData={pageData} error={error} />;
+  return <CmsContentRenderer pageData={pageData} error={error} />;
 };
 
 export default CmsPage;

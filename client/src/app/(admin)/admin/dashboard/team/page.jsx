@@ -333,7 +333,7 @@ const TeamMemberAdminPage = () => {
         style={style}
         className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center"
       >
-        <div className="flex items-start grow mb-3 sm:mb-0 min-w-0 gap-3">
+        <div className="flex items-start grow mb-3 sm:mb-0 min-w-0 gap-5">
           <span
             className="mt-1 text-gray-400 cursor-grab select-none"
             {...attributes}
@@ -437,7 +437,7 @@ const TeamMemberAdminPage = () => {
                 </div>
               </div>
 
-              <div>
+              <div className="mb-12">
                 <label className="block text-sm font-semibold mb-2">
                   Description
                 </label>
@@ -448,7 +448,7 @@ const TeamMemberAdminPage = () => {
                 />
               </div>
 
-              <div>
+              <div className="mt-8">
                 <label className="block text-sm font-semibold mb-2">
                   Profile Photo
                 </label>
