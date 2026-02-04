@@ -36,9 +36,19 @@ const AdminHeader = () => {
     }
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/admin/logout", { method: "PUT" });
+    } catch (error) {
+      // ignore logout network errors and still clear local state
+    }
+    Cookies.remove("accessToken");
     Cookies.remove("token");
     Cookies.remove("user");
+    localStorage.removeItem("admin_token");
+    localStorage.removeItem("admin_user");
+    sessionStorage.removeItem("admin_token");
+    sessionStorage.removeItem("admin_user");
     router.replace("/admin/login");
   };
 

@@ -89,10 +89,41 @@ async function deleteAdminService(id) {
   }
 }
 
+async function updateAdminService(id, payload) {
+  try {
+    const admin = await Admin.findByPk(id);
+    if (!admin) {
+      throw new Error("Admin not found");
+    }
+
+    const updateData = {};
+    if (payload.name) updateData.name = payload.name;
+    if (payload.email && payload.email !== admin.email) {
+      const existing = await Admin.findOne({ where: { email: payload.email } });
+      if (existing && existing.id !== admin.id) {
+        throw new Error("Admin with this email already exists");
+      }
+      updateData.email = payload.email;
+    }
+    if (payload.role) updateData.role = payload.role;
+    if (payload.profileImage !== undefined)
+      updateData.profileImage = payload.profileImage;
+
+    await Admin.update(updateData, { where: { id } });
+    const updated = await Admin.findByPk(id);
+    if (!updated) return null;
+    const { password: _, ...adminData } = updated.toJSON();
+    return adminData;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+}
+
 module.exports = {
   createAdminService,
   loginAdminService,
   getAllAdminsService,
   changePasswordService,
   deleteAdminService,
+  updateAdminService,
 };

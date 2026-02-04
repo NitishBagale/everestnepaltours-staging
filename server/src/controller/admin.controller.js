@@ -4,6 +4,7 @@ const {
   getAllAdminsService,
   changePasswordService,
   deleteAdminService,
+  updateAdminService,
 } = require("../services/admin.service");
 
 exports.createAdmin = async (req, res, next) => {
@@ -107,5 +108,22 @@ exports.deleteAdmin = async (req, res, next) => {
     });
   } catch (error) {
     throw new Error(error.message);
+  }
+};
+
+exports.updateAdmin = async (req, res, next) => {
+  const id = req.params.id;
+  try {
+    const updated = await updateAdminService(id, req.body || {});
+    if (!updated) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Admin updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

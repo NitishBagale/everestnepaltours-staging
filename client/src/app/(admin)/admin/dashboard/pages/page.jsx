@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import RichEditor from "@/components/editor/RichEditor";
 import MediaPickerModal from "@/components/media/MediaPickerModal";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 
 const initialFormData = {
   section: "",
@@ -2194,4 +2196,12 @@ const CmsAdminPage = () => {
   );
 };
 
-export default CmsAdminPage;
+const CmsAdminPageWithAuth = () => (
+  <ProtectedRoute>
+    <RoleProtectedRoute allowedRoles={["admin", "editor", "superadmin"]}>
+      <CmsAdminPage />
+    </RoleProtectedRoute>
+  </ProtectedRoute>
+);
+
+export default CmsAdminPageWithAuth;

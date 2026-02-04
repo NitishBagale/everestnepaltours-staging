@@ -6,6 +6,7 @@ const {
   getAllAdmins,
   changePassword,
   deleteAdmin,
+  updateAdmin,
 } = require("../controller/admin.controller");
 const isAuthenticated = require("../middleware/isAuthenticated");
 const { isAuthorized } = require("../middleware/isAuthorized");
@@ -37,6 +38,12 @@ router.delete(
   isAuthenticated,
   isAuthorized(["admin", "superadmin"]),
   deleteAdmin
+);
+router.put(
+  "/update/:id",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  updateAdmin
 );
 
 module.exports = router;

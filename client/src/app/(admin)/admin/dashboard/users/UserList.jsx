@@ -169,20 +169,43 @@ const UserList = ({ token }) => {
     } else {
       // EDIT Logic (Local update for now, unless you add an API endpoint)
       try {
-        // NOTE: Add axios.put() here if you have an endpoint like /admin/update/{id}
+        const userId = currentUser.id || currentUser._id;
+        if (!userId) {
+          toast.error("User id not found", { id: toastId });
+          return;
+        }
+
+        const response = await axios.put(
+          `${BASE_URL}/admin/update/${userId}`,
+          {
+            name: currentUser.name,
+            email: currentUser.email,
+            role: currentUser.role,
+            profileImage: currentUser.profileImage,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const updatedUser = response.data?.data || response.data;
 
         setUsers(
           users.map((user) =>
-            user.id === currentUser.id ? { ...currentUser } : user
+            (user.id || user._id) === userId ? { ...user, ...updatedUser } : user
           )
         );
         setIsModalOpen(false);
         setCurrentUser(null);
-        toast.success("User updated locally (API not connected)", {
+        toast.success("User updated successfully", {
           id: toastId,
         });
       } catch (err) {
-        toast.error("Failed to update", { id: toastId });
+        const msg = getErrorMessage(err);
+        toast.error(msg, { id: toastId });
       }
     }
   };
