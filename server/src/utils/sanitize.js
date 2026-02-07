@@ -9,7 +9,7 @@ module.exports = {
   sanitizeHTML: (dirty) => {
     return DOMPurify.sanitize(dirty, {
       ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol', 'li', 'b', 'i', 'strong', 'em', 'strike', 'br', 'div', 'span', 'img'],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style']
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'data-list', 'data-indent']
     });
   }
 };

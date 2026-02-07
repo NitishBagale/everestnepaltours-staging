@@ -67,6 +67,12 @@ const normalizeMedia = (media) => {
 };
 
 const CmsAdminPage = () => {
+  const getToken = () =>
+    Cookies.get("accessToken") ||
+    Cookies.get("token") ||
+    localStorage.getItem("admin_token") ||
+    sessionStorage.getItem("admin_token");
+
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [editPageId, setEditPageId] = useState(null);
@@ -163,7 +169,12 @@ const CmsAdminPage = () => {
   const fetchCmsPages = useCallback(async () => {
     setListLoading(true);
     try {
-      const token = Cookies.get("accessToken") || Cookies.get("token");
+      const token = getToken();
+      if (!token) {
+        setListLoading(false);
+        toast.error("Authentication token not found. Please log in again.");
+        return;
+      }
       const response = await axios.get(`${BASE_URL}/cms/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -623,7 +634,11 @@ const CmsAdminPage = () => {
     });
 
     try {
-      const token = Cookies.get("accessToken") || Cookies.get("token");
+      const token = getToken();
+      if (!token) {
+        toast.error("Authentication token not found. Please log in again.");
+        return;
+      }
       const config = { headers: { Authorization: `Bearer ${token}` } };
       let successMessage;
 
@@ -712,7 +727,11 @@ const CmsAdminPage = () => {
 
     const deleteToastId = toast.loading(`Deleting ${title}...`);
     try {
-      const token = Cookies.get("accessToken") || Cookies.get("token");
+      const token = getToken();
+      if (!token) {
+        toast.error("Authentication token not found. Please log in again.");
+        return;
+      }
       const encodedSection = encodeURIComponent(section);
 
       await axios.delete(`${BASE_URL}/cms/${encodedSection}`, {
@@ -1002,7 +1021,7 @@ const CmsAdminPage = () => {
 
     if (!nextOrder.length) return;
     try {
-      const token = Cookies.get("accessToken") || Cookies.get("token");
+      const token = getToken();
       if (!token) {
         toast.error("Authentication required. Please login again.");
         return;

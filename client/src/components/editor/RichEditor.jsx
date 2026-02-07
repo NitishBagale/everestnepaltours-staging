@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import MediaPickerModal from "@/components/media/MediaPickerModal";
 import "@/styles/quill.snow.css";
@@ -21,6 +21,12 @@ const RichEditor = ({
 }) => {
   const quillRef = useRef(null);
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [codeView, setCodeView] = useState(false);
+  const [codeValue, setCodeValue] = useState(value || "");
+
+  useEffect(() => {
+    setCodeValue(value || "");
+  }, [value]);
 
   const handleSelectMedia = (media) => {
     const quill = quillRef.current?.getEditor();
@@ -30,6 +36,16 @@ const RichEditor = ({
     quill.insertEmbed(index, "image", media.url);
     quill.setSelection(index + 1, 0);
   };
+
+  const handleToggleCodeView = useCallback(() => {
+    if (codeView) {
+      setCodeView(false);
+      onChange(codeValue || "");
+      return;
+    }
+    setCodeValue(value || "");
+    setCodeView(true);
+  }, [codeView, codeValue, onChange, value]);
 
   const modules = useMemo(
     () => ({
@@ -41,13 +57,15 @@ const RichEditor = ({
           [{ align: [] }],
           ["link", "image"],
           ["clean"],
+          ["code-view"],
         ],
         handlers: {
           image: () => setMediaOpen(true),
+          "code-view": handleToggleCodeView,
         },
       },
     }),
-    []
+    [handleToggleCodeView]
   );
 
   const formats = [
@@ -64,7 +82,11 @@ const RichEditor = ({
   ];
 
   return (
-    <div className={`prose-editor border rounded-xl overflow-visible mb-10 ${className}`}>
+    <div
+      className={`prose-editor border rounded-xl overflow-visible mb-10 ${className} ${
+        codeView ? "code-view-active" : ""
+      }`}
+    >
       <ReactQuill
         ref={quillRef}
         theme="snow"
@@ -73,8 +95,21 @@ const RichEditor = ({
         modules={modules}
         formats={formats}
         placeholder={placeholder}
-        className={`${height} bg-white`}
+        className={`${codeView ? "" : height} bg-white`}
+        readOnly={codeView}
       />
+      {codeView && (
+        <textarea
+          className={`code-view-textarea ${height} w-full bg-white text-sm leading-relaxed`}
+          value={codeValue}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setCodeValue(nextValue);
+            onChange(nextValue);
+          }}
+          spellCheck={false}
+        />
+      )}
       <MediaPickerModal
         open={mediaOpen}
         onOpenChange={setMediaOpen}
