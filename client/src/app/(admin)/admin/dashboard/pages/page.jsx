@@ -1,6 +1,12 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { DndContext, closestCenter } from "@dnd-kit/core";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
@@ -47,6 +53,7 @@ const initialFormData = {
   packagesSectionDescription: "",
   packagesSectionPackageIds: [],
   repeatableSections: [],
+  repeatableSectionsAfterRelated: [],
   pageBannerImage: null,
   meta_title: "",
   meta_description: "",
@@ -64,6 +71,371 @@ const normalizeMedia = (media) => {
     return { mediaId: null, url: media, variants: {}, title: "", altText: "" };
   }
   return media;
+};
+
+const itemChevronToggleClass =
+  "h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center justify-center transition-colors";
+
+const SortableSectionCard = ({
+  section,
+  index,
+  isOpen,
+  onToggle,
+  onRemove,
+  onChange,
+  onSelectImage,
+  onRemoveImage,
+  labelClass,
+  inputClass,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="rounded-xl border border-gray-200 bg-white shadow-sm"
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+            aria-label="Drag to reorder section"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">
+              {section.title || `Section ${index + 1}`}
+            </p>
+            {!section.title && <p className="text-xs text-gray-400">Untitled</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            onPointerDown={(event) => event.stopPropagation()}
+            className={itemChevronToggleClass}
+          >
+            {isOpen ? (
+              <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-gray-400 hover:text-red-500"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Section Title</label>
+              <input
+                type="text"
+                value={section.title}
+                onChange={(e) => onChange("title", e.target.value)}
+                className={inputClass}
+                placeholder="Section title"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Background</label>
+              <select
+                value={section.background}
+                onChange={(e) => onChange("background", e.target.value)}
+                className={inputClass}
+              >
+                <option value="white">White</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            <div className="lg:col-span-2">
+              <label className={labelClass}>Description</label>
+              <RichEditor
+                value={section.description}
+                onChange={(value) => onChange("description", value)}
+                height="h-60"
+                className="mb-20"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Image</label>
+              <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
+                {section.image ? (
+                  <img
+                    src={
+                      section.image.variants?.thumbnail ||
+                      section.image.url ||
+                      section.image
+                    }
+                    alt="Section"
+                    className="w-full h-32 object-contain rounded"
+                  />
+                ) : (
+                  <p className="text-sm text-gray-500">No image selected</p>
+                )}
+                <div
+                  className={`mt-3 grid gap-2 ${
+                    section.image ? "grid-cols-2" : "grid-cols-1"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={onSelectImage}
+                    className="w-full border border-gray-200 rounded-md py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    Select Image
+                  </button>
+                  {section.image && (
+                    <button
+                      type="button"
+                      onClick={onRemoveImage}
+                      className="w-full border border-gray-200 rounded-md py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className={labelClass}>Image Position</label>
+                <select
+                  value={section.imagePosition}
+                  onChange={(e) => onChange("imagePosition", e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="left-25">Left 25%</option>
+                  <option value="left-50">Left 50%</option>
+                  <option value="right-25">Right 25%</option>
+                  <option value="right-50">Right 50%</option>
+                </select>
+              </div>
+              <div className="mt-4">
+                <label className={labelClass}>Image Caption</label>
+                <input
+                  type="text"
+                  value={section.imageCaption}
+                  onChange={(e) => onChange("imageCaption", e.target.value)}
+                  className={inputClass}
+                  placeholder="Image caption"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SortableRelatedInfoCard = ({
+  item,
+  index,
+  isOpen,
+  onToggle,
+  onRemove,
+  onChange,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-semibold text-gray-500">
+            {item.title?.trim() ? item.title : `Information ${index + 1}`}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            onPointerDown={(event) => event.stopPropagation()}
+            className={itemChevronToggleClass}
+            title={isOpen ? "Collapse" : "Expand"}
+          >
+            {isOpen ? (
+              <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-red-500 hover:text-red-700 transition-colors"
+            title="Remove information"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="space-y-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Information Title
+            </label>
+            <input
+              type="text"
+              value={item.title}
+              onChange={(e) => onChange("title", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              placeholder="Enter title"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Information Description
+            </label>
+            <RichEditor
+              value={item.description}
+              onChange={(value) => onChange("description", value)}
+              height="h-60"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SortableFaqCard = ({
+  item,
+  index,
+  isOpen,
+  onToggle,
+  onRemove,
+  onChange,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-semibold text-gray-500">
+            {item.question?.trim() ? item.question : `FAQ ${index + 1}`}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            onPointerDown={(event) => event.stopPropagation()}
+            className={itemChevronToggleClass}
+            title={isOpen ? "Collapse" : "Expand"}
+          >
+            {isOpen ? (
+              <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-red-500 hover:text-red-700 transition-colors"
+            title="Remove FAQ"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="space-y-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Question
+            </label>
+            <input
+              type="text"
+              value={item.question}
+              onChange={(e) => onChange("question", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              placeholder="Enter your question"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Answer
+            </label>
+            <RichEditor
+              value={item.answer}
+              onChange={(value) => onChange("answer", value)}
+              height="h-60"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const CmsAdminPage = () => {
@@ -87,13 +459,25 @@ const CmsAdminPage = () => {
   const [visibleCount, setVisibleCount] = useState(10);
   const [teamSectionOpen, setTeamSectionOpen] = useState(false);
   const [packagesSectionOpen, setPackagesSectionOpen] = useState(false);
+  const [repeatableSectionsOpen, setRepeatableSectionsOpen] = useState(false);
+  const [repeatableSectionsAfterRelatedOpen, setRepeatableSectionsAfterRelatedOpen] =
+    useState(false);
+  const [relatedInformationOpen, setRelatedInformationOpen] = useState(false);
+  const [faqSectionOpen, setFaqSectionOpen] = useState(false);
   const [sectionMediaModalOpen, setSectionMediaModalOpen] = useState(false);
   const [coverImageModalOpen, setCoverImageModalOpen] = useState(false);
   const [pageBannerModalOpen, setPageBannerModalOpen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState(null);
+  const [activeSectionTarget, setActiveSectionTarget] = useState("primary");
   const [openSections, setOpenSections] = useState({});
+  const [openSectionsAfterRelated, setOpenSectionsAfterRelated] = useState({});
+  const [openRelatedInfo, setOpenRelatedInfo] = useState({});
+  const [openFaqs, setOpenFaqs] = useState({});
   const [packageOptions, setPackageOptions] = useState([]);
   const [packagesSelectId, setPackagesSelectId] = useState("");
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
 
   const slugify = (value) => {
     if (!value) return "";
@@ -258,10 +642,12 @@ const CmsAdminPage = () => {
   };
 
   const addFaq = () => {
+    const nextId = Date.now();
     setFormData((prev) => ({
       ...prev,
-      faq: [...prev.faq, { id: Date.now(), question: "", answer: "" }],
+      faq: [...prev.faq, { id: nextId, question: "", answer: "" }],
     }));
+    setOpenFaqs((prev) => ({ ...prev, [nextId]: true }));
   };
 
   const removeFaq = (index) => {
@@ -269,6 +655,12 @@ const CmsAdminPage = () => {
       ...prev,
       faq: prev.faq.filter((_, i) => i !== index),
     }));
+    setOpenFaqs((prev) => {
+      const next = { ...prev };
+      const targetId = formData.faq[index]?.id;
+      if (targetId != null) delete next[targetId];
+      return next;
+    });
   };
 
   const handleFaqChange = (index, field, value) => {
@@ -280,14 +672,24 @@ const CmsAdminPage = () => {
     }));
   };
 
+  const toggleFaqOpen = (faqId) => {
+    setOpenFaqs((prev) => {
+      const current = prev[faqId];
+      const nextValue = current == null ? false : !current;
+      return { ...prev, [faqId]: nextValue };
+    });
+  };
+
   const addRelatedInfo = () => {
+    const nextId = Date.now();
     setFormData((prev) => ({
       ...prev,
       relatedInformation: [
         ...prev.relatedInformation,
-        { id: Date.now(), title: "", description: "" },
+        { id: nextId, title: "", description: "" },
       ],
     }));
+    setOpenRelatedInfo((prev) => ({ ...prev, [nextId]: true }));
   };
 
   const removeRelatedInfo = (index) => {
@@ -295,6 +697,12 @@ const CmsAdminPage = () => {
       ...prev,
       relatedInformation: prev.relatedInformation.filter((_, i) => i !== index),
     }));
+    setOpenRelatedInfo((prev) => {
+      const next = { ...prev };
+      const targetId = formData.relatedInformation[index]?.id;
+      if (targetId != null) delete next[targetId];
+      return next;
+    });
   };
 
   const handleRelatedInfoChange = (index, field, value) => {
@@ -306,11 +714,35 @@ const CmsAdminPage = () => {
     }));
   };
 
+  const toggleRelatedInfoOpen = (infoId) => {
+    setOpenRelatedInfo((prev) => {
+      const current = prev[infoId];
+      const nextValue = current == null ? false : !current;
+      return { ...prev, [infoId]: nextValue };
+    });
+  };
+
   const handleCancelEdit = () => {
     setEditPageId(null);
     setFormData(initialFormData);
     setShowMoreDetails(false);
+    setRepeatableSectionsOpen(false);
+    setRepeatableSectionsAfterRelatedOpen(false);
+    setRelatedInformationOpen(false);
+    setFaqSectionOpen(false);
+    setActiveSectionTarget("primary");
+    setOpenSections({});
+    setOpenSectionsAfterRelated({});
+    setOpenRelatedInfo({});
+    setOpenFaqs({});
   };
+
+  const stopEditorKeyPropagation = useCallback((event) => {
+    const target = event.target;
+    if (target?.closest?.(".ql-editor")) {
+      event.stopPropagation();
+    }
+  }, []);
 
   const getCategoryName = (categoryId) => {
     const target = categoryId != null ? String(categoryId) : "";
@@ -324,6 +756,19 @@ const CmsAdminPage = () => {
     setEditPageId(pageData.section);
     const sections = Array.isArray(pageData.content?.repeatableSections)
       ? pageData.content.repeatableSections.map((section) => ({
+          id: section.id || `${Date.now()}-${Math.random()}`,
+          title: section.title || "",
+          description: section.description || "",
+          image: section.image || "",
+          imageCaption: section.imageCaption || "",
+          background: section.background || "white",
+          imagePosition: section.imagePosition || "left",
+        }))
+      : [];
+    const sectionsAfterRelated = Array.isArray(
+      pageData.content?.repeatableSectionsAfterRelated
+    )
+      ? pageData.content.repeatableSectionsAfterRelated.map((section) => ({
           id: section.id || `${Date.now()}-${Math.random()}`,
           title: section.title || "",
           description: section.description || "",
@@ -357,6 +802,7 @@ const CmsAdminPage = () => {
       packagesSectionPackageIds: (pageData.content?.packagesSectionPackageIds ||
         []).map(String),
       repeatableSections: sections,
+      repeatableSectionsAfterRelated: sectionsAfterRelated,
       pageBannerImage: normalizeMedia(pageData.content?.pageBannerImage),
       meta_title: pageData.meta_title || "",
       meta_description: pageData.meta_description || "",
@@ -364,7 +810,11 @@ const CmsAdminPage = () => {
       galleryImages: (pageData.content?.galleryImages || [])
         .map((img) => normalizeMedia(img))
         .filter(Boolean),
-      faq: pageData.content?.faq || [],
+      faq: (pageData.content?.faq || []).map((item, index) => ({
+        id: item.id || `${Date.now()}-${index}`,
+        question: item.question || "",
+        answer: item.answer || "",
+      })),
       faqSectionTitle: pageData.content?.faqSectionTitle || "",
       relatedInformation: (pageData.content?.relatedInformation || []).map(
         (item, index) => ({
@@ -376,7 +826,17 @@ const CmsAdminPage = () => {
       showBookingForm: pageData.content?.showBookingForm || false,
     };
     setFormData(nextForm);
+    setRepeatableSectionsOpen((nextForm.repeatableSections || []).length > 0);
+    setRepeatableSectionsAfterRelatedOpen(
+      (nextForm.repeatableSectionsAfterRelated || []).length > 0
+    );
+    setRelatedInformationOpen((nextForm.relatedInformation || []).length > 0);
+    setFaqSectionOpen((nextForm.faq || []).length > 0);
+    setActiveSectionTarget("primary");
     setOpenSections({});
+    setOpenSectionsAfterRelated({});
+    setOpenRelatedInfo({});
+    setOpenFaqs({});
     const hasExtras =
       !!nextForm.teamSectionTitle ||
       !!nextForm.founderTitle ||
@@ -389,6 +849,7 @@ const CmsAdminPage = () => {
       !!nextForm.packagesSectionDescription ||
       (nextForm.packagesSectionPackageIds || []).length > 0 ||
       (nextForm.repeatableSections || []).length > 0 ||
+      (nextForm.repeatableSectionsAfterRelated || []).length > 0 ||
       !!nextForm.pageBannerImage ||
       (nextForm.galleryImages || []).length > 0 ||
       (nextForm.faq || []).length > 0 ||
@@ -429,11 +890,22 @@ const CmsAdminPage = () => {
     if (!activeSectionId) return;
     setFormData((prev) => ({
       ...prev,
-      repeatableSections: prev.repeatableSections.map((section) =>
-        section.id === activeSectionId
-          ? { ...section, image: media }
-          : section
-      ),
+      repeatableSections:
+        activeSectionTarget === "primary"
+          ? prev.repeatableSections.map((section) =>
+              section.id === activeSectionId
+                ? { ...section, image: media }
+                : section
+            )
+          : prev.repeatableSections,
+      repeatableSectionsAfterRelated:
+        activeSectionTarget === "secondary"
+          ? prev.repeatableSectionsAfterRelated.map((section) =>
+              section.id === activeSectionId
+                ? { ...section, image: media }
+                : section
+            )
+          : prev.repeatableSectionsAfterRelated,
     }));
   };
 
@@ -451,6 +923,27 @@ const CmsAdminPage = () => {
       ...prev,
       repeatableSections: [...prev.repeatableSections, newSection],
     }));
+    setOpenSections((prev) => ({ ...prev, [newSection.id]: true }));
+  };
+
+  const handleAddSectionAfterRelated = () => {
+    const newSection = {
+      id: `${Date.now()}-${Math.random()}`,
+      title: "",
+      description: "",
+      image: "",
+      imageCaption: "",
+      background: "white",
+      imagePosition: "left",
+    };
+    setFormData((prev) => ({
+      ...prev,
+      repeatableSectionsAfterRelated: [
+        ...prev.repeatableSectionsAfterRelated,
+        newSection,
+      ],
+    }));
+    setOpenSectionsAfterRelated((prev) => ({ ...prev, [newSection.id]: true }));
   };
 
   const handleRemoveSection = (sectionId) => {
@@ -467,6 +960,20 @@ const CmsAdminPage = () => {
     });
   };
 
+  const handleRemoveSectionAfterRelated = (sectionId) => {
+    setFormData((prev) => ({
+      ...prev,
+      repeatableSectionsAfterRelated: prev.repeatableSectionsAfterRelated.filter(
+        (section) => section.id !== sectionId
+      ),
+    }));
+    setOpenSectionsAfterRelated((prev) => {
+      const next = { ...prev };
+      delete next[sectionId];
+      return next;
+    });
+  };
+
   const handleSectionChange = (sectionId, field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -476,11 +983,62 @@ const CmsAdminPage = () => {
     }));
   };
 
+  const handleSectionChangeAfterRelated = (sectionId, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      repeatableSectionsAfterRelated: prev.repeatableSectionsAfterRelated.map(
+        (section) =>
+          section.id === sectionId ? { ...section, [field]: value } : section
+      ),
+    }));
+  };
+
   const toggleSectionOpen = (sectionId) => {
     setOpenSections((prev) => ({
       ...prev,
       [sectionId]: !prev[sectionId],
     }));
+  };
+
+  const toggleSectionOpenAfterRelated = (sectionId) => {
+    setOpenSectionsAfterRelated((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  };
+
+  const handleRelatedInfoDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const oldIndex = prev.relatedInformation.findIndex(
+        (item) => item.id === active.id
+      );
+      const newIndex = prev.relatedInformation.findIndex(
+        (item) => item.id === over.id
+      );
+      return {
+        ...prev,
+        relatedInformation: arrayMove(
+          prev.relatedInformation,
+          oldIndex,
+          newIndex
+        ),
+      };
+    });
+  };
+
+  const handleFaqDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const oldIndex = prev.faq.findIndex((item) => item.id === active.id);
+      const newIndex = prev.faq.findIndex((item) => item.id === over.id);
+      return {
+        ...prev,
+        faq: arrayMove(prev.faq, oldIndex, newIndex),
+      };
+    });
   };
 
   const handleSectionDragEnd = (event) => {
@@ -497,6 +1055,27 @@ const CmsAdminPage = () => {
         ...prev,
         repeatableSections: arrayMove(
           prev.repeatableSections,
+          oldIndex,
+          newIndex
+        ),
+      };
+    });
+  };
+
+  const handleSectionAfterRelatedDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const oldIndex = prev.repeatableSectionsAfterRelated.findIndex(
+        (section) => section.id === active.id
+      );
+      const newIndex = prev.repeatableSectionsAfterRelated.findIndex(
+        (section) => section.id === over.id
+      );
+      return {
+        ...prev,
+        repeatableSectionsAfterRelated: arrayMove(
+          prev.repeatableSectionsAfterRelated,
           oldIndex,
           newIndex
         ),
@@ -615,6 +1194,8 @@ const CmsAdminPage = () => {
         packagesSectionDescription: formData.packagesSectionDescription || "",
         packagesSectionPackageIds,
         repeatableSections: formData.repeatableSections || [],
+        repeatableSectionsAfterRelated:
+          formData.repeatableSectionsAfterRelated || [],
         pageBannerImage: formData.pageBannerImage,
         galleryImages: formData.galleryImages,
         faqSectionTitle: formData.faqSectionTitle?.trim() || "",
@@ -654,7 +1235,9 @@ const CmsAdminPage = () => {
       }
 
       toast.success(successMessage);
-      handleCancelEdit();
+      if (!editPageId) {
+        handleCancelEdit();
+      }
       fetchCmsPages();
     } catch (error) {
       console.error("API Error:", error);
@@ -751,193 +1334,6 @@ const CmsAdminPage = () => {
     }
   };
 
-  const SortableSectionCard = ({ section, index }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-    } = useSortable({ id: section.id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    };
-
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="rounded-xl border border-gray-200 bg-white shadow-sm"
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              {...attributes}
-              {...listeners}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <GripVertical className="w-4 h-4" />
-            </button>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">
-                {section.title || `Section ${index + 1}`}
-              </p>
-              {!section.title && (
-                <p className="text-xs text-gray-400">Untitled</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => toggleSectionOpen(section.id)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              {openSections[section.id] ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRemoveSection(section.id)}
-              className="text-gray-400 hover:text-red-500"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {openSections[section.id] && (
-          <div className="p-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Section Title</label>
-                <input
-                  type="text"
-                  value={section.title}
-                  onChange={(e) =>
-                    handleSectionChange(section.id, "title", e.target.value)
-                  }
-                  className={inputClass}
-                  placeholder="Section title"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Background</label>
-                <select
-                  value={section.background}
-                  onChange={(e) =>
-                    handleSectionChange(section.id, "background", e.target.value)
-                  }
-                  className={inputClass}
-                >
-                  <option value="white">White</option>
-                  <option value="light">Light</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-              <div className="lg:col-span-2">
-                <label className={labelClass}>Description</label>
-                <RichEditor
-                  value={section.description}
-                  onChange={(value) =>
-                    handleSectionChange(section.id, "description", value)
-                  }
-                  height="h-56"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Image</label>
-                <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
-                  {section.image ? (
-                    <img
-                      src={
-                        section.image.variants?.thumbnail ||
-                        section.image.url ||
-                        section.image
-                      }
-                      alt="Section"
-                      className="w-full h-32 object-contain rounded"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-500">No image selected</p>
-                  )}
-                  <div
-                    className={`mt-3 grid gap-2 ${
-                      section.image ? "grid-cols-2" : "grid-cols-1"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveSectionId(section.id);
-                        setSectionMediaModalOpen(true);
-                      }}
-                      className="w-full border border-gray-200 rounded-md py-2 text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                      Select Image
-                    </button>
-                    {section.image && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleSectionChange(section.id, "image", "")
-                        }
-                        className="w-full border border-gray-200 rounded-md py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        Remove Image
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <label className={labelClass}>Image Position</label>
-                  <select
-                    value={section.imagePosition}
-                    onChange={(e) =>
-                      handleSectionChange(
-                        section.id,
-                        "imagePosition",
-                        e.target.value
-                      )
-                    }
-                    className={inputClass}
-                  >
-                    <option value="left">Left</option>
-                    <option value="right">Right</option>
-                  </select>
-                </div>
-                <div className="mt-4">
-                  <label className={labelClass}>Image Caption</label>
-                  <input
-                    type="text"
-                    value={section.imageCaption}
-                    onChange={(e) =>
-                      handleSectionChange(
-                        section.id,
-                        "imageCaption",
-                        e.target.value
-                      )
-                    }
-                    className={inputClass}
-                    placeholder="Image caption"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const SortableSelectedItem = ({ id, title, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition } =
       useSortable({ id });
@@ -974,7 +1370,6 @@ const CmsAdminPage = () => {
       </div>
     );
   };
-
 
   const filteredPages = useMemo(() => {
     if (!searchQuery.trim()) return sortedPages;
@@ -1123,7 +1518,12 @@ const CmsAdminPage = () => {
             : "Create New Page Content"}
         </h1>
 
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={handleSubmit}
+          onKeyDownCapture={stopEditorKeyPropagation}
+          onKeyUpCapture={stopEditorKeyPropagation}
+          onKeyPressCapture={stopEditorKeyPropagation}
+        >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <label htmlFor="section" className={labelClass}>
@@ -1293,8 +1693,10 @@ const CmsAdminPage = () => {
                 className={inputClass}
               >
                 <option value="none">None (Top)</option>
-                <option value="left">Left</option>
-                <option value="right">Right</option>
+                <option value="left-25">Left 25%</option>
+                <option value="left-50">Left 50%</option>
+                <option value="right-25">Right 25%</option>
+                <option value="right-50">Right 50%</option>
               </select>
             </div>
           </div>
@@ -1426,21 +1828,33 @@ const CmsAdminPage = () => {
               </div>
 
               <div className="rounded-xl border border-gray-200 p-5 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setTeamSectionOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between text-left"
-                >
+                <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-gray-800">
                     Our Team Block
                   </h4>
-                  {teamSectionOpen ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeamSectionOpen((prev) => !prev)}
+                    aria-label={
+                      teamSectionOpen
+                        ? "Collapse our team block"
+                        : "Expand our team block"
+                    }
+                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
+                  >
+                    {teamSectionOpen ? (
+                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                    )}
+                  </button>
+                </div>
 
+                {!teamSectionOpen && (
+                  <p className="mt-3 text-sm text-gray-500">
+                    Click the arrow to update the Our Team block.
+                  </p>
+                )}
                 {teamSectionOpen && (
                   <div className="mt-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1588,21 +2002,33 @@ const CmsAdminPage = () => {
               </div>
 
               <div className="rounded-xl border border-gray-200 p-5 bg-white mt-6">
-                <button
-                  type="button"
-                  onClick={() => setPackagesSectionOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between text-left"
-                >
+                <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-gray-800">
                     Packages Block
                   </h4>
-                  {packagesSectionOpen ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setPackagesSectionOpen((prev) => !prev)}
+                    aria-label={
+                      packagesSectionOpen
+                        ? "Collapse packages block"
+                        : "Expand packages block"
+                    }
+                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
+                  >
+                    {packagesSectionOpen ? (
+                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                    )}
+                  </button>
+                </div>
 
+                {!packagesSectionOpen && (
+                  <p className="mt-3 text-sm text-gray-500">
+                    Click the arrow to update the Packages block.
+                  </p>
+                )}
                 {packagesSectionOpen && (
                   <div className="mt-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1692,6 +2118,7 @@ const CmsAdminPage = () => {
                             Selected Packages
                           </label>
                           <DndContext
+                            sensors={sensors}
                             collisionDetection={closestCenter}
                             onDragEnd={handlePackagesDragEnd}
                           >
@@ -1741,43 +2168,85 @@ const CmsAdminPage = () => {
                   </h4>
                   <button
                     type="button"
-                    onClick={handleAddSection}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--admin-primary)] text-white text-sm"
+                    onClick={() => setRepeatableSectionsOpen((prev) => !prev)}
+                    aria-label={
+                      repeatableSectionsOpen
+                        ? "Collapse repeatable section block"
+                        : "Expand repeatable section block"
+                    }
+                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
                   >
-                    <Plus className="w-4 h-4" />
-                    Add Section
+                    {repeatableSectionsOpen ? (
+                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                    )}
                   </button>
                 </div>
 
-                <div className="mt-4">
-                  {formData.repeatableSections.length === 0 ? (
-                    <p className="text-sm text-gray-500">
-                      No sections added yet.
-                    </p>
-                  ) : (
-                    <DndContext
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleSectionDragEnd}
-                    >
-                      <SortableContext
-                        items={formData.repeatableSections.map(
-                          (section) => section.id
-                        )}
-                        strategy={verticalListSortingStrategy}
+                {!repeatableSectionsOpen && (
+                  <p className="mt-3 text-sm text-gray-500">
+                    Click the arrow to update the Repetable Text/Image block.
+                  </p>
+                )}
+                {repeatableSectionsOpen && (
+                  <div className="mt-4">
+                    {formData.repeatableSections.length === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        No sections added yet.
+                      </p>
+                    ) : (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleSectionDragEnd}
                       >
-                        <div className="space-y-4">
-                          {formData.repeatableSections.map((section, index) => (
-                            <SortableSectionCard
-                              key={section.id}
-                              section={section}
-                              index={index}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  )}
-                </div>
+                        <SortableContext
+                          items={formData.repeatableSections.map(
+                            (section) => section.id
+                          )}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-4">
+                            {formData.repeatableSections.map((section, index) => (
+                              <SortableSectionCard
+                                key={section.id}
+                                section={section}
+                                index={index}
+                                isOpen={!!openSections[section.id]}
+                                onToggle={() => toggleSectionOpen(section.id)}
+                                onRemove={() => handleRemoveSection(section.id)}
+                                onChange={(field, value) =>
+                                  handleSectionChange(section.id, field, value)
+                                }
+                                onSelectImage={() => {
+                                  setActiveSectionTarget("primary");
+                                  setActiveSectionId(section.id);
+                                  setSectionMediaModalOpen(true);
+                                }}
+                                onRemoveImage={() =>
+                                  handleSectionChange(section.id, "image", "")
+                                }
+                                labelClass={labelClass}
+                                inputClass={inputClass}
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleAddSection}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--admin-primary)] text-white text-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Section
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-8">
@@ -1843,80 +2312,183 @@ const CmsAdminPage = () => {
                   </h3>
                   <button
                     type="button"
-                    onClick={addRelatedInfo}
-                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    onClick={() => setRelatedInformationOpen((prev) => !prev)}
+                    aria-label={
+                      relatedInformationOpen
+                        ? "Collapse related information section"
+                        : "Expand related information section"
+                    }
+                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
                   >
-                    <Plus size={18} />
-                    Add Information
+                    {relatedInformationOpen ? (
+                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                    )}
                   </button>
                 </div>
 
-                {formData.relatedInformation.length > 0 ? (
-                  <div className="space-y-3">
-                    {formData.relatedInformation.map((item, index) => (
-                      <div
-                        key={item.id || index}
-                        className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-xs font-semibold text-gray-500">
-                            Information #{index + 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeRelatedInfo(index)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                            title="Remove information"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Information Title
-                            </label>
-                            <input
-                              type="text"
-                              value={item.title}
-                              onChange={(e) =>
-                                handleRelatedInfoChange(
-                                  index,
-                                  "title",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                              placeholder="Enter title"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Information Description
-                            </label>
-                            <RichEditor
-                              value={item.description}
-                              onChange={(value) =>
-                                handleRelatedInfoChange(
-                                  index,
-                                  "description",
-                                  value
-                                )
-                              }
-                              height="h-28"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No related information added yet. Click "Add Information" to
-                    create one.
+                {!relatedInformationOpen && (
+                  <p className="text-sm text-gray-500">
+                    Click the arrow to update related information.
                   </p>
+                )}
+                {relatedInformationOpen &&
+                  (formData.relatedInformation.length > 0 ? (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleRelatedInfoDragEnd}
+                    >
+                      <SortableContext
+                        items={formData.relatedInformation.map((item) => item.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-3">
+                          {formData.relatedInformation.map((item, index) => {
+                            const infoId = item.id ?? index;
+                            const isOpen =
+                              openRelatedInfo[infoId] === undefined
+                                ? false
+                                : openRelatedInfo[infoId];
+                            return (
+                              <SortableRelatedInfoCard
+                                key={infoId}
+                                item={item}
+                                index={index}
+                                isOpen={isOpen}
+                                onToggle={() => toggleRelatedInfoOpen(infoId)}
+                                onRemove={() => removeRelatedInfo(index)}
+                                onChange={(field, value) =>
+                                  handleRelatedInfoChange(index, field, value)
+                                }
+                              />
+                            );
+                          })}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No related information added yet. Click "Add Information" to
+                      create one.
+                    </p>
+                  ))}
+                {relatedInformationOpen && (
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={addRelatedInfo}
+                      className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    >
+                      <Plus size={18} />
+                      Add Information
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-gray-200 p-5 bg-white mt-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-gray-800">
+                    Repetable Text/Image Block
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRepeatableSectionsAfterRelatedOpen((prev) => !prev)
+                    }
+                    aria-label={
+                      repeatableSectionsAfterRelatedOpen
+                        ? "Collapse repeatable section block"
+                        : "Expand repeatable section block"
+                    }
+                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
+                  >
+                    {repeatableSectionsAfterRelatedOpen ? (
+                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                    )}
+                  </button>
+                </div>
+
+                {!repeatableSectionsAfterRelatedOpen && (
+                  <p className="mt-3 text-sm text-gray-500">
+                    Click the arrow to update the Repetable Text/Image block.
+                  </p>
+                )}
+                {repeatableSectionsAfterRelatedOpen && (
+                  <div className="mt-4">
+                    {formData.repeatableSectionsAfterRelated.length === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        No sections added yet.
+                      </p>
+                    ) : (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleSectionAfterRelatedDragEnd}
+                      >
+                        <SortableContext
+                          items={formData.repeatableSectionsAfterRelated.map(
+                            (section) => section.id
+                          )}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-4">
+                            {formData.repeatableSectionsAfterRelated.map(
+                              (section, index) => (
+                              <SortableSectionCard
+                                key={section.id}
+                                section={section}
+                                index={index}
+                                isOpen={!!openSectionsAfterRelated[section.id]}
+                                onToggle={() =>
+                                  toggleSectionOpenAfterRelated(section.id)
+                                }
+                                onRemove={() =>
+                                  handleRemoveSectionAfterRelated(section.id)
+                                }
+                                onChange={(field, value) =>
+                                  handleSectionChangeAfterRelated(
+                                    section.id,
+                                    field,
+                                    value
+                                  )
+                                }
+                                onSelectImage={() => {
+                                  setActiveSectionTarget("secondary");
+                                  setActiveSectionId(section.id);
+                                  setSectionMediaModalOpen(true);
+                                }}
+                                onRemoveImage={() =>
+                                  handleSectionChangeAfterRelated(
+                                    section.id,
+                                    "image",
+                                    ""
+                                  )
+                                }
+                                labelClass={labelClass}
+                                inputClass={inputClass}
+                              />
+                            )
+                            )}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleAddSectionAfterRelated}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--admin-primary)] text-white text-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Section
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -1928,89 +2500,93 @@ const CmsAdminPage = () => {
                   </h3>
                   <button
                     type="button"
-                    onClick={addFaq}
-                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    onClick={() => setFaqSectionOpen((prev) => !prev)}
+                    aria-label={
+                      faqSectionOpen
+                        ? "Collapse frequently asked questions section"
+                        : "Expand frequently asked questions section"
+                    }
+                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
                   >
-                    <Plus size={18} />
-                    Add FAQ
+                    {faqSectionOpen ? (
+                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                    )}
                   </button>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Section Title
-                  </label>
-                  <input
-                    type="text"
-                    name="faqSectionTitle"
-                    value={formData.faqSectionTitle}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    placeholder="Frequently Asked Questions"
-                  />
-                </div>
-
-                {formData.faq.length > 0 ? (
-                  <div className="space-y-3">
-                    {formData.faq.map((faq, index) => (
-                      <div
-                        key={index}
-                        className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-xs font-semibold text-gray-500">
-                            FAQ #{index + 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeFaq(index)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                            title="Remove FAQ"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Question
-                            </label>
-                            <input
-                              type="text"
-                              value={faq.question}
-                              onChange={(e) =>
-                                handleFaqChange(
-                                  index,
-                                  "question",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                              placeholder="Enter your question"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Answer
-                            </label>
-                            <RichEditor
-                              value={faq.answer}
-                              onChange={(value) =>
-                                handleFaqChange(index, "answer", value)
-                              }
-                              height="h-28"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No FAQs added yet. Click "Add FAQ" to create one.
+                {!faqSectionOpen && (
+                  <p className="text-sm text-gray-500">
+                    Click the arrow to update frequently asked questions.
                   </p>
+                )}
+                {faqSectionOpen && (
+                  <>
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Section Title
+                      </label>
+                      <input
+                        type="text"
+                        name="faqSectionTitle"
+                        value={formData.faqSectionTitle}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        placeholder="Frequently Asked Questions"
+                      />
+                    </div>
+
+                    {formData.faq.length > 0 ? (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleFaqDragEnd}
+                      >
+                        <SortableContext
+                          items={formData.faq.map((item) => item.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-3">
+                            {formData.faq.map((faq, index) => {
+                              const faqId = faq.id ?? index;
+                              const isOpen =
+                                openFaqs[faqId] === undefined
+                                  ? false
+                                  : openFaqs[faqId];
+                              return (
+                                <SortableFaqCard
+                                  key={faqId}
+                                  item={faq}
+                                  index={index}
+                                  isOpen={isOpen}
+                                  onToggle={() => toggleFaqOpen(faqId)}
+                                  onRemove={() => removeFaq(index)}
+                                  onChange={(field, value) =>
+                                    handleFaqChange(index, field, value)
+                                  }
+                                />
+                              );
+                            })}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        No FAQs added yet. Click "Add FAQ" to create one.
+                      </p>
+                    )}
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={addFaq}
+                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                      >
+                        <Plus size={18} />
+                        Add FAQ
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -2153,6 +2729,7 @@ const CmsAdminPage = () => {
               </div>
             ) : (
               <DndContext
+                sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handlePagesDragEnd}
               >

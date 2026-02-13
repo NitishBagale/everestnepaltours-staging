@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import DOMPurify from "isomorphic-dompurify";
 import Link from "next/link";
 import { Clock } from "lucide-react";
@@ -122,10 +122,13 @@ const CmsContentRenderer = ({
     content.packagesSectionPackageIds || []
   ).map(String);
   const repeatableSections = content.repeatableSections || [];
+  const repeatableSectionsAfterRelated =
+    content.repeatableSectionsAfterRelated || [];
 
   const [teamMembers, setTeamMembers] = useState([]);
   const [packages, setPackages] = useState([]);
   const [activeRelatedIndex, setActiveRelatedIndex] = useState(0);
+  const relatedInfoRef = useRef(null);
 
   const showTeamSection = useMemo(() => {
     return (
@@ -230,6 +233,42 @@ const CmsContentRenderer = ({
   const coverImageMedia = getMediaObject(coverImage);
   const coverImageUrl = getMediaUrl(coverImageMedia, "large");
   const coverImageAlt = getMediaAlt(coverImageMedia, title || "Cover image");
+  const coverImageObjectPosition = (() => {
+    switch (coverImagePosition) {
+      case "left-25":
+        return "25% center";
+      case "left-50":
+        return "50% center";
+      case "right-25":
+        return "right 25%";
+      case "right-50":
+        return "right 50%";
+      default:
+        return "center";
+    }
+  })();
+  const isFloatCoverImage =
+    coverImagePosition === "left" || coverImagePosition === "right";
+  const isObjectPositionCoverImage =
+    coverImagePosition === "left-25" ||
+    coverImagePosition === "left-50" ||
+    coverImagePosition === "right-25" ||
+    coverImagePosition === "right-50";
+  const isCoverImageLeft = !String(coverImagePosition).startsWith("right");
+  const coverImageGridTemplate = (() => {
+    switch (coverImagePosition) {
+      case "left-25":
+        return "lg:grid-cols-[25%_minmax(0,1fr)]";
+      case "left-50":
+        return "lg:grid-cols-[50%_minmax(0,1fr)]";
+      case "right-25":
+        return "lg:grid-cols-[minmax(0,1fr)_25%]";
+      case "right-50":
+        return "lg:grid-cols-[minmax(0,1fr)_50%]";
+      default:
+        return "lg:grid-cols-[360px_minmax(0,1fr)]";
+    }
+  })();
   const bannerMedia = getMediaObject(pageBannerImage);
   const bannerImageUrl = getMediaUrl(bannerMedia, "large");
   const bannerImageAlt = getMediaAlt(bannerMedia, title || "Page banner");
@@ -304,11 +343,40 @@ const CmsContentRenderer = ({
                   src={coverImageUrl}
                   alt={coverImageAlt}
                   className="w-full max-h-[420px] object-cover rounded-xl"
+                  style={{ objectPosition: coverImageObjectPosition }}
                 />
               </div>
               {renderHtmlBlock(description)}
             </>
-          ) : (
+          ) : isObjectPositionCoverImage ? (
+            <div className="mt-4">
+              <div
+                className={`grid grid-cols-1 gap-8 items-start ${coverImageGridTemplate}`}
+              >
+                {isCoverImageLeft && (
+                  <div className="w-full">
+                    <img
+                      src={coverImageUrl}
+                      alt={coverImageAlt}
+                      className="w-full h-full object-cover rounded-xl"
+                      style={{ objectPosition: coverImageObjectPosition }}
+                    />
+                  </div>
+                )}
+                <div>{renderHtmlBlock(description)}</div>
+                {!isCoverImageLeft && (
+                  <div className="w-full">
+                    <img
+                      src={coverImageUrl}
+                      alt={coverImageAlt}
+                      className="w-full h-full object-cover rounded-xl"
+                      style={{ objectPosition: coverImageObjectPosition }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : isFloatCoverImage ? (
             <div className="mt-4">
               <img
                 src={coverImageUrl}
@@ -318,10 +386,13 @@ const CmsContentRenderer = ({
                     ? "md:float-right md:ml-6"
                     : "md:float-left md:mr-6"
                 }`}
+                style={{ objectPosition: coverImageObjectPosition }}
               />
               {renderHtmlBlock(description)}
               <div className="clear-both" />
             </div>
+          ) : (
+            renderHtmlBlock(description)
           )
         ) : (
           renderHtmlBlock(description)
@@ -557,7 +628,38 @@ const CmsContentRenderer = ({
                 section.title || "Section image"
               );
               const isLight = section.background === "light";
-              const imageLeft = section.imagePosition !== "right";
+              const imagePosition = section.imagePosition || "left";
+              const imageLeft = !String(imagePosition).startsWith("right");
+              const gridTemplateClass = (() => {
+                switch (imagePosition) {
+                  case "left-25":
+                    return "lg:grid-cols-[25%_minmax(0,1fr)]";
+                  case "left-50":
+                    return "lg:grid-cols-[50%_minmax(0,1fr)]";
+                  case "right-25":
+                    return "lg:grid-cols-[minmax(0,1fr)_25%]";
+                  case "right-50":
+                    return "lg:grid-cols-[minmax(0,1fr)_50%]";
+                  case "right":
+                    return "lg:grid-cols-[minmax(0,1fr)_360px]";
+                  default:
+                    return "lg:grid-cols-[360px_minmax(0,1fr)]";
+                }
+              })();
+              const sectionImageObjectPosition = (() => {
+                switch (imagePosition) {
+                  case "left-25":
+                    return "25% center";
+                  case "left-50":
+                    return "50% center";
+                  case "right-25":
+                    return "right 25%";
+                  case "right-50":
+                    return "right 50%";
+                  default:
+                    return "center";
+                }
+              })();
               const hasImage = !!imageUrl;
 
               return (
@@ -568,11 +670,7 @@ const CmsContentRenderer = ({
                   <div
                     className={
                       hasImage
-                        ? `grid grid-cols-1 gap-8 items-start ${
-                            imageLeft
-                              ? "lg:grid-cols-[360px_minmax(0,1fr)]"
-                              : "lg:grid-cols-[minmax(0,1fr)_360px]"
-                          }`
+                        ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}`
                         : "grid grid-cols-1 gap-0"
                     }
                   >
@@ -582,7 +680,8 @@ const CmsContentRenderer = ({
                           <img
                             src={imageUrl}
                             alt={imageAlt}
-                            className="w-full h-auto object-contain rounded-lg"
+                            className="w-full h-64 object-cover rounded-lg"
+                            style={{ objectPosition: sectionImageObjectPosition }}
                           />
                           {section.imageCaption && (
                             <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
@@ -618,7 +717,8 @@ const CmsContentRenderer = ({
                           <img
                             src={imageUrl}
                             alt={imageAlt}
-                            className="w-full h-auto object-contain rounded-lg"
+                            className="w-full h-64 object-cover rounded-lg"
+                            style={{ objectPosition: sectionImageObjectPosition }}
                           />
                           {section.imageCaption && (
                             <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
@@ -648,7 +748,7 @@ const CmsContentRenderer = ({
       )}
 
       {relatedItems.length > 0 && (
-        <div className="mt-12">
+        <div className="mt-12 scroll-mt-24" ref={relatedInfoRef}>
           <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
             <div className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
               {relatedItems.map((item, index) => {
@@ -657,7 +757,15 @@ const CmsContentRenderer = ({
                   <button
                     key={`${item.title || "info"}-${index}`}
                     type="button"
-                    onClick={() => setActiveRelatedIndex(index)}
+                    onClick={() => {
+                      setActiveRelatedIndex(index);
+                      requestAnimationFrame(() => {
+                        relatedInfoRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      });
+                    }}
                     className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
                       isActive
                         ? "bg-[#a9c98c] text-white"
@@ -687,6 +795,124 @@ const CmsContentRenderer = ({
           </div>
         </div>
       )}
+
+      {Array.isArray(repeatableSectionsAfterRelated) &&
+        repeatableSectionsAfterRelated.length > 0 && (
+          <div className="space-y-8 mt-12">
+            {repeatableSectionsAfterRelated.map((section) => {
+              const imageMedia = getMediaObject(section.image);
+              const imageUrl = getMediaUrl(imageMedia, "large");
+              const imageAlt = getMediaAlt(
+                imageMedia,
+                section.title || "Section image"
+              );
+              const isLight = section.background === "light";
+              const imagePosition = section.imagePosition || "left";
+              const imageLeft = !String(imagePosition).startsWith("right");
+              const gridTemplateClass = (() => {
+                switch (imagePosition) {
+                  case "left-25":
+                    return "lg:grid-cols-[25%_minmax(0,1fr)]";
+                  case "left-50":
+                    return "lg:grid-cols-[50%_minmax(0,1fr)]";
+                  case "right-25":
+                    return "lg:grid-cols-[minmax(0,1fr)_25%]";
+                  case "right-50":
+                    return "lg:grid-cols-[minmax(0,1fr)_50%]";
+                  case "right":
+                    return "lg:grid-cols-[minmax(0,1fr)_360px]";
+                  default:
+                    return "lg:grid-cols-[360px_minmax(0,1fr)]";
+                }
+              })();
+              const sectionImageObjectPosition = (() => {
+                switch (imagePosition) {
+                  case "left-25":
+                    return "25% center";
+                  case "left-50":
+                    return "50% center";
+                  case "right-25":
+                    return "right 25%";
+                  case "right-50":
+                    return "right 50%";
+                  default:
+                    return "center";
+                }
+              })();
+              const hasImage = !!imageUrl;
+
+              return (
+                <section
+                  key={section.id || section.title}
+                  className={`${isLight ? "bg-gray-50" : "bg-white"} py-4`}
+                >
+                  <div
+                    className={
+                      hasImage
+                        ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}`
+                        : "grid grid-cols-1 gap-0"
+                    }
+                  >
+                    {hasImage && imageLeft && (
+                      <div className="w-full">
+                        <figure>
+                          <img
+                            src={imageUrl}
+                            alt={imageAlt}
+                            className="w-full h-64 object-cover rounded-lg"
+                            style={{ objectPosition: sectionImageObjectPosition }}
+                          />
+                          {section.imageCaption && (
+                            <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
+                              {section.imageCaption}
+                            </figcaption>
+                          )}
+                        </figure>
+                      </div>
+                    )}
+
+                    <div>
+                      {section.title && (
+                        <h3
+                          className="text-3xl font-semibold text-green-600 mb-4"
+                          style={{ fontFamily: "\"MuseoModerno\", sans-serif" }}
+                        >
+                          {section.title}
+                        </h3>
+                      )}
+                      {section.description && (
+                        <div
+                          className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHtml(section.description),
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {hasImage && !imageLeft && (
+                      <div className="w-full">
+                        <figure>
+                          <img
+                            src={imageUrl}
+                            alt={imageAlt}
+                            className="w-full h-64 object-cover rounded-lg"
+                            style={{ objectPosition: sectionImageObjectPosition }}
+                          />
+                          {section.imageCaption && (
+                            <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
+                              {section.imageCaption}
+                            </figcaption>
+                          )}
+                        </figure>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
 
       {Array.isArray(faq) && faq.length > 0 && (
         <div className="mt-12">

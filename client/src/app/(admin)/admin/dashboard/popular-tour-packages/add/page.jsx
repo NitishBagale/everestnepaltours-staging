@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Plus,
   Trash2,
@@ -10,7 +10,6 @@ import {
   Star,
   Layout,
   ImageIcon,
-  Layers,
   DollarSign,
   Type,
   CheckCircle2,
@@ -57,6 +56,56 @@ const createItineraryDay = (index) => ({
   image: null,
 });
 
+const normalizeItineraryPayload = (itinerary = []) =>
+  itinerary.map((day, index) => {
+    const order = day.order || index + 1;
+    const parsedDay = Number(day.day);
+    const dayNumber =
+      Number.isFinite(parsedDay) && parsedDay > 0 ? parsedDay : order;
+    const normalized = {
+      ...day,
+      order,
+      day: dayNumber,
+    };
+
+    if (Array.isArray(normalized.activities)) {
+      const cleaned = normalized.activities
+        .map((item) => (typeof item === "string" ? item.trim() : item))
+        .filter((item) => {
+          if (typeof item === "string") return item.length > 0;
+          return item != null;
+        });
+      normalized.activities = cleaned;
+    }
+
+    if (!normalized.image) {
+      delete normalized.image;
+      return normalized;
+    }
+
+    if (typeof normalized.image === "string") {
+      if (!normalized.image.trim()) delete normalized.image;
+      return normalized;
+    }
+
+    if (
+      normalized.image &&
+      typeof normalized.image === "object" &&
+      "altText" in normalized.image
+    ) {
+      const altText = normalized.image.altText;
+      if (!altText || !String(altText).trim()) {
+        const { altText: _altText, ...rest } = normalized.image;
+        normalized.image = rest;
+      }
+    }
+
+    return normalized;
+  });
+
+const itemChevronToggleClass =
+  "h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center justify-center transition-colors";
+
 const SortableItineraryCard = ({ id, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
@@ -90,7 +139,6 @@ const CreatePackage = () => {
   const router = useRouter();
   const [isPublishing, setIsPublishing] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
-  const [categories, setCategories] = useState([]);
   const [errors, setErrors] = useState({});
   const [tempTag, setTempTag] = useState("");
   const [mainImageModalOpen, setMainImageModalOpen] = useState(false);
@@ -102,6 +150,10 @@ const CreatePackage = () => {
   const [includedExcludedOpen, setIncludedExcludedOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);
   const [additionalInfoOpen, setAdditionalInfoOpen] = useState(false);
+  const [openItineraryItems, setOpenItineraryItems] = useState({});
+  const [openIncludedExcludedItems, setOpenIncludedExcludedItems] = useState({});
+  const [openFaqItems, setOpenFaqItems] = useState({});
+  const [openAdditionalInfoItems, setOpenAdditionalInfoItems] = useState({});
   const sensors = useSensors(useSensor(PointerSensor));
 
   const [formData, setFormData] = useState({
@@ -122,7 +174,6 @@ const CreatePackage = () => {
     trip_transportations: "",
     tour_type: "Challenging",
     rating: "Excellent",
-    category: "",
     cost: "",
     mainImage: null,
     overviewImage: null,
@@ -137,25 +188,6 @@ const CreatePackage = () => {
     meta_description: "",
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = Cookies.get("accessToken") || Cookies.get("token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-        const [categoryRes] = await Promise.all([
-          axios.get(`${BASE_URL}/category/`),
-        ]);
-
-        setCategories(categoryRes.data.data || []);
-      } catch (error) {
-        console.error("Data Fetch Error:", error);
-        toast.error("Failed to load initial data.");
-      }
-    };
-    fetchData();
-  }, []);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     const slugify = (text) =>
@@ -166,9 +198,7 @@ const CreatePackage = () => {
         .replace(/\s+/g, "-")
         .replace(/-+/g, "-");
 
-    if (name === "category") {
-      setFormData({ ...formData, category: value });
-    } else if (name === "title") {
+    if (name === "title") {
       setFormData((prev) => ({
         ...prev,
         title: value,
@@ -232,6 +262,7 @@ const CreatePackage = () => {
   };
 
   const addItineraryDay = () => {
+    setItineraryOpen(true);
     setFormData({
       ...formData,
       itinerary: [
@@ -307,6 +338,7 @@ const CreatePackage = () => {
   };
 
   const addIncludedSection = () => {
+    setIncludedExcludedOpen(true);
     setFormData({
       ...formData,
       customSections: [
@@ -324,6 +356,7 @@ const CreatePackage = () => {
   };
 
   const addCustomTextSection = () => {
+    setAdditionalInfoOpen(true);
     setFormData({
       ...formData,
       customSections: [
@@ -384,6 +417,7 @@ const CreatePackage = () => {
   };
 
   const addFaq = () => {
+    setFaqOpen(true);
     setFormData({
       ...formData,
       faq: [...formData.faq, { id: Date.now(), question: "", answer: "" }],
@@ -491,13 +525,7 @@ const CreatePackage = () => {
           .replace(/\s+/g, "-")
           .replace(/-+/g, "-");
 
-      const normalizedItinerary = formData.itinerary.map((day, index) => ({
-        ...day,
-        order: day.order || index + 1,
-        day:
-          day.day?.toString().trim() ||
-          `Day ${day.order || index + 1}`,
-      }));
+      const normalizedItinerary = normalizeItineraryPayload(formData.itinerary);
 
       const cleanedCustomSections = formData.customSections
         .filter((section) => section.title && section.title.trim() !== "")
@@ -548,7 +576,6 @@ const CreatePackage = () => {
           itinerary_title: formData.itinerary_title,
           tour_type: formData.tour_type,
           rating: formData.rating,
-          categoryId: Number(formData.category),
           cost: formData.cost ? String(formData.cost) : "",
           mainImage: formData.mainImage,
           itinerary: normalizedItinerary,
@@ -694,7 +721,7 @@ const CreatePackage = () => {
 
           </div>
 
-          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6 min-h-[520px]">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <h2 className="text-xl font-bold flex items-center gap-2 text-gray-900">
                 <FileText className="w-5 h-5 text-[var(--admin-primary)]" />
@@ -702,7 +729,7 @@ const CreatePackage = () => {
               </h2>
             </div>
 
-            <div>
+            <div className="mb-20">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Detailed Description <span className="text-red-500">*</span>
               </label>
@@ -791,7 +818,7 @@ const CreatePackage = () => {
               />
             </div>
 
-            <div>
+            <div className="mb-20">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Highlights
               </label>
@@ -803,7 +830,7 @@ const CreatePackage = () => {
                     trip_highlights: value,
                   }))
                 }
-                height="h-36"
+                height="h-48"
               />
             </div>
           </div>
@@ -817,19 +844,18 @@ const CreatePackage = () => {
               >
                 <MapPin className="w-5 h-5 text-[var(--admin-primary)]" />
                 Day-to-Day Itinerary
-                {itineraryOpen ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
               </button>
               <button
                 type="button"
-                onClick={addItineraryDay}
-                className="group flex items-center gap-2 px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg hover:bg-[var(--admin-primary)] hover:text-white transition-all font-semibold text-sm"
+                onClick={() => setItineraryOpen((prev) => !prev)}
+                aria-label={itineraryOpen ? "Collapse itinerary section" : "Expand itinerary section"}
+                className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
               >
-                <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
-                Add Day
+                {itineraryOpen ? (
+                  <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                )}
               </button>
             </div>
 
@@ -940,16 +966,39 @@ const CreatePackage = () => {
                                   }`}
                                 />
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => removeItineraryDay(dIndex)}
-                                className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setOpenItineraryItems((prev) => ({
+                                      ...prev,
+                                      [day.id]: !prev[day.id],
+                                    }))
+                                  }
+                                  className={itemChevronToggleClass}
+                                  title={
+                                    openItineraryItems[day.id] ? "Collapse" : "Expand"
+                                  }
+                                >
+                                  {openItineraryItems[day.id] ? (
+                                    <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+                                  ) : (
+                                    <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeItineraryDay(dIndex)}
+                                  className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
+                              </div>
                             </div>
 
-                            <div className="pl-0 sm:pl-24 mb-4">
+                            {openItineraryItems[day.id] && (
+                              <>
+                            <div className="pl-0 sm:pl-24 mb-20">
                               <label className="text-xs font-semibold text-gray-600 mb-2 block">
                                 Description
                               </label>
@@ -1106,6 +1155,8 @@ const CreatePackage = () => {
                                 <Plus className="w-3 h-3" /> Add another activity
                               </button>
                             </div>
+                              </>
+                            )}
 
                           </div>
                             </div>
@@ -1116,6 +1167,16 @@ const CreatePackage = () => {
                     </SortableContext>
                   </DndContext>
                 )}
+                <div className="mt-6 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addItineraryDay}
+                    className="group flex items-center gap-2 px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg hover:bg-[var(--admin-primary)] hover:text-white transition-all font-semibold text-sm"
+                  >
+                    <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+                    Add Day
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -1128,18 +1189,22 @@ const CreatePackage = () => {
                 className="text-lg font-bold text-gray-900 flex items-center gap-2"
               >
                 Included / Excluded Sections
-                {includedExcludedOpen ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
               </button>
               <button
                 type="button"
-                onClick={addIncludedSection}
-                className="text-sm px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg font-semibold hover:bg-[var(--admin-primary-soft-strong)] transition-colors flex items-center gap-2"
+                onClick={() => setIncludedExcludedOpen((prev) => !prev)}
+                aria-label={
+                  includedExcludedOpen
+                    ? "Collapse included and excluded section"
+                    : "Expand included and excluded section"
+                }
+                className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
               >
-                <Plus className="w-4 h-4" /> Add Section
+                {includedExcludedOpen ? (
+                  <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                )}
               </button>
             </div>
             {!includedExcludedOpen && (
@@ -1177,16 +1242,41 @@ const CreatePackage = () => {
                             className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
                           />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removeCustomSection(sIndex)}
-                          className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenIncludedExcludedItems((prev) => ({
+                                ...prev,
+                                [section.id]: !prev[section.id],
+                              }))
+                            }
+                            className={itemChevronToggleClass}
+                            title={
+                              openIncludedExcludedItems[section.id]
+                                ? "Collapse"
+                                : "Expand"
+                            }
+                          >
+                            {openIncludedExcludedItems[section.id] ? (
+                              <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeCustomSection(sIndex)}
+                            className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="mb-4">
+                      {openIncludedExcludedItems[section.id] && (
+                        <>
+                      <div className="mb-20">
                         <label className="block text-xs font-semibold text-gray-600 mb-2">
                           Note
                         </label>
@@ -1195,11 +1285,11 @@ const CreatePackage = () => {
                           onChange={(value) =>
                             handleCustomSectionChange(sIndex, "note", value)
                           }
-                          height="h-24"
+                          height="h-40"
                         />
                       </div>
 
-                      <div className="mb-4">
+                      <div className="mb-20">
                         <label className="block text-xs font-semibold text-gray-600 mb-2">
                           Description
                         </label>
@@ -1212,9 +1302,11 @@ const CreatePackage = () => {
                               value
                             )
                           }
-                          height="h-28"
+                          height="h-44"
                         />
                       </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 {formData.customSections.filter(
@@ -1226,6 +1318,15 @@ const CreatePackage = () => {
                     </p>
                   </div>
                 )}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addIncludedSection}
+                    className="text-sm px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg font-semibold hover:bg-[var(--admin-primary-soft-strong)] transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Add Section
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1240,19 +1341,18 @@ const CreatePackage = () => {
               >
                 <AlertCircle size={18} className="text-[var(--admin-primary)]" />
                 Frequently Asked Questions
-                {faqOpen ? (
-                  <ChevronUp className="w-4 h-4 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                )}
               </button>
               <button
                 type="button"
-                onClick={addFaq}
-                className="px-3 py-1.5 bg-[var(--admin-primary)] text-white text-xs font-medium rounded-lg hover:bg-[var(--admin-primary-strong)] transition-colors flex items-center gap-1.5"
+                onClick={() => setFaqOpen((prev) => !prev)}
+                aria-label={faqOpen ? "Collapse FAQ section" : "Expand FAQ section"}
+                className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
               >
-                <Plus size={14} />
-                Add FAQ
+                {faqOpen ? (
+                  <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                )}
               </button>
             </div>
             {!faqOpen && (
@@ -1308,20 +1408,42 @@ const CreatePackage = () => {
                                       <GripVertical className="w-4 h-4" />
                                     </button>
                                     <span className="text-xs font-semibold text-gray-500">
-                                      FAQ #{index + 1}
+                                      {faq.question?.trim()
+                                        ? faq.question
+                                        : `FAQ #${index + 1}`}
                                     </span>
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeFaq(index)}
-                                    className="text-red-500 hover:text-red-700 transition-colors"
-                                    title="Remove FAQ"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setOpenFaqItems((prev) => ({
+                                          ...prev,
+                                          [faq.id]: !prev[faq.id],
+                                        }))
+                                      }
+                                      className={itemChevronToggleClass}
+                                      title={openFaqItems[faq.id] ? "Collapse" : "Expand"}
+                                    >
+                                      {openFaqItems[faq.id] ? (
+                                        <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+                                      ) : (
+                                        <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeFaq(index)}
+                                      className="text-red-500 hover:text-red-700 transition-colors"
+                                      title="Remove FAQ"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
                                 </div>
 
-                                <div className="space-y-3">
+                                {openFaqItems[faq.id] && (
+                                  <div className="space-y-3">
                                   <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1.5">
                                       Question
@@ -1341,7 +1463,7 @@ const CreatePackage = () => {
                                     />
                                   </div>
 
-                                  <div>
+                                  <div className="mb-20">
                                     <label className="block text-xs font-medium text-gray-600 mb-1.5">
                                       Answer
                                     </label>
@@ -1350,10 +1472,11 @@ const CreatePackage = () => {
                                       onChange={(value) =>
                                         handleFaqChange(index, "answer", value)
                                       }
-                                      height="h-32"
+                                      height="h-44"
                                     />
                                   </div>
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </SortableFaqCard>
@@ -1369,6 +1492,16 @@ const CreatePackage = () => {
                     </p>
                   </div>
                 )}
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addFaq}
+                    className="px-3 py-1.5 bg-[var(--admin-primary)] text-white text-xs font-medium rounded-lg hover:bg-[var(--admin-primary-strong)] transition-colors flex items-center gap-1.5"
+                  >
+                    <Plus size={14} />
+                    Add FAQ
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -1381,18 +1514,22 @@ const CreatePackage = () => {
                 className="text-lg font-bold text-gray-900 flex items-center gap-2"
               >
                 Additional Info Sections
-                {additionalInfoOpen ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
               </button>
               <button
                 type="button"
-                onClick={addCustomTextSection}
-                className="text-sm px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg font-semibold hover:bg-[var(--admin-primary-soft-strong)] transition-colors flex items-center gap-2"
+                onClick={() => setAdditionalInfoOpen((prev) => !prev)}
+                aria-label={
+                  additionalInfoOpen
+                    ? "Collapse additional info section"
+                    : "Expand additional info section"
+                }
+                className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
               >
-                <Plus className="w-4 h-4" /> Add Section
+                {additionalInfoOpen ? (
+                  <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                )}
               </button>
             </div>
             {!additionalInfoOpen && (
@@ -1462,22 +1599,49 @@ const CreatePackage = () => {
                                         className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
                                       />
                                     </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => removeCustomSection(sIndex)}
-                                      className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    >
-                                      <Trash2 className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setOpenAdditionalInfoItems((prev) => ({
+                                            ...prev,
+                                            [section.id]: !prev[section.id],
+                                          }))
+                                        }
+                                        className={itemChevronToggleClass}
+                                        title={
+                                          openAdditionalInfoItems[section.id]
+                                            ? "Collapse"
+                                            : "Expand"
+                                        }
+                                      >
+                                        {openAdditionalInfoItems[section.id] ? (
+                                          <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+                                        ) : (
+                                          <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+                                        )}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeCustomSection(sIndex)}
+                                        className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      >
+                                        <Trash2 className="w-5 h-5" />
+                                      </button>
+                                    </div>
                                   </div>
 
-                                  <RichEditor
-                                    value={section.content[0] || ""}
-                                    onChange={(value) =>
-                                      handleCustomSectionItemChange(sIndex, 0, value)
-                                    }
-                                    height="h-32"
-                                  />
+                                  {openAdditionalInfoItems[section.id] && (
+                                    <div className="mb-20">
+                                    <RichEditor
+                                      value={section.content[0] || ""}
+                                      onChange={(value) =>
+                                        handleCustomSectionItemChange(sIndex, 0, value)
+                                      }
+                                      height="h-44"
+                                    />
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </SortableFaqCard>
@@ -1486,38 +1650,21 @@ const CreatePackage = () => {
                     </SortableContext>
                   </DndContext>
                 )}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addCustomTextSection}
+                    className="text-sm px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg font-semibold hover:bg-[var(--admin-primary-soft-strong)] transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Add Section
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="font-bold text-gray-900 mb-3">Category</h3>
-            <div className="relative">
-              <Layers className="absolute left-3.5 top-3.5 text-gray-400 w-5 h-5" />
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-10 p-3.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-[var(--admin-primary-ring)]/20 focus:border-[var(--admin-primary-border)] outline-none appearance-none cursor-pointer transition-all ${
-                  errors.category ? "border-red-500" : "border-gray-200"
-                }`}
-              >
-                <option value="">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            </div>
-            {errors.category && (
-              <p className="mt-1 text-sm text-red-600">{errors.category}</p>
-            )}
-          </div>
-
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <ImageIconLucide className="w-5 h-5 text-[var(--admin-primary)]" />
