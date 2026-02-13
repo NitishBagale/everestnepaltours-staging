@@ -51,7 +51,7 @@ const RichEditor = ({
     () => ({
       toolbar: {
         container: [
-          [{ header: [1, 2, 3, false] }],
+          [{ header: [1, 2, 3, 4, 5, 6, false] }],
           ["bold", "italic", "underline", "strike", "blockquote"],
           [{ list: "ordered" }, { list: "bullet" }],
           [{ align: [] }],
@@ -86,6 +86,9 @@ const RichEditor = ({
       className={`prose-editor border rounded-xl overflow-visible mb-10 ${className} ${
         codeView ? "code-view-active" : ""
       }`}
+      onKeyDown={(event) => event.stopPropagation()}
+      onKeyUp={(event) => event.stopPropagation()}
+      onKeyPress={(event) => event.stopPropagation()}
     >
       <ReactQuill
         ref={quillRef}

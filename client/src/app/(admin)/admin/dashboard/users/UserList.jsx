@@ -309,8 +309,8 @@ const UserList = ({ token }) => {
       ) : (
         <div className="overflow-x-auto bg-white rounded shadow">
           <table className="w-full">
-            <thead>
-              <tr className="bg-gray-100 text-gray-700">
+            <thead className="bg-[var(--admin-primary-soft-strong)] text-left text-gray-700">
+              <tr>
                 <th className="p-4 text-left font-semibold">Name</th>
                 <th className="p-4 text-left font-semibold">Email</th>
                 <th className="p-4 text-left font-semibold">Role</th>

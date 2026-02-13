@@ -13,4 +13,4 @@
 .ql-toolbar.ql-snow .ql-code-view::before{content:"Code";font-size:12px;line-height:24px}
 .prose-editor.code-view-active .ql-toolbar.ql-snow .ql-code-view::before{content:"Visual"}
 .prose-editor.code-view-active .ql-container{display:none}
-.prose-editor .code-view-textarea{border:1px solid #ccc;border-top:0;box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;padding:12px 15px;resize:vertical}
+.prose-editor .code-view-textarea{border:1px solid #ccc;border-top:0;box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;padding:12px 15px;resize:vertical}.prose-editor .ql-tooltip{display:none!important}

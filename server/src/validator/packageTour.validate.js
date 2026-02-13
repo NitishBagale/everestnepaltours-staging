@@ -8,7 +8,7 @@ const PackageTour = Joi.object({
     duration: Joi.string().min(1).max(50).required(),
     tour_type: Joi.string().min(3).max(50).required(),
     rating: Joi.string().min(3).max(50).required(),
-    categoryId: Joi.number().integer().required(),
+    categoryId: Joi.number().integer().optional().allow(null),
     mainImage: Joi.alternatives().try(
       Joi.string().uri(),
       Joi.object({
@@ -38,12 +38,14 @@ const PackageTour = Joi.object({
         activities: Joi.array()
           .items(
             Joi.alternatives().try(
-              Joi.string().min(1).max(500),
+              Joi.string().allow("").max(500),
               Joi.object().unknown(true)
             )
           )
-          .min(1)
-          .required(),
+          .optional(),
+        accommodation: Joi.string().allow("", null).optional(),
+        meal: Joi.string().allow("", null).optional(),
+        elevation: Joi.string().allow("", null).optional(),
         richText: Joi.string().min(20).optional(),
         image: Joi.alternatives().try(
           Joi.string().uri(),
@@ -75,8 +77,8 @@ const PackageTour = Joi.object({
     highlights: Joi.array().items(Joi.string().min(5)),
     faq: Joi.array().items(
       Joi.object({
-        question: Joi.string().min(10).required(),
-        answer: Joi.string().min(10).required(),
+        question: Joi.string().allow("", null).optional(),
+        answer: Joi.string().allow("", null).optional(),
       })
     ),
     faq_section_title: Joi.string().allow("", null).optional(),
@@ -112,9 +114,11 @@ const PackageTour = Joi.object({
       .items(
         Joi.object({
           id: Joi.number().optional(),
-          title: Joi.string().min(3).max(200).required(),
-          type: Joi.string().valid("list", "paragraph").required(),
-          content: Joi.array().items(Joi.string().min(1)).min(1).required(),
+          title: Joi.string().allow("", null).optional(),
+          type: Joi.string().valid("list", "paragraph").optional(),
+          content: Joi.array().items(Joi.string().allow("")).optional(),
+          note: Joi.string().allow("", null).optional(),
+          description: Joi.string().allow("", null).optional(),
         })
       )
       .optional(),

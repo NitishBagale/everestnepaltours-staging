@@ -20,7 +20,6 @@ import { getMediaObject, getMediaUrl } from "@/lib/media";
 
 const Packages = () => {
   const [data, setData] = useState([]);
-  const [categoryMap, setCategoryMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteModal, setDeleteModal] = useState({
@@ -29,15 +28,15 @@ const Packages = () => {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
   const router = useRouter();
 
   useEffect(() => {
     const fetchAllPackages = async () => {
       try {
-        const [packagesRes, categoriesRes] = await Promise.all([
+        const [packagesRes] = await Promise.all([
           axios.get(`${BASE_URL}/package-tour/`),
-          axios.get(`${BASE_URL}/category/`),
         ]);
 
         if (packagesRes.data.data) {
@@ -48,13 +47,6 @@ const Packages = () => {
           setData([]);
         }
 
-        const categories = categoriesRes.data?.data || [];
-        const mapped = categories.reduce((acc, cat) => {
-          const key = cat.id ?? cat._id;
-          if (key) acc[String(key)] = cat.name;
-          return acc;
-        }, {});
-        setCategoryMap(mapped);
       } catch (error) {
         console.error("Error fetching packages:", error);
         setError(error.message);
@@ -159,6 +151,21 @@ const Packages = () => {
     router.push(`/admin/dashboard/popular-tour-packages/update/${id}`);
   };
 
+  const filteredData = data.filter((pkg) => {
+    const item = pkg.package || pkg;
+    const title = item.title || "";
+    return title.toLowerCase().includes(searchTerm.trim().toLowerCase());
+  });
+
+  const pagedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-gray-50">
@@ -183,7 +190,7 @@ const Packages = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8 font-sans">
       <div className="w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+        <div className="flex flex-col mb-6 sm:mb-8 gap-3 sm:gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
               Packages
@@ -192,43 +199,44 @@ const Packages = () => {
               Manage your tour listings efficiently
             </p>
           </div>
-          <button
-            onClick={() => router.push("/admin/dashboard/popular-tour-packages/add")}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--admin-primary)] hover:bg-[var(--admin-primary-strong)] text-white font-semibold px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
-          >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-            Add New Package
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by title..."
+              className="w-full sm:w-64 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-ring)]/30 focus:border-[var(--admin-primary-border)]"
+            />
+            <button
+              onClick={() =>
+                router.push("/admin/dashboard/popular-tour-packages/add")
+              }
+              className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 bg-[var(--admin-primary)] hover:bg-[var(--admin-primary-strong)] text-white font-semibold px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              Add New Package
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
+              <thead className="bg-[var(--admin-primary-soft-strong)] text-left text-gray-700">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold">Image</th>
                   <th className="px-4 py-3 text-left font-semibold">Description</th>
                   <th className="px-4 py-3 text-left font-semibold">Duration</th>
-                  <th className="px-4 py-3 text-left font-semibold">Category</th>
                   <th className="px-4 py-3 text-left font-semibold">Price</th>
                   <th className="px-4 py-3 text-left font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data
-                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                  .map((pkg, index) => {
+                {pagedData.map((pkg, index) => {
                     const item = pkg.package || pkg;
                     const packageId = pkg._id || pkg.id;
                     const media = getMediaObject(item.mainImage || item.image);
                     const imageSrc = getMediaUrl(media, "medium") || "/bhutan.jpg";
-                    const categoryLabel =
-                      item.categoryName ||
-                      item.category?.name ||
-                      categoryMap[String(item.categoryId)] ||
-                      categoryMap[String(item.category)] ||
-                      item.category ||
-                      "—";
                     return (
                       <tr key={packageId || index} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
@@ -254,7 +262,6 @@ const Packages = () => {
                         <td className="px-4 py-3 text-gray-700">
                           {item.duration || "N/A"}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{categoryLabel}</td>
                         <td className="px-4 py-3 text-gray-700">
                           {item.cost ? `$ ${item.cost}` : "—"}
                         </td>
@@ -281,7 +288,7 @@ const Packages = () => {
             </table>
           </div>
 
-          {!loading && data.length === 0 && (
+          {!loading && filteredData.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 bg-white border-t border-dashed border-gray-300">
               <div className="bg-gray-100 p-4 rounded-full mb-3">
                 <Plus className="w-8 h-8 text-gray-400" />
@@ -298,10 +305,10 @@ const Packages = () => {
             </div>
           )}
 
-          {data.length > itemsPerPage && (
+          {filteredData.length > itemsPerPage && (
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
               <p className="text-xs text-gray-500">
-                Page {currentPage} of {Math.ceil(data.length / itemsPerPage)}
+                Page {currentPage} of {Math.ceil(filteredData.length / itemsPerPage)}
               </p>
               <div className="flex gap-2">
                 <button
@@ -316,10 +323,15 @@ const Packages = () => {
                   type="button"
                   onClick={() =>
                     setCurrentPage((prev) =>
-                      Math.min(Math.ceil(data.length / itemsPerPage), prev + 1)
+                      Math.min(
+                        Math.ceil(filteredData.length / itemsPerPage),
+                        prev + 1
+                      )
                     )
                   }
-                  disabled={currentPage === Math.ceil(data.length / itemsPerPage)}
+                  disabled={
+                    currentPage === Math.ceil(filteredData.length / itemsPerPage)
+                  }
                   className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                 >
                   Next
