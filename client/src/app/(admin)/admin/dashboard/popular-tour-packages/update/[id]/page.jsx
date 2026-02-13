@@ -244,6 +244,67 @@ const EditPackage = () => {
         return;
       }
 
+      const rawItinerary = Array.isArray(packageData.itinerary)
+        ? packageData.itinerary
+        : [];
+      const rawCustomSections = Array.isArray(packageData.customSections)
+        ? packageData.customSections
+        : [];
+      const rawFaq = Array.isArray(packageData.faq) ? packageData.faq : [];
+
+      const hasItineraryContent = rawItinerary.some((item) => {
+        if (!item) return false;
+        const hasActivities =
+          Array.isArray(item.activities) &&
+          item.activities.some((activity) => String(activity || "").trim());
+        return Boolean(
+          String(
+            item.title ||
+              item.richText ||
+              item.description ||
+              item.day ||
+              item.dayNumber ||
+              item.day_no ||
+              item.dayNo ||
+              ""
+          ).trim() ||
+            hasActivities ||
+            item.image
+        );
+      });
+
+      const hasIncludedExcludedContent = rawCustomSections
+        .filter((section) => section?.type === "list")
+        .some((section) => {
+          const contentItems = Array.isArray(section.content)
+            ? section.content
+            : section.content
+              ? [section.content]
+              : [];
+          return Boolean(
+            String(section.title || section.note || section.description || "").trim() ||
+              contentItems.some((item) => String(item || "").trim())
+          );
+        });
+
+      const hasAdditionalInfoContent = rawCustomSections
+        .filter((section) => section?.type === "paragraph")
+        .some((section) => {
+          const contentItems = Array.isArray(section.content)
+            ? section.content
+            : section.content
+              ? [section.content]
+              : [];
+          return Boolean(
+            String(section.title || "").trim() ||
+              contentItems.some((item) => String(item || "").trim())
+          );
+        });
+
+      const hasFaqContent = rawFaq.some((item) =>
+        Boolean(String(item?.question || item?.answer || "").trim())
+      );
+
       setFormData({
         title: packageData.title || "",
         slug: packageData.slug || "",
@@ -328,6 +389,10 @@ const EditPackage = () => {
         meta_title: packageData.meta_title || "",
         meta_description: packageData.meta_description || "",
       });
+      setItineraryOpen(hasItineraryContent);
+      setIncludedExcludedOpen(hasIncludedExcludedContent);
+      setFaqOpen(hasFaqContent);
+      setAdditionalInfoOpen(hasAdditionalInfoContent);
 
       console.log("Form data set successfully");
       console.log("Final formData:", formData);
