@@ -23,10 +23,37 @@ const RichEditor = ({
   const [mediaOpen, setMediaOpen] = useState(false);
   const [codeView, setCodeView] = useState(false);
   const [codeValue, setCodeValue] = useState(value || "");
+  const lastExternalValueRef = useRef(value || "");
 
   useEffect(() => {
-    setCodeValue(value || "");
+    const nextValue = value || "";
+    if (nextValue !== lastExternalValueRef.current) {
+      setCodeValue(nextValue);
+      lastExternalValueRef.current = nextValue;
+    }
   }, [value]);
+
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return undefined;
+
+    const stopEditorShortcutPropagation = (event) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const key = String(event.key || "").toLowerCase();
+      if (["b", "z", "y"].includes(key)) {
+        event.stopPropagation();
+      }
+    };
+
+    quill.root.addEventListener("keydown", stopEditorShortcutPropagation, true);
+    return () => {
+      quill.root.removeEventListener(
+        "keydown",
+        stopEditorShortcutPropagation,
+        true
+      );
+    };
+  }, []);
 
   const handleSelectMedia = (media) => {
     const quill = quillRef.current?.getEditor();
@@ -63,6 +90,11 @@ const RichEditor = ({
           image: () => setMediaOpen(true),
           "code-view": handleToggleCodeView,
         },
+      },
+      history: {
+        delay: 300,
+        maxStack: 200,
+        userOnly: true,
       },
     }),
     [handleToggleCodeView]

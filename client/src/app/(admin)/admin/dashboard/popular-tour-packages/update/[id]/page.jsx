@@ -45,11 +45,12 @@ const createItineraryDay = (index) => ({
   day: "",
   title: "",
   richText: "",
+  driveTime: "",
   accommodation: "",
   meal: "",
   elevation: "",
   activities: [""],
-  image: null,
+  images: [],
 });
 
 const normalizeItineraryPayload = (itinerary = []) =>
@@ -64,6 +65,50 @@ const normalizeItineraryPayload = (itinerary = []) =>
       day: dayNumber,
     };
 
+    const sourceImages = Array.isArray(normalized.images)
+      ? normalized.images
+      : normalized.image
+        ? [normalized.image]
+        : [];
+    const normalizedImages = sourceImages
+      .map((image) => {
+        if (!image) return null;
+
+        if (typeof image === "string") {
+          if (!image.trim()) return null;
+          return {
+            mediaId: null,
+            url: image,
+            variants: {},
+            title: "",
+            altText: "",
+            caption: "",
+            sizePercent: 100,
+          };
+        }
+
+        if (typeof image !== "object" || !image.url) return null;
+
+        const {
+          caption = "",
+          sizePercent = 100,
+          altText,
+          ...rest
+        } = image;
+        const cleaned = { ...rest, url: image.url };
+        if (altText && String(altText).trim()) {
+          cleaned.altText = altText;
+        }
+        return {
+          ...cleaned,
+          caption: String(caption || ""),
+          sizePercent: Number(sizePercent) || 100,
+        };
+      })
+      .filter(Boolean);
+    normalized.images = normalizedImages;
+    delete normalized.image;
+
     if (Array.isArray(normalized.activities)) {
       const cleaned = normalized.activities
         .map((item) => (typeof item === "string" ? item.trim() : item))
@@ -72,28 +117,6 @@ const normalizeItineraryPayload = (itinerary = []) =>
           return item != null;
         });
       normalized.activities = cleaned;
-    }
-
-    if (!normalized.image) {
-      delete normalized.image;
-      return normalized;
-    }
-
-    if (typeof normalized.image === "string") {
-      if (!normalized.image.trim()) delete normalized.image;
-      return normalized;
-    }
-
-    if (
-      normalized.image &&
-      typeof normalized.image === "object" &&
-      "altText" in normalized.image
-    ) {
-      const altText = normalized.image.altText;
-      if (!altText || !String(altText).trim()) {
-        const { altText: _altText, ...rest } = normalized.image;
-        normalized.image = rest;
-      }
     }
 
     return normalized;
@@ -169,6 +192,8 @@ const EditPackage = () => {
     sub_description: "",
     descriptions: "",
     overviewImage: null,
+    overviewImageAlign: "center",
+    overviewImageSize: 100,
     trip_highlights_title: "",
     trip_highlights: "",
     itinerary_title: "",
@@ -257,11 +282,14 @@ const EditPackage = () => {
         const hasActivities =
           Array.isArray(item.activities) &&
           item.activities.some((activity) => String(activity || "").trim());
+        const hasImages =
+          (Array.isArray(item.images) && item.images.length > 0) || Boolean(item.image);
         return Boolean(
           String(
             item.title ||
               item.richText ||
               item.description ||
+              item.driveTime ||
               item.day ||
               item.dayNumber ||
               item.day_no ||
@@ -269,7 +297,7 @@ const EditPackage = () => {
               ""
           ).trim() ||
             hasActivities ||
-            item.image
+            hasImages
         );
       });
 
@@ -311,6 +339,8 @@ const EditPackage = () => {
         sub_description: packageData.sub_description || "",
         descriptions: packageData.descriptions || "",
         overviewImage: normalizeMedia(packageData.overviewImage),
+        overviewImageAlign: packageData.overviewImageAlign || "center",
+        overviewImageSize: Number(packageData.overviewImageSize) || 100,
         trip_highlights_title: packageData.trip_highlights_title || "",
         trip_highlights: packageData.trip_highlights || "",
         itinerary_title: packageData.itinerary_title || "",
@@ -338,11 +368,29 @@ const EditPackage = () => {
               "",
             title: item.title || "",
             richText: item.richText || item.description || "",
+            driveTime: item.driveTime || item.duration || "",
             accommodation: item.accommodation || "",
             meal: item.meal || "",
             elevation: item.elevation || "",
             activities: item.activities?.length ? item.activities : [""],
-            image: normalizeMedia(item.image),
+            images: (() => {
+              const sourceImages = Array.isArray(item.images)
+                ? item.images
+                : item.image
+                  ? [item.image]
+                  : [];
+              return sourceImages
+                .map((image) => {
+                  const normalized = normalizeMedia(image);
+                  if (!normalized) return null;
+                  return {
+                    ...normalized,
+                    caption: image?.caption || "",
+                    sizePercent: Number(image?.sizePercent) || 100,
+                  };
+                })
+                .filter(Boolean);
+            })(),
           })
         ),
         imageGallary: (packageData.imageGallary || [])
@@ -451,7 +499,12 @@ const EditPackage = () => {
       const updated = [...prev.itinerary];
       updated[activeItineraryIndex] = {
         ...updated[activeItineraryIndex],
-        image: media,
+        images: [
+          ...(Array.isArray(updated[activeItineraryIndex].images)
+            ? updated[activeItineraryIndex].images
+            : []),
+          { ...media, caption: "", sizePercent: 100 },
+        ],
       };
       return { ...prev, itinerary: updated };
     });
@@ -499,48 +552,108 @@ const EditPackage = () => {
 
   const addItineraryDay = () => {
     setItineraryOpen(true);
-    setFormData({
-      ...formData,
-      itinerary: [
-        ...formData.itinerary,
-        createItineraryDay(formData.itinerary.length),
-      ],
-    });
+    setFormData((prev) => ({
+      ...prev,
+      itinerary: [...prev.itinerary, createItineraryDay(prev.itinerary.length)],
+    }));
   };
 
   const removeItineraryDay = (index) => {
-    const newItinerary = formData.itinerary.filter((_, i) => i !== index);
-    const reindexed = newItinerary.map((item, i) => ({
-      ...item,
-      order: i + 1,
-    }));
-    setFormData({ ...formData, itinerary: reindexed });
+    setFormData((prev) => {
+      const newItinerary = prev.itinerary.filter((_, i) => i !== index);
+      const reindexed = newItinerary.map((item, i) => ({
+        ...item,
+        order: i + 1,
+      }));
+      return { ...prev, itinerary: reindexed };
+    });
   };
 
   const handleItineraryChange = (index, field, value) => {
-    const newItinerary = [...formData.itinerary];
-    newItinerary[index][field] = value;
-    setFormData({ ...formData, itinerary: newItinerary });
+    setFormData((prev) => {
+      const newItinerary = [...prev.itinerary];
+      newItinerary[index] = { ...newItinerary[index], [field]: value };
+      return { ...prev, itinerary: newItinerary };
+    });
   };
 
   const handleActivityChange = (dayIndex, activityIndex, value) => {
-    const newItinerary = [...formData.itinerary];
-    newItinerary[dayIndex].activities[activityIndex] = value;
-    setFormData({ ...formData, itinerary: newItinerary });
+    setFormData((prev) => {
+      const newItinerary = [...prev.itinerary];
+      const nextActivities = [...(newItinerary[dayIndex].activities || [])];
+      nextActivities[activityIndex] = value;
+      newItinerary[dayIndex] = {
+        ...newItinerary[dayIndex],
+        activities: nextActivities,
+      };
+      return { ...prev, itinerary: newItinerary };
+    });
   };
 
   const addActivity = (dayIndex) => {
-    const newItinerary = [...formData.itinerary];
-    newItinerary[dayIndex].activities.push("");
-    setFormData({ ...formData, itinerary: newItinerary });
+    setFormData((prev) => {
+      const newItinerary = [...prev.itinerary];
+      newItinerary[dayIndex] = {
+        ...newItinerary[dayIndex],
+        activities: [...(newItinerary[dayIndex].activities || []), ""],
+      };
+      return { ...prev, itinerary: newItinerary };
+    });
   };
 
   const removeActivity = (dayIndex, activityIndex) => {
-    const newItinerary = [...formData.itinerary];
-    newItinerary[dayIndex].activities = newItinerary[
-      dayIndex
-    ].activities.filter((_, i) => i !== activityIndex);
-    setFormData({ ...formData, itinerary: newItinerary });
+    setFormData((prev) => {
+      const newItinerary = [...prev.itinerary];
+      newItinerary[dayIndex] = {
+        ...newItinerary[dayIndex],
+        activities: (newItinerary[dayIndex].activities || []).filter(
+          (_, i) => i !== activityIndex
+        ),
+      };
+      return { ...prev, itinerary: newItinerary };
+    });
+  };
+
+  const updateItineraryImage = (dayIndex, imageIndex, nextImage) => {
+    setFormData((prev) => {
+      const nextItinerary = [...prev.itinerary];
+      const currentDay = nextItinerary[dayIndex];
+      const currentImages = Array.isArray(currentDay.images) ? currentDay.images : [];
+      const nextImages = [...currentImages];
+      nextImages[imageIndex] = {
+        ...nextImages[imageIndex],
+        ...nextImage,
+      };
+      nextItinerary[dayIndex] = { ...currentDay, images: nextImages };
+      return { ...prev, itinerary: nextItinerary };
+    });
+  };
+
+  const removeItineraryImage = (dayIndex, imageIndex) => {
+    setFormData((prev) => {
+      const nextItinerary = [...prev.itinerary];
+      const currentDay = nextItinerary[dayIndex];
+      const currentImages = Array.isArray(currentDay.images) ? currentDay.images : [];
+      nextItinerary[dayIndex] = {
+        ...currentDay,
+        images: currentImages.filter((_, idx) => idx !== imageIndex),
+      };
+      return { ...prev, itinerary: nextItinerary };
+    });
+  };
+
+  const moveItineraryImage = (dayIndex, imageIndex, direction) => {
+    setFormData((prev) => {
+      const nextItinerary = [...prev.itinerary];
+      const currentDay = nextItinerary[dayIndex];
+      const currentImages = Array.isArray(currentDay.images) ? [...currentDay.images] : [];
+      const targetIndex = imageIndex + direction;
+      if (targetIndex < 0 || targetIndex >= currentImages.length) return prev;
+      const [moved] = currentImages.splice(imageIndex, 1);
+      currentImages.splice(targetIndex, 0, moved);
+      nextItinerary[dayIndex] = { ...currentDay, images: currentImages };
+      return { ...prev, itinerary: nextItinerary };
+    });
   };
 
   const [tempTag, setTempTag] = useState("");
@@ -766,6 +879,8 @@ const EditPackage = () => {
           descriptions: formData.descriptions,
           sub_description: formData.sub_description,
           overviewImage: formData.overviewImage,
+          overviewImageAlign: formData.overviewImageAlign || "center",
+          overviewImageSize: Number(formData.overviewImageSize) || 100,
           duration: formData.duration,
           trip_type_level: formData.trip_type_level,
           trip_attractions: formData.trip_attractions,
@@ -873,7 +988,7 @@ const EditPackage = () => {
             <button
               onClick={() => handleSubmit({ redirect: false })}
               disabled={isUpdating}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-800 text-white px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-900 shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[var(--admin-primary)] text-white px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-semibold hover:bg-[var(--admin-primary-strong)] shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUpdating ? (
                 <>
@@ -883,18 +998,18 @@ const EditPackage = () => {
               ) : (
                 <>
                   <Save className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline">Update</span>
-                  <span className="sm:hidden">Update</span>
+                  <span className="hidden sm:inline">Update & Continue</span>
+                  <span className="sm:hidden">Continue</span>
                 </>
               )}
             </button>
             <button
               onClick={() => handleSubmit({ redirect: true })}
               disabled={isUpdating}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[var(--admin-primary)] text-white px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-semibold hover:bg-[var(--admin-primary-strong)] shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-800 text-white px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-900 shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="hidden sm:inline">Update & Continue</span>
-              <span className="sm:hidden">Continue</span>
+              <span className="hidden sm:inline">Update</span>
+              <span className="sm:hidden">Update</span>
             </button>
           </div>
         </div>
@@ -1010,6 +1125,47 @@ const EditPackage = () => {
                   Select Overview Image
                 </button>
               )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Alignment
+                  </label>
+                  <select
+                    value={formData.overviewImageAlign || "center"}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        overviewImageAlign: e.target.value,
+                      }))
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Size
+                  </label>
+                  <select
+                    value={String(formData.overviewImageSize || 100)}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        overviewImageSize: Number(e.target.value),
+                      }))
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  >
+                    <option value="25">25%</option>
+                    <option value="50">50%</option>
+                    <option value="75">75%</option>
+                    <option value="100">100%</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1221,51 +1377,126 @@ const EditPackage = () => {
                             </div>
 
                             <div className="pl-0 sm:pl-24 mb-4">
-                              <label className="text-xs font-semibold text-gray-600 mb-2 block">
-                                Day Image (optional)
-                              </label>
-                              {day.image ? (
-                                <div className="flex items-center gap-3">
-                                  <img
-                                    src={day.image.variants?.thumbnail || day.image.url}
-                                    alt={day.image.title || "Day image"}
-                                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                                  />
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setActiveItineraryIndex(dIndex);
-                                        setItineraryImageModalOpen(true);
-                                      }}
-                                      className="text-xs font-semibold text-[var(--admin-primary)]"
-                                    >
-                                      Change
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleItineraryChange(dIndex, "image", null)}
-                                      className="text-xs font-semibold text-red-500"
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="text-xs font-semibold text-gray-600 block">
+                                  Day Images (optional)
+                                </label>
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setActiveItineraryIndex(dIndex);
                                     setItineraryImageModalOpen(true);
                                   }}
-                                  className="text-xs font-semibold text-[var(--admin-primary)] bg-[var(--admin-primary-soft)] px-3 py-2 rounded-lg hover:bg-[var(--admin-primary-soft-strong)]"
+                                  className="text-xs font-semibold text-[var(--admin-primary)] bg-[var(--admin-primary-soft)] px-3 py-1.5 rounded-lg hover:bg-[var(--admin-primary-soft-strong)]"
                                 >
-                                  Select Image
+                                  Add Image
                                 </button>
+                              </div>
+                              {Array.isArray(day.images) && day.images.length > 0 ? (
+                                <div className="space-y-3">
+                                  {day.images.map((image, imageIndex) => (
+                                    <div
+                                      key={`${image.mediaId || image.url}-${imageIndex}`}
+                                      className="border border-gray-200 rounded-lg p-3 bg-gray-50"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <img
+                                          src={image.variants?.thumbnail || image.url}
+                                          alt={image.altText || image.title || "Day image"}
+                                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                                        />
+                                        <div className="flex-1 space-y-2">
+                                          <input
+                                            type="text"
+                                            value={image.caption || ""}
+                                            onChange={(e) =>
+                                              updateItineraryImage(dIndex, imageIndex, {
+                                                caption: e.target.value,
+                                              })
+                                            }
+                                            placeholder="Caption (optional)"
+                                            className="w-full text-xs sm:text-sm border border-gray-200 rounded-lg p-2"
+                                          />
+                                          <div className="flex items-center gap-2">
+                                            <label className="text-xs text-gray-600">
+                                              Size
+                                            </label>
+                                            <select
+                                              value={String(image.sizePercent || 100)}
+                                              onChange={(e) =>
+                                                updateItineraryImage(dIndex, imageIndex, {
+                                                  sizePercent: Number(e.target.value),
+                                                })
+                                              }
+                                              className="text-xs border border-gray-200 rounded-md p-1 bg-white"
+                                            >
+                                              <option value="25">25%</option>
+                                              <option value="50">50%</option>
+                                              <option value="75">75%</option>
+                                              <option value="100">100%</option>
+                                            </select>
+                                          </div>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              moveItineraryImage(dIndex, imageIndex, -1)
+                                            }
+                                            className="p-1 border border-gray-200 rounded text-gray-600 hover:bg-white disabled:opacity-40"
+                                            disabled={imageIndex === 0}
+                                            aria-label="Move image up"
+                                          >
+                                            <ChevronUp className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              moveItineraryImage(dIndex, imageIndex, 1)
+                                            }
+                                            className="p-1 border border-gray-200 rounded text-gray-600 hover:bg-white disabled:opacity-40"
+                                            disabled={imageIndex === day.images.length - 1}
+                                            aria-label="Move image down"
+                                          >
+                                            <ChevronDown className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              removeItineraryImage(dIndex, imageIndex)
+                                            }
+                                            className="p-1 border border-red-200 rounded text-red-500 hover:bg-red-50"
+                                            aria-label="Remove image"
+                                          >
+                                            <X className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-gray-400">
+                                  No images selected yet.
+                                </p>
                               )}
                             </div>
 
-                            <div className="pl-0 sm:pl-24 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="pl-0 sm:pl-24 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                              <div>
+                                <label className="text-xs font-semibold text-gray-600 mb-1 block">
+                                  Drive Time / Duration
+                                </label>
+                                <input
+                                  type="text"
+                                  value={day.driveTime || ""}
+                                  onChange={(e) =>
+                                    handleItineraryChange(dIndex, "driveTime", e.target.value)
+                                  }
+                                  placeholder="e.g., 6-7 hrs drive"
+                                  className="w-full text-xs sm:text-sm text-gray-600 bg-white border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] focus:border-[var(--admin-primary-border)] outline-none"
+                                />
+                              </div>
                               <div>
                                 <label className="text-xs font-semibold text-gray-600 mb-1 block">
                                   Accommodation

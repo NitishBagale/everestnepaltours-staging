@@ -240,6 +240,7 @@ div[class*="prose"] img {
 }
 
 .custom-section-description ul,
+.custom-section-description ol,
 .custom-section-list {
   list-style: none;
   padding-left: 0;

@@ -46,6 +46,7 @@ const PackageTour = Joi.object({
         accommodation: Joi.string().allow("", null).optional(),
         meal: Joi.string().allow("", null).optional(),
         elevation: Joi.string().allow("", null).optional(),
+        driveTime: Joi.string().allow("", null).optional(),
         richText: Joi.string().min(20).optional(),
         image: Joi.alternatives().try(
           Joi.string().uri(),
@@ -57,6 +58,22 @@ const PackageTour = Joi.object({
             altText: Joi.string().max(200).optional(),
           })
         ).optional(),
+        images: Joi.array()
+          .items(
+            Joi.alternatives().try(
+              Joi.string().uri(),
+              Joi.object({
+                mediaId: Joi.string().optional().allow(null),
+                url: Joi.string().uri().required(),
+                variants: Joi.object().optional(),
+                title: Joi.string().max(200).optional(),
+                altText: Joi.string().max(200).optional(),
+                caption: Joi.string().allow("", null).optional(),
+                sizePercent: Joi.number().integer().min(25).max(100).optional(),
+              })
+            )
+          )
+          .optional(),
         order: Joi.number().integer().min(1).optional(),
         id: Joi.string().optional(),
       })
@@ -88,6 +105,11 @@ const PackageTour = Joi.object({
     trip_highlights_description: Joi.string().allow("", null).optional(),
     itinerary_title: Joi.string().allow("", null).optional(),
     overviewImage: Joi.any().optional(),
+    overviewImageAlign: Joi.string()
+      .valid("left", "center", "right")
+      .allow("", null)
+      .optional(),
+    overviewImageSize: Joi.number().integer().min(25).max(100).optional(),
     extra_activities: Joi.array().items(Joi.string().min(5)),
     suitable_for: Joi.array().items(Joi.string().min(5)),
     cost_inclusions: Joi.object({
