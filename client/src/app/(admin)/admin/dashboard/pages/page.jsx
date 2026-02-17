@@ -726,6 +726,7 @@ const CmsAdminPage = () => {
     setEditPageId(null);
     setFormData(initialFormData);
     setShowMoreDetails(false);
+    setPackagesSectionOpen(false);
     setRepeatableSectionsOpen(false);
     setRepeatableSectionsAfterRelatedOpen(false);
     setRelatedInformationOpen(false);
@@ -826,6 +827,12 @@ const CmsAdminPage = () => {
       showBookingForm: pageData.content?.showBookingForm || false,
     };
     setFormData(nextForm);
+    setPackagesSectionOpen(
+      !!nextForm.packagesSectionTitle ||
+        !!nextForm.packagesSectionSubtitle ||
+        !!nextForm.packagesSectionDescription ||
+        (nextForm.packagesSectionPackageIds || []).length > 0
+    );
     setRepeatableSectionsOpen((nextForm.repeatableSections || []).length > 0);
     setRepeatableSectionsAfterRelatedOpen(
       (nextForm.repeatableSectionsAfterRelated || []).length > 0
