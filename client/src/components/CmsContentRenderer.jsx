@@ -8,6 +8,13 @@ import Gallery from "@/components/Gallery";
 import Form from "@/components/Form";
 import { BASE_URL } from "@/config/Config";
 import { getMediaAlt, getMediaObject, getMediaUrl } from "@/lib/media";
+import {
+  buildReviewCountMap,
+  getPackageCardAlt,
+  getPackageKeys,
+  getPackageReviewCount,
+  normalizePackageRecord,
+} from "@/lib/packageListing";
 
 const sanitizeHtml = (html) =>
   DOMPurify.sanitize(html || "", {
@@ -34,15 +41,27 @@ const sanitizeHtml = (html) =>
     ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "class"],
   });
 
+const removeEmptyParagraphs = (html = "") =>
+  html.replace(
+    /<p>(?:\s|&nbsp;|&#160;|<br\s*\/?>|<span[^>]*>\s*<\/span>)*<\/p>/gi,
+    ""
+  );
+
+const stripHtml = (html = "") =>
+  html.replace(/<[^>]*>/g, "").replace(/&nbsp;|&#160;/gi, " ").trim();
+
+const getCleanHtml = (html) => removeEmptyParagraphs(sanitizeHtml(html || ""));
+const hasMeaningfulHtml = (html) => stripHtml(getCleanHtml(html)).length > 0;
+
 const listStyleClasses =
   "[&_ul]:list-none [&_ul]:pl-0 [&_ul]:space-y-2 [&_ol]:list-none [&_ol]:pl-0 [&_ol]:space-y-2 [&_ol]:ml-3 [&_li]:relative [&_li]:pl-7 [&_li]:text-[1.125rem] [&_li]:font-medium [&_li]:text-gray-700 [&_li]:leading-relaxed [&_li]:before:content-['›'] [&_li]:before:text-[1.9rem] [&_li]:before:font-semibold [&_li]:before:text-emerald-600 [&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-0 [&_li]:before:leading-none";
 
 const renderHtmlBlock = (value) => {
-  if (!value || value === "<p><br></p>") return null;
+  if (!hasMeaningfulHtml(value)) return null;
   return (
     <div
       className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }}
+      dangerouslySetInnerHTML={{ __html: getCleanHtml(value) }}
     />
   );
 };
@@ -127,6 +146,7 @@ const CmsContentRenderer = ({
 
   const [teamMembers, setTeamMembers] = useState([]);
   const [packages, setPackages] = useState([]);
+  const [reviewCountMap, setReviewCountMap] = useState({});
   const [activeRelatedIndex, setActiveRelatedIndex] = useState(0);
   const relatedInfoRef = useRef(null);
 
@@ -179,14 +199,23 @@ const CmsContentRenderer = ({
     let active = true;
     const fetchPackages = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/package-tour/`);
-        const payload = await response.json();
-        const list = payload?.data || payload || [];
+        const packagesResponse = await fetch(`${BASE_URL}/package-tour/`);
+        const packagesPayload = await packagesResponse.json();
+        const list = packagesPayload?.data || packagesPayload || [];
+        const reviewsPayload = await fetch(`${BASE_URL}/review/?limit=5000`)
+          .then((response) => response.json())
+          .catch(() => []);
+        const reviews =
+          reviewsPayload?.data || reviewsPayload?.reviews || reviewsPayload || [];
         if (active) {
-          setPackages(list.map((pkg) => pkg.package || pkg));
+          setPackages(list.map(normalizePackageRecord));
+          setReviewCountMap(buildReviewCountMap(reviews));
         }
       } catch (error) {
-        if (active) setPackages([]);
+        if (active) {
+          setPackages([]);
+          setReviewCountMap({});
+        }
       }
     };
     fetchPackages();
@@ -214,18 +243,12 @@ const CmsContentRenderer = ({
   }, [selectedTeam]);
 
   const selectedPackages = useMemo(() => {
-    const ids = (packagesSectionPackageIds || []).map(String);
+    const ids = (packagesSectionPackageIds || [])
+      .map((id) => String(id || "").trim())
+      .filter(Boolean);
     const map = new Map();
     packages.forEach((pkg) => {
-      const key =
-        pkg.id ??
-        pkg._id ??
-        pkg.packageId ??
-        pkg.package_id ??
-        pkg.slug ??
-        pkg.title;
-      if (key == null) return;
-      map.set(String(key), pkg);
+      getPackageKeys(pkg).forEach((key) => map.set(key, pkg));
     });
     return ids.map((id) => map.get(id)).filter(Boolean);
   }, [packages, packagesSectionPackageIds]);
@@ -473,6 +496,12 @@ const CmsContentRenderer = ({
                       : "");
                   const media = getMediaObject(item.mainImage || item.image);
                   const imageSrc = getMediaUrl(media, "medium") || "/bhutan.jpg";
+                  const imageAlt = getPackageCardAlt(
+                    media,
+                    item,
+                    "Featured package image"
+                  );
+                  const reviewCount = getPackageReviewCount(item, reviewCountMap);
                   const description =
                     item.sub_description || item.subDescription || "";
 
@@ -488,7 +517,7 @@ const CmsContentRenderer = ({
                         >
                           <img
                             src={imageSrc}
-                            alt={item.title || "Featured Package"}
+                            alt={imageAlt}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                           />
                         </Link>
@@ -496,7 +525,7 @@ const CmsContentRenderer = ({
                         <div className="relative h-56 w-full overflow-hidden">
                           <img
                             src={imageSrc}
-                            alt={item.title || "Featured Package"}
+                            alt={imageAlt}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -518,7 +547,7 @@ const CmsContentRenderer = ({
                           </p>
                         )}
                         <div className="mt-2 text-sm text-gray-400">
-                          ({item.reviewCount || item.reviews || 0} reviews)
+                          ({reviewCount} reviews)
                         </div>
                         <div className="mt-4 flex items-center justify-between">
                           <div className="flex items-center gap-1 text-gray-600 text-sm">
@@ -946,9 +975,12 @@ const CmsContentRenderer = ({
                     />
                   </svg>
                 </summary>
-                <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed">
-                  {faqItem.answer}
-                </div>
+                {hasMeaningfulHtml(faqItem.answer) && (
+                  <div
+                    className="px-4 pb-4 text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: getCleanHtml(faqItem.answer) }}
+                  />
+                )}
               </details>
             ))}
           </div>

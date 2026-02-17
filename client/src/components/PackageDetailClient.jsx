@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useParams } from "next/navigation";
+import DOMPurify from "isomorphic-dompurify";
 import {
   Clock,
   MapPin,
@@ -237,7 +238,53 @@ const TourDetailPage = ({
   };
 
   const stripHtml = (html) =>
-    typeof html === "string" ? html.replace(/<[^>]+>/g, "").trim() : "";
+    typeof html === "string"
+      ? html.replace(/<[^>]+>/g, "").replace(/&nbsp;|&#160;/gi, " ").trim()
+      : "";
+  const hasMeaningfulHtml = (html) => stripHtml(html).length > 0;
+  const sanitizeHtml = (html) =>
+    DOMPurify.sanitize(html || "", {
+      ALLOWED_TAGS: [
+        "p",
+        "br",
+        "ul",
+        "ol",
+        "li",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "u",
+        "span",
+        "blockquote",
+        "a",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "img",
+      ],
+      ALLOWED_ATTR: [
+        "href",
+        "target",
+        "rel",
+        "src",
+        "alt",
+        "title",
+        "class",
+        "style",
+        "data-list",
+        "data-indent",
+      ],
+    });
+  const removeEmptyParagraphs = (html = "") =>
+    html.replace(
+      /<p>(?:\s|&nbsp;|&#160;|<br\s*\/?>|<span[^>]*>\s*<\/span>)*<\/p>/gi,
+      ""
+    );
+  const getCleanHtml = (html) => removeEmptyParagraphs(sanitizeHtml(html || ""));
 
   const mainImageMedia = getMediaObject(tourData?.mainImage || tourData?.image);
   const overviewMedia = getMediaObject(tourData?.overviewImage);
@@ -246,6 +293,13 @@ const TourDetailPage = ({
     getMediaUrl(overviewMedia, "large") ||
     getMediaUrl(overviewMedia, "small") ||
     "";
+  const overviewImageAlign = String(tourData?.overviewImageAlign || "center");
+  const overviewImageSize = Math.max(
+    25,
+    Math.min(100, Number(tourData?.overviewImageSize) || 100)
+  );
+  const isOverviewSideBySide =
+    overviewSrc && overviewImageAlign !== "center" && overviewImageSize < 100;
 
   const galleryImages = (tourData?.imageGallary || [])
     .map((item) => getMediaObject(item))
@@ -288,13 +342,30 @@ const TourDetailPage = ({
     .map((item, index) => {
       const order =
         item.order || item.day || item.dayNumber || item.day_no || index + 1;
+      const imagesSource = Array.isArray(item.images)
+        ? item.images
+        : item.image
+          ? [item.image]
+          : [];
       return {
         id: item.id || `${order}-${index}`,
         title: item.title || item.heading || `Day ${order}`,
         order: Number(order) || index + 1,
         richText: item.richText || "",
         description: item.description || "",
-        image: getMediaObject(item.image),
+        driveTime: item.driveTime || item.duration || "",
+        images: imagesSource
+          .map((image, imageIndex) => {
+            const media = getMediaObject(image);
+            if (!media) return null;
+            return {
+              id: image.id || `${order}-${index}-${imageIndex}`,
+              media,
+              caption: image.caption || "",
+              sizePercent: Number(image.sizePercent) || 100,
+            };
+          })
+          .filter(Boolean),
         activities: normalizeActivities(item.activities),
         accommodation: item.accommodation || "",
         meal: item.meal || "",
@@ -447,29 +518,84 @@ const TourDetailPage = ({
             <h2 className="text-2xl font-bold mb-4" id="overview">
               Overview
             </h2>
-            <div
-              className={`grid gap-6 items-start ${
-                overviewSrc ? "lg:grid-cols-[1.15fr_0.85fr]" : ""
-              }`}
-            >
+            {overviewSrc && overviewImageAlign !== "center" ? (
               <div
-                className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed 
-               wrap-break-word break-all whitespace-pre-line
-                [&>p]:mb-4 [&>ul]:list-disc [&>ul]:pl-5"
-                dangerouslySetInnerHTML={{
-                  __html: tourData.descriptions || "",
-                }}
-              />
-              {overviewSrc && (
-                <div className="w-full">
-                  <img
-                    src={overviewSrc}
-                    alt={getMediaAlt(overviewMedia, "Overview")}
-                    className="w-full h-auto rounded-lg object-cover shadow-sm border border-gray-100"
-                  />
-                </div>
-              )}
-            </div>
+                className={`grid grid-cols-1 gap-6 items-start ${
+                  isOverviewSideBySide
+                    ? "lg:[grid-template-columns:var(--overview-grid-cols)]"
+                    : ""
+                }`}
+                style={
+                  isOverviewSideBySide
+                    ? {
+                        "--overview-grid-cols":
+                          overviewImageAlign === "left"
+                            ? `${overviewImageSize}% minmax(0,1fr)`
+                            : `minmax(0,1fr) ${overviewImageSize}%`,
+                      }
+                    : undefined
+                }
+              >
+                {overviewImageAlign === "left" && (
+                  <div className="w-full">
+                    <img
+                      src={overviewSrc}
+                      alt={getMediaAlt(overviewMedia, "Overview")}
+                      className="h-auto rounded-lg object-cover shadow-sm border border-gray-100"
+                      style={{
+                        width: "100%",
+                        maxWidth: "100%",
+                      }}
+                    />
+                  </div>
+                )}
+                <div
+                  className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed 
+                 wrap-break-word break-all whitespace-pre-line
+                  [&>p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li[data-list='bullet']]:list-disc [&_li[data-list='ordered']]:list-decimal"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(tourData.descriptions || ""),
+                  }}
+                />
+                {overviewImageAlign === "right" && (
+                  <div className="w-full flex justify-end">
+                    <img
+                      src={overviewSrc}
+                      alt={getMediaAlt(overviewMedia, "Overview")}
+                      className="h-auto rounded-lg object-cover shadow-sm border border-gray-100"
+                      style={{
+                        width: "100%",
+                        maxWidth: "100%",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div
+                  className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed 
+                 wrap-break-word break-all whitespace-pre-line
+                  [&>p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li[data-list='bullet']]:list-disc [&_li[data-list='ordered']]:list-decimal"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(tourData.descriptions || ""),
+                  }}
+                />
+                {overviewSrc && (
+                  <div className="w-full flex justify-center mt-4">
+                    <img
+                      src={overviewSrc}
+                      alt={getMediaAlt(overviewMedia, "Overview")}
+                      className="h-auto rounded-lg object-cover shadow-sm border border-gray-100"
+                      style={{
+                        width: `${overviewImageSize}%`,
+                        maxWidth: "100%",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             {hasTripFacts && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-600 text-lg leading-relaxed">
                 {tourData.trip_attractions && (
@@ -584,9 +710,9 @@ const TourDetailPage = ({
                 </ul>
               ) : (
                 <div
-                  className="trip-highlights-content prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed"
+                  className="prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li[data-list='bullet']]:list-disc [&_li[data-list='ordered']]:list-decimal"
                   dangerouslySetInnerHTML={{
-                    __html: tourData.trip_highlights || "",
+                    __html: sanitizeHtml(tourData.trip_highlights || ""),
                   }}
                 />
               )}
@@ -688,6 +814,12 @@ const TourDetailPage = ({
 
                           {/* Icons Row */}
                           <div className="flex flex-wrap items-center gap-5 text-sm mt-2">
+                            {item.driveTime && (
+                              <div className="flex items-center gap-2 text-slate-600">
+                                <Clock className="w-4 h-4 text-green-600 shrink-0" />
+                                <span>{item.driveTime}</span>
+                              </div>
+                            )}
                             {item.accommodation && (
                               <div className="flex items-center gap-2 text-slate-600">
                                 <Hotel className="w-4 h-4 text-green-600 shrink-0" />
@@ -733,30 +865,49 @@ const TourDetailPage = ({
                       }`}
                     >
                       <div className="mt-4 pl-3 pb-2">
-                        {item.image && (
-                          <div className="mb-4">
-                            <img
-                              src={getMediaUrl(item.image, "medium")}
-                              srcSet={getMediaSrcSet(item.image)}
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              alt={getMediaAlt(item.image, item.title)}
-                              className="w-full max-w-2xl h-auto object-contain rounded-lg border border-slate-200"
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
-                        {item.richText ? (
+                        {hasMeaningfulHtml(item.richText) ? (
                           <div
-                            className="prose prose-slate max-w-none text-slate-600 text-sm md:text-base leading-relaxed"
+                            className="prose prose-slate max-w-none text-slate-600 text-sm md:text-base leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li[data-list='bullet']]:list-disc [&_li[data-list='ordered']]:list-decimal"
                             dangerouslySetInnerHTML={{
-                              __html: item.richText,
+                              __html: sanitizeHtml(item.richText),
                             }}
                           />
                         ) : null}
-                        {!item.richText && item.description && (
+                        {!hasMeaningfulHtml(item.richText) && item.description && (
                           <p className="text-slate-600 text-sm md:text-base mb-4 whitespace-pre-line leading-relaxed">
                             {item.description}
                           </p>
+                        )}
+                        {item.images?.length > 0 && (
+                          <div className="mt-4 space-y-4">
+                            {item.images.map((image, imageIndex) => (
+                              <div
+                                key={image.id || `${item.id}-${imageIndex}`}
+                                className="w-full"
+                              >
+                                <img
+                                  src={getMediaUrl(image.media, "medium")}
+                                  srcSet={getMediaSrcSet(image.media)}
+                                  sizes="(max-width: 768px) 100vw, 70vw"
+                                  alt={getMediaAlt(image.media, item.title)}
+                                  className="h-auto object-contain rounded-lg border border-slate-200"
+                                  style={{
+                                    width: `${Math.max(
+                                      25,
+                                      Math.min(100, Number(image.sizePercent) || 100)
+                                    )}%`,
+                                    maxWidth: "100%",
+                                  }}
+                                  loading="lazy"
+                                />
+                                {image.caption && (
+                                  <p className="text-sm text-slate-500 mt-1">
+                                    {image.caption}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         )}
                         {item.activities?.length > 0 && (
                           <ul className="space-y-2">
@@ -808,16 +959,20 @@ const TourDetailPage = ({
                     <h3 className="text-2xl font-bold text-[#35a576] mb-4">
                       {section.title}
                     </h3>
-                    {section.note && (
+                    {hasMeaningfulHtml(section.note) && (
                       <div
-                        className="custom-section-note prose prose-slate max-w-none text-slate-600 text-base italic leading-relaxed mb-4"
-                        dangerouslySetInnerHTML={{ __html: section.note }}
+                        className="custom-section-note prose prose-slate max-w-none text-slate-600 text-base italic leading-relaxed mb-4 [&_ul]:list-none [&_ul]:pl-0 [&_ol]:list-none [&_ol]:pl-0 [&_li]:my-1"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(section.note),
+                        }}
                       />
                     )}
-                    {section.description ? (
+                    {hasMeaningfulHtml(section.description) ? (
                       <div
-                        className={`${descriptionClass} prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed`}
-                        dangerouslySetInnerHTML={{ __html: section.description }}
+                        className={`${descriptionClass} prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed [&_ul]:list-none [&_ul]:pl-0 [&_ol]:list-none [&_ol]:pl-0 [&_li]:my-1`}
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(section.description),
+                        }}
                       />
                     ) : (
                       Array.isArray(section.content) &&
@@ -898,10 +1053,14 @@ const TourDetailPage = ({
                       />
                     </svg>
                   </summary>
-                  <div
-                    className="px-5 pb-5 text-lg text-gray-600 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: faqItem.answer || "" }}
-                  />
+                  {hasMeaningfulHtml(faqItem.answer) && (
+                    <div
+                      className="px-5 pb-5 text-lg text-gray-600 leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html: getCleanHtml(faqItem.answer),
+                      }}
+                    />
+                  )}
                 </details>
               ))}
             </div>
@@ -937,7 +1096,7 @@ const TourDetailPage = ({
                       <div className="other-info-list prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed">
                         <div
                           dangerouslySetInnerHTML={{
-                            __html: section.content?.[0] || "",
+                            __html: sanitizeHtml(section.content?.[0] || ""),
                           }}
                         />
                       </div>

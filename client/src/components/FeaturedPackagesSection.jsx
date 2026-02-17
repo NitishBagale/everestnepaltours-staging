@@ -6,6 +6,13 @@ import { BASE_URL } from "@/config/Config";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
 import { useRouter } from "next/navigation";
 import { Clock } from "lucide-react";
+import {
+  buildReviewCountMap,
+  getPackageCardAlt,
+  getPackageKeys,
+  getPackageReviewCount,
+  normalizePackageRecord,
+} from "@/lib/packageListing";
 
 const FeaturedPackagesSection = () => {
   const [featured, setFeatured] = useState({
@@ -14,6 +21,7 @@ const FeaturedPackagesSection = () => {
     packageIds: [],
   });
   const [packages, setPackages] = useState([]);
+  const [reviewCountMap, setReviewCountMap] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -32,7 +40,14 @@ const FeaturedPackagesSection = () => {
         }
 
         const list = packagesRes.data?.data || packagesRes.data || [];
-        setPackages(list.map((pkg) => pkg.package || pkg));
+        setPackages(list.map(normalizePackageRecord));
+        const reviewsRes = await axios
+          .get(`${BASE_URL}/review/?limit=5000`)
+          .catch(() => null);
+        const reviews = reviewsRes
+          ? reviewsRes.data?.data || reviewsRes.data?.reviews || reviewsRes.data || []
+          : [];
+        setReviewCountMap(buildReviewCountMap(reviews));
       } catch (error) {
         console.error("Error fetching featured packages:", error);
       }
@@ -41,18 +56,12 @@ const FeaturedPackagesSection = () => {
   }, []);
 
   const selected = useMemo(() => {
-    const ids = (featured.packageIds || []).map(String);
+    const ids = (featured.packageIds || [])
+      .map((id) => String(id || "").trim())
+      .filter(Boolean);
     const map = new Map();
     packages.forEach((pkg) => {
-      const key =
-        pkg.id ??
-        pkg._id ??
-        pkg.packageId ??
-        pkg.package_id ??
-        pkg.slug ??
-        pkg.title;
-      if (key == null) return;
-      map.set(String(key), pkg);
+      getPackageKeys(pkg).forEach((key) => map.set(key, pkg));
     });
     return ids.map((id) => map.get(id)).filter(Boolean);
   }, [packages, featured.packageIds]);
@@ -84,6 +93,8 @@ const FeaturedPackagesSection = () => {
                 : "";
               const media = getMediaObject(item.mainImage || item.image);
               const imageSrc = getMediaUrl(media, "medium") || "/bhutan.jpg";
+              const imageAlt = getPackageCardAlt(media, item, "Featured package image");
+              const reviewCount = getPackageReviewCount(item, reviewCountMap);
               const description =
                 item.sub_description || item.subDescription || "";
 
@@ -98,7 +109,7 @@ const FeaturedPackagesSection = () => {
                   >
                     <img
                       src={imageSrc}
-                      alt={item.title || "Featured Package"}
+                      alt={imageAlt}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
                   </div>
@@ -117,7 +128,7 @@ const FeaturedPackagesSection = () => {
                       </p>
                     )}
                     <div className="mt-2 text-sm text-gray-400">
-                      ({item.reviewCount || item.reviews || 0} reviews)
+                      ({reviewCount} reviews)
                     </div>
                     <div className="mt-4 flex items-center justify-between">
                       <div className="flex items-center gap-1 text-gray-600 text-sm">

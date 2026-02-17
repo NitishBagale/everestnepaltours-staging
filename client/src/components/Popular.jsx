@@ -6,6 +6,12 @@ import { BASE_URL } from "@/config/Config";
 import { Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
+import {
+  buildReviewCountMap,
+  getPackageCardAlt,
+  getPackageReviewCount,
+  normalizePackageRecord,
+} from "@/lib/packageListing";
 
 // Filter popular packages by tags / seo keywords / title keyword
 const Popular = ({
@@ -15,15 +21,24 @@ const Popular = ({
   heading = "Recommended Tours",
 }) => {
   const [data, setData] = useState([]);
+  const [reviewCountMap, setReviewCountMap] = useState({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const fetchAllPackages = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/package-tour/`);
-        setData(res.data.data || []);
-        console.log(res.data.data);
+        const packagesRes = await axios.get(`${BASE_URL}/package-tour/`);
+        const packageList = packagesRes.data?.data || packagesRes.data || [];
+        setData(packageList.map(normalizePackageRecord));
+
+        const reviewsRes = await axios
+          .get(`${BASE_URL}/review/?limit=5000`)
+          .catch(() => null);
+        const reviewList = reviewsRes
+          ? reviewsRes.data?.data || reviewsRes.data?.reviews || reviewsRes.data || []
+          : [];
+        setReviewCountMap(buildReviewCountMap(reviewList));
       } catch (error) {
         console.error("Error fetching popular packages:", error);
       } finally {
@@ -40,9 +55,7 @@ const Popular = ({
     const seoList = seoKeywords.map(norm);
     const titleNeedle = norm(titleKeyword);
 
-    return (data || [])
-      .map((pkg) => pkg.package || pkg)
-      .filter((pkg) => {
+    return (data || []).filter((pkg) => {
         const pkgTags = Array.isArray(pkg.tags) ? pkg.tags.map(norm) : [];
         const pkgSeo = Array.isArray(pkg.seoKeywords)
           ? pkg.seoKeywords.map(norm)
@@ -100,6 +113,8 @@ const Popular = ({
                 : "";
               const media = getMediaObject(item.mainImage || item.image);
               const imageSrc = getMediaUrl(media, "medium") || "bhutan.jpg";
+              const reviewCount = getPackageReviewCount(item, reviewCountMap);
+              const imageAlt = getPackageCardAlt(media, item);
 
               return (
                 <div
@@ -112,7 +127,7 @@ const Popular = ({
                   >
                     <img
                       src={imageSrc}
-                      alt={item.title || "Tour Package"}
+                      alt={imageAlt}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
                   </div>
@@ -129,7 +144,7 @@ const Popular = ({
                           : "Experience the best of this destination."}
                       </p>
                       <span className="text-base text-gray-400 ml-1">
-                        ({item.reviewCount || item.reviews || 0} reviews)
+                        ({reviewCount} reviews)
                       </span>
                     </div>
 
