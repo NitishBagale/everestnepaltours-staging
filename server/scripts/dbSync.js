@@ -22,6 +22,7 @@ const modelFiles = [
   "../models/seo",
   "../models/trip",
   "../models/cms.model",
+  "../models/pageSection.model",
   "../models/category",
   "../models/team",
   "../models/comment",

@@ -56,31 +56,79 @@ const hasMeaningfulHtml = (html) => stripHtml(getCleanHtml(html)).length > 0;
 const listStyleClasses =
   "[&_ul]:list-none [&_ul]:pl-0 [&_ul]:space-y-2 [&_ol]:list-none [&_ol]:pl-0 [&_ol]:space-y-2 [&_ol]:ml-3 [&_li]:relative [&_li]:pl-7 [&_li]:text-[1.125rem] [&_li]:font-medium [&_li]:text-gray-700 [&_li]:leading-relaxed [&_li]:before:content-['›'] [&_li]:before:text-[1.9rem] [&_li]:before:font-semibold [&_li]:before:text-emerald-600 [&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-0 [&_li]:before:leading-none";
 
-const renderHtmlBlock = (value) => {
-  if (!hasMeaningfulHtml(value)) return null;
-  return (
-    <div
-      className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
-      dangerouslySetInnerHTML={{ __html: getCleanHtml(value) }}
-    />
-  );
-};
-
-const renderListBlock = (items) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  return (
-    <ul className="space-y-4 pl-0 text-base text-gray-600 leading-relaxed list-none">
-      {items.map((item, index) => (
-        <li
-          key={`${item}-${index}`}
-          className="relative pl-8 text-gray-700 font-medium leading-relaxed before:content-['›'] before:text-2xl before:font-bold before:text-emerald-500 before:absolute before:left-0 before:top-0"
-        >
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
-};
+const legacySections = (content = {}) => [
+  { type: "pageBanner", is_enabled: !!content.pageBannerImage, data: { pageBannerImage: content.pageBannerImage || null }, sort_order: 1 },
+  {
+    type: "team",
+    is_enabled:
+      !!content.teamSectionTitle ||
+      !!content.founderTitle ||
+      !!content.founderDetails ||
+      !!content.founderCtaLabel ||
+      !!content.founderCtaLink ||
+      (content.selectedTeamMembers || []).length > 0,
+    data: {
+      teamSectionTitle: content.teamSectionTitle || "",
+      founderTitle: content.founderTitle || "",
+      founderDetails: content.founderDetails || "",
+      founderCtaLabel: content.founderCtaLabel || "Meet the Owner",
+      founderCtaLink: content.founderCtaLink || "/meet-the-owner",
+      selectedTeamMembers: content.selectedTeamMembers || [],
+    },
+    sort_order: 2,
+  },
+  {
+    type: "packages",
+    is_enabled:
+      !!content.packagesSectionTitle ||
+      !!content.packagesSectionSubtitle ||
+      !!content.packagesSectionDescription ||
+      (content.packagesSectionPackageIds || []).length > 0,
+    data: {
+      packagesSectionTitle: content.packagesSectionTitle || "",
+      packagesSectionSubtitle: content.packagesSectionSubtitle || "",
+      packagesSectionDescription: content.packagesSectionDescription || "",
+      packagesSectionPackageIds: (content.packagesSectionPackageIds || []).map(String),
+    },
+    sort_order: 3,
+  },
+  {
+    type: "repeatableTextImage",
+    is_enabled: (content.repeatableSections || []).length > 0,
+    data: { items: content.repeatableSections || [] },
+    sort_order: 4,
+  },
+  {
+    type: "gallery",
+    is_enabled: (content.galleryImages || []).length > 0,
+    data: { galleryImages: content.galleryImages || [] },
+    sort_order: 5,
+  },
+  {
+    type: "relatedInformation",
+    is_enabled: (content.relatedInformation || []).length > 0,
+    data: { items: content.relatedInformation || [] },
+    sort_order: 6,
+  },
+  {
+    type: "repeatableTextImage",
+    is_enabled: (content.repeatableSectionsAfterRelated || []).length > 0,
+    data: { items: content.repeatableSectionsAfterRelated || [] },
+    sort_order: 7,
+  },
+  {
+    type: "faq",
+    is_enabled: !!content.faqSectionTitle || (content.faq || []).length > 0,
+    data: { faqSectionTitle: content.faqSectionTitle || "Frequently Asked Questions", items: content.faq || [] },
+    sort_order: 8,
+  },
+  {
+    type: "bookingForm",
+    is_enabled: !!content.showBookingForm,
+    data: { showBookingForm: !!content.showBookingForm },
+    sort_order: 9,
+  },
+];
 
 const CmsContentRenderer = ({
   pageData,
@@ -96,9 +144,7 @@ const CmsContentRenderer = ({
   if (error || !pageData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50 px-4">
-        <p className="text-red-600 text-xl text-center">
-          {error || "Page not found"}
-        </p>
+        <p className="text-red-600 text-xl text-center">{error || "Page not found"}</p>
         {backLink && (
           <Link
             href={backLink}
@@ -112,79 +158,47 @@ const CmsContentRenderer = ({
   }
 
   const content = pageData.content || {};
-  const title =
-    content.title || pageData.title || pageData.section || "Page";
+  const title = content.title || pageData.title || pageData.section || "Page";
   const subtitle = pageData.subtitle || content.subtitle;
   const description = content.description || pageData.description;
   const coverImage = content.coverImage || pageData.coverImage;
-  const coverImagePosition =
-    content.coverImagePosition || pageData.coverImagePosition || "none";
-  const pageBannerImage = content.pageBannerImage || pageData.pageBannerImage;
-  const galleryImages = content.galleryImages || pageData.galleryImages;
-  const faq = content.faq || pageData.faq;
-  const faqSectionTitle =
-    content.faqSectionTitle || "Frequently Asked Questions";
-  const relatedInformation = content.relatedInformation || [];
-  const showBookingForm =
-    forceBookingForm || content.showBookingForm || pageData.showBookingForm;
+  const coverImagePosition = content.coverImagePosition || pageData.coverImagePosition || "none";
   const tours = content.tours || pageData.tours;
-  const teamSectionTitle = content.teamSectionTitle || "";
-  const founderTitle = content.founderTitle || "";
-  const founderDetails = content.founderDetails || "";
-  const founderCtaLabel = content.founderCtaLabel || "Meet the Owner";
-  const founderCtaLink = content.founderCtaLink || "/meet-the-owner";
-  const selectedTeamMembers = content.selectedTeamMembers || [];
-  const packagesSectionTitle = content.packagesSectionTitle || "";
-  const packagesSectionSubtitle = content.packagesSectionSubtitle || "";
-  const packagesSectionDescription = content.packagesSectionDescription || "";
-  const packagesSectionPackageIds = (
-    content.packagesSectionPackageIds || []
-  ).map(String);
-  const repeatableSections = content.repeatableSections || [];
-  const repeatableSectionsAfterRelated =
-    content.repeatableSectionsAfterRelated || [];
+
+  const sections = useMemo(() => {
+    const fromApi = Array.isArray(pageData.sections) ? pageData.sections : [];
+    const normalized = fromApi.length > 0 ? fromApi : legacySections(content);
+    return [...normalized].sort((a, b) => {
+      const aSort = Number(a?.sort_order ?? 0);
+      const bSort = Number(b?.sort_order ?? 0);
+      return aSort - bSort;
+    });
+  }, [pageData.sections, content]);
+
+  const enabledSections = useMemo(
+    () => sections.filter((section) => section && section.is_enabled !== false),
+    [sections]
+  );
+
+  const shouldFetchTeam = enabledSections.some((section) => section.type === "team");
+  const shouldFetchPackages = enabledSections.some((section) => section.type === "packages");
 
   const [teamMembers, setTeamMembers] = useState([]);
   const [packages, setPackages] = useState([]);
   const [reviewCountMap, setReviewCountMap] = useState({});
-  const [activeRelatedIndex, setActiveRelatedIndex] = useState(0);
+  const [activeRelatedIndexBySection, setActiveRelatedIndexBySection] = useState({});
   const relatedInfoRef = useRef(null);
 
-  const showTeamSection = useMemo(() => {
-    return (
-      !!teamSectionTitle ||
-      !!founderTitle ||
-      !!founderDetails ||
-      (selectedTeamMembers || []).length > 0
-    );
-  }, [teamSectionTitle, founderTitle, founderDetails, selectedTeamMembers]);
-
-  const showPackagesSection = useMemo(() => {
-    return (
-      !!packagesSectionTitle ||
-      !!packagesSectionSubtitle ||
-      !!packagesSectionDescription ||
-      (packagesSectionPackageIds || []).length > 0
-    );
-  }, [
-    packagesSectionTitle,
-    packagesSectionSubtitle,
-    packagesSectionDescription,
-    packagesSectionPackageIds,
-  ]);
-
   useEffect(() => {
-    if (!showTeamSection) return;
+    if (!shouldFetchTeam) return;
     let active = true;
     const fetchTeam = async () => {
       try {
         const response = await fetch(`${BASE_URL}/team/`);
         const payload = await response.json();
         const members = payload?.teams || payload?.data || payload || [];
-        if (active) {
-          setTeamMembers(Array.isArray(members) ? members : []);
-        }
-      } catch (error) {
+        if (active) setTeamMembers(Array.isArray(members) ? members : []);
+      } catch {
         if (active) setTeamMembers([]);
       }
     };
@@ -192,10 +206,10 @@ const CmsContentRenderer = ({
     return () => {
       active = false;
     };
-  }, [showTeamSection]);
+  }, [shouldFetchTeam]);
 
   useEffect(() => {
-    if (!showPackagesSection) return;
+    if (!shouldFetchPackages) return;
     let active = true;
     const fetchPackages = async () => {
       try {
@@ -205,13 +219,13 @@ const CmsContentRenderer = ({
         const reviewsPayload = await fetch(`${BASE_URL}/review/?limit=5000`)
           .then((response) => response.json())
           .catch(() => []);
-        const reviews =
-          reviewsPayload?.data || reviewsPayload?.reviews || reviewsPayload || [];
+        const reviews = reviewsPayload?.data || reviewsPayload?.reviews || reviewsPayload || [];
+
         if (active) {
           setPackages(list.map(normalizePackageRecord));
           setReviewCountMap(buildReviewCountMap(reviews));
         }
-      } catch (error) {
+      } catch {
         if (active) {
           setPackages([]);
           setReviewCountMap({});
@@ -222,7 +236,7 @@ const CmsContentRenderer = ({
     return () => {
       active = false;
     };
-  }, [showPackagesSection]);
+  }, [shouldFetchPackages]);
 
   const teamLookup = useMemo(() => {
     const map = new Map();
@@ -232,26 +246,13 @@ const CmsContentRenderer = ({
     return map;
   }, [teamMembers]);
 
-  const selectedTeam = useMemo(() => {
-    return (selectedTeamMembers || [])
-      .map((id) => teamLookup.get(id))
-      .filter(Boolean);
-  }, [selectedTeamMembers, teamLookup]);
-
-  const founderMember = useMemo(() => {
-    return selectedTeam[0] || null;
-  }, [selectedTeam]);
-
-  const selectedPackages = useMemo(() => {
-    const ids = (packagesSectionPackageIds || [])
-      .map((id) => String(id || "").trim())
-      .filter(Boolean);
+  const packageLookup = useMemo(() => {
     const map = new Map();
     packages.forEach((pkg) => {
-      getPackageKeys(pkg).forEach((key) => map.set(key, pkg));
+      getPackageKeys(pkg).forEach((key) => map.set(String(key), pkg));
     });
-    return ids.map((id) => map.get(id)).filter(Boolean);
-  }, [packages, packagesSectionPackageIds]);
+    return map;
+  }, [packages]);
 
   const coverImageMedia = getMediaObject(coverImage);
   const coverImageUrl = getMediaUrl(coverImageMedia, "large");
@@ -270,8 +271,7 @@ const CmsContentRenderer = ({
         return "center";
     }
   })();
-  const isFloatCoverImage =
-    coverImagePosition === "left" || coverImagePosition === "right";
+
   const isObjectPositionCoverImage =
     coverImagePosition === "left-25" ||
     coverImagePosition === "left-50" ||
@@ -292,761 +292,522 @@ const CmsContentRenderer = ({
         return "lg:grid-cols-[360px_minmax(0,1fr)]";
     }
   })();
-  const bannerMedia = getMediaObject(pageBannerImage);
-  const bannerImageUrl = getMediaUrl(bannerMedia, "large");
-  const bannerImageAlt = getMediaAlt(bannerMedia, title || "Page banner");
-  const relatedItems = Array.isArray(relatedInformation)
-    ? relatedInformation.filter((item) => item && (item.title || item.description))
-    : [];
-  const activeRelatedItem =
-    relatedItems.length > 0
-      ? relatedItems[Math.min(activeRelatedIndex, relatedItems.length - 1)]
-      : null;
 
-  return (
-    <>
-      {bannerImageUrl && (
-        <div className="w-full h-48 md:h-64 relative overflow-hidden bg-sky-200">
+  const topBanners = enabledSections
+    .filter((section) => section.type === "pageBanner")
+    .map((section, index) => {
+      const media = getMediaObject(section.data?.pageBannerImage);
+      const url = getMediaUrl(media, "large");
+      if (!url) return null;
+      return (
+        <div key={section.id || `banner-${index}`} className="w-full h-48 md:h-64 relative overflow-hidden bg-sky-200">
           <img
-            src={bannerImageUrl}
-            alt={bannerImageAlt}
+            src={url}
+            alt={getMediaAlt(media, title || "Page banner")}
             className="w-full h-full object-cover object-center"
           />
         </div>
-      )}
-      <div className={containerClassName}>
-      {backLink && (
-        <div className="mb-6">
-          <Link
-            href={backLink}
-            className="inline-flex items-center text-green-600 hover:text-green-800 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            {backLabel}
-          </Link>
-        </div>
-      )}
+      );
+    })
+    .filter(Boolean);
 
-      <div className="mb-10">
-        {subtitle && (
-          <span
-            className="tracking-wide uppercase"
-            style={{
-              color: "#9eca83",
-              fontSize: "120%",
-              fontFamily: "\"MuseoModerno\", sans-serif",
-              display: "block",
-              fontWeight: 500,
-              lineHeight: 1.5,
-            }}
-          >
-            {subtitle}
-          </span>
-        )}
-        <h1 className={headingClassName} style={headingStyle}>
-          {title}
-        </h1>
-        {coverImageUrl ? (
-          coverImagePosition === "none" ? (
-            <>
-              <div className="mt-4">
-                <img
-                  src={coverImageUrl}
-                  alt={coverImageAlt}
-                  className="w-full max-h-[420px] object-cover rounded-xl"
-                  style={{ objectPosition: coverImageObjectPosition }}
-                />
-              </div>
-              {renderHtmlBlock(description)}
-            </>
-          ) : isObjectPositionCoverImage ? (
-            <div className="mt-4">
-              <div
-                className={`grid grid-cols-1 gap-8 items-start ${coverImageGridTemplate}`}
-              >
-                {isCoverImageLeft && (
+  const showBookingForm =
+    forceBookingForm ||
+    enabledSections.some(
+      (section) => section.type === "bookingForm" && section.data?.showBookingForm
+    );
+
+  const renderRepeatableItems = (items = [], sectionKey = "") => {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    return (
+      <div className="space-y-8">
+        {items.map((item, index) => {
+          const imageMedia = getMediaObject(item.image);
+          const imageUrl = getMediaUrl(imageMedia, "large");
+          const imageAlt = getMediaAlt(imageMedia, item.title || "Section image");
+          const isLight = item.background === "light";
+          const imagePosition = item.imagePosition || "left-25";
+          const imageLeft = !String(imagePosition).startsWith("right");
+          const gridTemplateClass = (() => {
+            switch (imagePosition) {
+              case "left-25":
+                return "lg:grid-cols-[25%_minmax(0,1fr)]";
+              case "left-50":
+                return "lg:grid-cols-[50%_minmax(0,1fr)]";
+              case "right-25":
+                return "lg:grid-cols-[minmax(0,1fr)_25%]";
+              case "right-50":
+                return "lg:grid-cols-[minmax(0,1fr)_50%]";
+              default:
+                return "lg:grid-cols-[360px_minmax(0,1fr)]";
+            }
+          })();
+          const sectionImageObjectPosition = (() => {
+            switch (imagePosition) {
+              case "left-25":
+                return "25% center";
+              case "left-50":
+                return "50% center";
+              case "right-25":
+                return "right 25%";
+              case "right-50":
+                return "right 50%";
+              default:
+                return "center";
+            }
+          })();
+
+          const key = item.id || `${sectionKey}-${index}`;
+          return (
+            <section key={key} className={`${isLight ? "bg-gray-50" : "bg-white"} py-4`}>
+              <div className={imageUrl ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}` : "grid grid-cols-1"}>
+                {imageUrl && imageLeft && (
                   <div className="w-full">
-                    <img
-                      src={coverImageUrl}
-                      alt={coverImageAlt}
-                      className="w-full h-full object-cover rounded-xl"
-                      style={{ objectPosition: coverImageObjectPosition }}
-                    />
+                    <figure>
+                      <img
+                        src={imageUrl}
+                        alt={imageAlt}
+                        className="w-full h-64 object-cover rounded-lg"
+                        style={{ objectPosition: sectionImageObjectPosition }}
+                      />
+                      {item.imageCaption && (
+                        <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
+                          {item.imageCaption}
+                        </figcaption>
+                      )}
+                    </figure>
                   </div>
                 )}
-                <div>{renderHtmlBlock(description)}</div>
-                {!isCoverImageLeft && (
-                  <div className="w-full">
-                    <img
-                      src={coverImageUrl}
-                      alt={coverImageAlt}
-                      className="w-full h-full object-cover rounded-xl"
-                      style={{ objectPosition: coverImageObjectPosition }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : isFloatCoverImage ? (
-            <div className="mt-4">
-              <img
-                src={coverImageUrl}
-                alt={coverImageAlt}
-                className={`w-full max-w-[480px] h-auto object-contain rounded-xl mb-4 md:mb-0 ${
-                  coverImagePosition === "right"
-                    ? "md:float-right md:ml-6"
-                    : "md:float-left md:mr-6"
-                }`}
-                style={{ objectPosition: coverImageObjectPosition }}
-              />
-              {renderHtmlBlock(description)}
-              <div className="clear-both" />
-            </div>
-          ) : (
-            renderHtmlBlock(description)
-          )
-        ) : (
-          renderHtmlBlock(description)
-        )}
-      </div>
 
-      {showPackagesSection &&
-        (packagesSectionTitle ||
-          packagesSectionSubtitle ||
-          packagesSectionDescription ||
-          selectedPackages.length > 0) && (
-          <section className="mb-8">
-              {packagesSectionTitle && (
                 <div>
-                  <h2
-                    className={headingClassName}
-                    style={{
-                      ...headingStyle,
-                      fontFamily: "\"MuseoModerno\", sans-serif",
-                    }}
-                  >
-                    {packagesSectionTitle}
-                  </h2>
-                  {packagesSectionSubtitle && (
-                    <span
-                      className="mt-2 tracking-wide uppercase"
-                      style={{
-                        color: "#9eca83",
-                        fontSize: "120%",
-                        fontFamily: "\"MuseoModerno\", sans-serif",
-                        display: "block",
-                        fontWeight: 500,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {packagesSectionSubtitle}
-                    </span>
+                  {item.title && (
+                    <h3 className="text-3xl font-semibold text-green-600 mb-4" style={{ fontFamily: '"MuseoModerno", sans-serif' }}>
+                      {item.title}
+                    </h3>
+                  )}
+                  {hasMeaningfulHtml(item.description) && (
+                    <div
+                      className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
+                      dangerouslySetInnerHTML={{ __html: getCleanHtml(item.description) }}
+                    />
                   )}
                 </div>
-              )}
-              {!packagesSectionTitle && packagesSectionSubtitle && (
-                <div>
-                  <span
-                    className="tracking-wide uppercase"
-                    style={{
-                      color: "#9eca83",
-                      fontSize: "150%",
-                      fontFamily: "\"MuseoModerno\", sans-serif",
-                      display: "block",
-                      fontWeight: 500,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {packagesSectionSubtitle}
-                  </span>
-                </div>
-              )}
-            {packagesSectionDescription && (
-              <div
-                className="mt-4 text-gray-600 leading-relaxed"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(packagesSectionDescription),
-                }}
-              />
-            )}
 
-            {selectedPackages.length > 0 && (
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {selectedPackages.map((item, index) => {
-                  const rawTitle = item.title || "";
-                  const slug =
-                    item.slug ||
-                    (rawTitle
-                      ? rawTitle
-                          .toLowerCase()
-                          .replace(/,/g, "")
-                          .replace(/\s+/g, "-")
-                      : "");
-                  const media = getMediaObject(item.mainImage || item.image);
-                  const imageSrc = getMediaUrl(media, "medium") || "/bhutan.jpg";
-                  const imageAlt = getPackageCardAlt(
-                    media,
-                    item,
-                    "Featured package image"
-                  );
-                  const reviewCount = getPackageReviewCount(item, reviewCountMap);
-                  const description =
-                    item.sub_description || item.subDescription || "";
-
-                  return (
-                    <div
-                      key={item.id ?? item._id ?? index}
-                      className="flex flex-col bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200"
-                    >
-                      {slug ? (
-                        <Link
-                          href={`/${slug}`}
-                          className="relative h-56 w-full overflow-hidden"
-                        >
-                          <img
-                            src={imageSrc}
-                            alt={imageAlt}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                          />
-                        </Link>
-                      ) : (
-                        <div className="relative h-56 w-full overflow-hidden">
-                          <img
-                            src={imageSrc}
-                            alt={imageAlt}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                {imageUrl && !imageLeft && (
+                  <div className="w-full">
+                    <figure>
+                      <img
+                        src={imageUrl}
+                        alt={imageAlt}
+                        className="w-full h-64 object-cover rounded-lg"
+                        style={{ objectPosition: sectionImageObjectPosition }}
+                      />
+                      {item.imageCaption && (
+                        <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
+                          {item.imageCaption}
+                        </figcaption>
                       )}
-                      <div className="pt-4 px-4 pb-5">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2 leading-tight">
-                          {item.title || "Featured Package"}
-                        </h3>
-                        {description ? (
-                          <p
-                            className="text-base text-emerald-500 leading-relaxed"
-                            dangerouslySetInnerHTML={{
-                              __html: sanitizeHtml(description),
-                            }}
-                          />
-                        ) : (
-                          <p className="text-base text-emerald-500 leading-relaxed">
-                            Explore this featured package.
-                          </p>
-                        )}
-                        <div className="mt-2 text-sm text-gray-400">
-                          ({reviewCount} reviews)
-                        </div>
-                        <div className="mt-4 flex items-center justify-between">
-                          <div className="flex items-center gap-1 text-gray-600 text-sm">
-                            <Clock className="w-4 h-4 text-emerald-600" />
-                            <span>
-                              {item.duration || "5 Days"},{" "}
-                              {item.tourType || item.type || "Private Tour"}
-                            </span>
-                          </div>
-                          {slug && (
-                            <Link
-                              href={`/${slug}`}
-                              className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
-                            >
-                              View Details
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    </figure>
+                  </div>
+                )}
               </div>
-            )}
-          </section>
+            </section>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {topBanners}
+      <div className={containerClassName}>
+        {backLink && (
+          <div className="mb-6">
+            <Link href={backLink} className="inline-flex items-center text-green-600 hover:text-green-800 transition-colors">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {backLabel}
+            </Link>
+          </div>
         )}
 
-      {showTeamSection && founderMember && (
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-green-600 mb-6">
-            {teamSectionTitle || "Our Team"}
-          </h2>
+        <div className="mb-10">
+          {subtitle && (
+            <span
+              className="tracking-wide uppercase"
+              style={{
+                color: "#9eca83",
+                fontSize: "120%",
+                fontFamily: '"MuseoModerno", sans-serif',
+                display: "block",
+                fontWeight: 500,
+                lineHeight: 1.5,
+              }}
+            >
+              {subtitle}
+            </span>
+          )}
+          <h1 className={headingClassName} style={headingStyle}>
+            {title}
+          </h1>
 
-          <div className="flex flex-col lg:flex-row gap-8">
-            <div className="w-full lg:w-72 shrink-0">
-              <div className="rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm">
-                <img
-                  src={founderMember.imageUrl || "/placeholder-team.jpg"}
-                  alt={founderMember.name || "Founder"}
-                  className="w-full h-80 object-cover"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold text-green-700 mb-4">
-                {founderTitle ||
-                  `Short Biography of ${founderMember.name || "Founder"}`}
-              </h3>
-              <div
-                className="prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(
-                    founderDetails || founderMember.description || ""
-                  ),
-                }}
-              />
+          {coverImageUrl ? (
+            coverImagePosition === "none" ? (
+              <>
+                <div className="mt-4">
+                  <img
+                    src={coverImageUrl}
+                    alt={coverImageAlt}
+                    className="w-full max-h-[420px] object-cover rounded-xl"
+                    style={{ objectPosition: coverImageObjectPosition }}
+                  />
+                </div>
+                {hasMeaningfulHtml(description) && (
+                  <div
+                    className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
+                    dangerouslySetInnerHTML={{ __html: getCleanHtml(description) }}
+                  />
+                )}
+              </>
+            ) : isObjectPositionCoverImage ? (
               <div className="mt-4">
-                <Link
-                  href={founderCtaLink}
-                  className="inline-flex items-center px-4 py-2 rounded-md bg-[#9cc37f] text-white font-medium hover:bg-[#89b56b] transition-colors"
-                >
-                  {founderCtaLabel}
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {selectedTeam.length > 0 && (
-            <div className="mt-10 border-t border-gray-200 pt-8">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-                {selectedTeam.map((member) => (
-                  <Link
-                    key={member.id || member.name}
-                    href={`/team/${encodeURIComponent(member.name)}`}
-                    className="text-center"
-                  >
-                    <div className="mx-auto w-24 h-24 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+                <div className={`grid grid-cols-1 gap-8 items-start ${coverImageGridTemplate}`}>
+                  {isCoverImageLeft && (
+                    <div className="w-full">
                       <img
-                        src={member.imageUrl || "/placeholder-team.jpg"}
-                        alt={member.name || "Team member"}
-                        className="w-full h-full object-cover"
+                        src={coverImageUrl}
+                        alt={coverImageAlt}
+                        className="w-full h-full object-cover rounded-xl"
+                        style={{ objectPosition: coverImageObjectPosition }}
                       />
                     </div>
-                    <p className="mt-3 text-base font-semibold text-green-600">
-                      {member.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {member.designation || ""}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {Array.isArray(repeatableSections) &&
-        repeatableSections.length > 0 && (
-          <div className="space-y-8">
-            {repeatableSections.map((section) => {
-              const imageMedia = getMediaObject(section.image);
-              const imageUrl = getMediaUrl(imageMedia, "large");
-              const imageAlt = getMediaAlt(
-                imageMedia,
-                section.title || "Section image"
-              );
-              const isLight = section.background === "light";
-              const imagePosition = section.imagePosition || "left";
-              const imageLeft = !String(imagePosition).startsWith("right");
-              const gridTemplateClass = (() => {
-                switch (imagePosition) {
-                  case "left-25":
-                    return "lg:grid-cols-[25%_minmax(0,1fr)]";
-                  case "left-50":
-                    return "lg:grid-cols-[50%_minmax(0,1fr)]";
-                  case "right-25":
-                    return "lg:grid-cols-[minmax(0,1fr)_25%]";
-                  case "right-50":
-                    return "lg:grid-cols-[minmax(0,1fr)_50%]";
-                  case "right":
-                    return "lg:grid-cols-[minmax(0,1fr)_360px]";
-                  default:
-                    return "lg:grid-cols-[360px_minmax(0,1fr)]";
-                }
-              })();
-              const sectionImageObjectPosition = (() => {
-                switch (imagePosition) {
-                  case "left-25":
-                    return "25% center";
-                  case "left-50":
-                    return "50% center";
-                  case "right-25":
-                    return "right 25%";
-                  case "right-50":
-                    return "right 50%";
-                  default:
-                    return "center";
-                }
-              })();
-              const hasImage = !!imageUrl;
-
-              return (
-                <section
-                  key={section.id || section.title}
-                  className={`${isLight ? "bg-gray-50" : "bg-white"} py-4`}
-                >
+                  )}
                   <div
-                    className={
-                      hasImage
-                        ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}`
-                        : "grid grid-cols-1 gap-0"
-                    }
-                  >
-                    {hasImage && imageLeft && (
-                      <div className="w-full">
-                        <figure>
-                          <img
-                            src={imageUrl}
-                            alt={imageAlt}
-                            className="w-full h-64 object-cover rounded-lg"
-                            style={{ objectPosition: sectionImageObjectPosition }}
-                          />
-                          {section.imageCaption && (
-                            <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
-                              {section.imageCaption}
-                            </figcaption>
-                          )}
-                        </figure>
-                      </div>
-                    )}
-
-                    <div>
-                      {section.title && (
-                        <h3
-                          className="text-3xl font-semibold text-green-600 mb-4"
-                          style={{ fontFamily: "\"MuseoModerno\", sans-serif" }}
-                        >
-                          {section.title}
-                        </h3>
-                      )}
-                      {section.description && (
-                        <div
-                          className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
-                          dangerouslySetInnerHTML={{
-                            __html: sanitizeHtml(section.description),
-                          }}
-                        />
-                      )}
+                    className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
+                    dangerouslySetInnerHTML={{ __html: getCleanHtml(description) }}
+                  />
+                  {!isCoverImageLeft && (
+                    <div className="w-full">
+                      <img
+                        src={coverImageUrl}
+                        alt={coverImageAlt}
+                        className="w-full h-full object-cover rounded-xl"
+                        style={{ objectPosition: coverImageObjectPosition }}
+                      />
                     </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
+                dangerouslySetInnerHTML={{ __html: getCleanHtml(description) }}
+              />
+            )
+          ) : (
+            hasMeaningfulHtml(description) && (
+              <div
+                className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
+                dangerouslySetInnerHTML={{ __html: getCleanHtml(description) }}
+              />
+            )
+          )}
+        </div>
 
-                    {hasImage && !imageLeft && (
-                      <div className="w-full">
-                        <figure>
-                          <img
-                            src={imageUrl}
-                            alt={imageAlt}
-                            className="w-full h-64 object-cover rounded-lg"
-                            style={{ objectPosition: sectionImageObjectPosition }}
-                          />
-                          {section.imageCaption && (
-                            <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
-                              {section.imageCaption}
-                            </figcaption>
-                          )}
-                        </figure>
-                      </div>
+        {enabledSections.map((section, index) => {
+          if (section.type === "pageBanner") return null;
+
+          if (section.type === "team") {
+            const data = section.data || {};
+            const selectedTeam = (data.selectedTeamMembers || [])
+              .map((id) => teamLookup.get(id))
+              .filter(Boolean);
+            const founder = selectedTeam[0] || null;
+            if (!founder) return null;
+            return (
+              <section key={section.id || `team-${index}`} className="mb-12">
+                <h2 className="text-2xl font-semibold text-green-600 mb-6">
+                  {data.teamSectionTitle || "Our Team"}
+                </h2>
+                <div className="flex flex-col lg:flex-row gap-8">
+                  <div className="w-full lg:w-72 shrink-0">
+                    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm">
+                      <img
+                        src={founder.imageUrl || "/placeholder-team.jpg"}
+                        alt={founder.name || "Founder"}
+                        className="w-full h-80 object-cover"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-green-700 mb-4">
+                      {data.founderTitle || `Short Biography of ${founder.name || "Founder"}`}
+                    </h3>
+                    <div
+                      className="prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: getCleanHtml(data.founderDetails || founder.description || "") }}
+                    />
+                    <div className="mt-4">
+                      <Link
+                        href={data.founderCtaLink || "/meet-the-owner"}
+                        className="inline-flex items-center px-4 py-2 rounded-md bg-[#9cc37f] text-white font-medium hover:bg-[#89b56b] transition-colors"
+                      >
+                        {data.founderCtaLabel || "Meet the Owner"}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            );
+          }
+
+          if (section.type === "packages") {
+            const data = section.data || {};
+            const selected = (data.packagesSectionPackageIds || [])
+              .map((id) => packageLookup.get(String(id)))
+              .filter(Boolean);
+            if (!data.packagesSectionTitle && !data.packagesSectionSubtitle && !hasMeaningfulHtml(data.packagesSectionDescription) && selected.length === 0) {
+              return null;
+            }
+            return (
+              <section key={section.id || `packages-${index}`} className="mb-8">
+                {data.packagesSectionTitle && (
+                  <div>
+                    <h2 className={headingClassName} style={{ ...headingStyle, fontFamily: '"MuseoModerno", sans-serif' }}>
+                      {data.packagesSectionTitle}
+                    </h2>
+                    {data.packagesSectionSubtitle && (
+                      <span className="mt-2 tracking-wide uppercase" style={{ color: "#9eca83", fontSize: "120%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
+                        {data.packagesSectionSubtitle}
+                      </span>
                     )}
                   </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
+                )}
+                {!data.packagesSectionTitle && data.packagesSectionSubtitle && (
+                  <span className="tracking-wide uppercase" style={{ color: "#9eca83", fontSize: "150%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
+                    {data.packagesSectionSubtitle}
+                  </span>
+                )}
+                {hasMeaningfulHtml(data.packagesSectionDescription) && (
+                  <div
+                    className="mt-4 text-gray-600 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: getCleanHtml(data.packagesSectionDescription) }}
+                  />
+                )}
+                {selected.length > 0 && (
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {selected.map((item, itemIndex) => {
+                      const rawTitle = item.title || "";
+                      const slug =
+                        item.slug ||
+                        (rawTitle
+                          ? rawTitle.toLowerCase().replace(/,/g, "").replace(/\s+/g, "-")
+                          : "");
+                      const media = getMediaObject(item.mainImage || item.image);
+                      const imageSrc = getMediaUrl(media, "medium") || "/bhutan.jpg";
+                      const reviewCount = getPackageReviewCount(item, reviewCountMap);
+                      const descriptionText = item.sub_description || item.subDescription || "";
 
-      {Array.isArray(galleryImages) && galleryImages.length > 0 && (
-        <div className="mt-12 relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#86c167] py-12">
-          <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12">
-            <Gallery
-              galleryImages={galleryImages}
-              title="Photo/Visual Gallery"
-              embedded
-            />
-          </div>
-        </div>
-      )}
+                      return (
+                        <div key={item.id ?? item._id ?? itemIndex} className="flex flex-col bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200">
+                          {slug ? (
+                            <Link href={`/${slug}`} className="relative h-56 w-full overflow-hidden">
+                              <img
+                                src={imageSrc}
+                                alt={getPackageCardAlt(media, item, "Featured package image")}
+                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                              />
+                            </Link>
+                          ) : (
+                            <div className="relative h-56 w-full overflow-hidden">
+                              <img src={imageSrc} alt="Featured package image" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div className="pt-4 px-4 pb-5">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2 leading-tight">
+                              {item.title || "Featured Package"}
+                            </h3>
+                            {descriptionText ? (
+                              <p className="text-base text-emerald-500 leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(descriptionText) }} />
+                            ) : (
+                              <p className="text-base text-emerald-500 leading-relaxed">Explore this featured package.</p>
+                            )}
+                            <div className="mt-2 text-sm text-gray-400">({reviewCount} reviews)</div>
+                            <div className="mt-4 flex items-center justify-between">
+                              <div className="flex items-center gap-1 text-gray-600 text-sm">
+                                <Clock className="w-4 h-4 text-emerald-600" />
+                                <span>{item.duration || "5 Days"}, {item.tourType || item.type || "Private Tour"}</span>
+                              </div>
+                              {slug && (
+                                <Link href={`/${slug}`} className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200">
+                                  View Details
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          }
 
-      {relatedItems.length > 0 && (
-        <div className="mt-12 scroll-mt-24" ref={relatedInfoRef}>
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
-            <div className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
-              {relatedItems.map((item, index) => {
-                const isActive = index === activeRelatedIndex;
+          if (section.type === "repeatableTextImage") {
+            return (
+              <div key={section.id || `repeatable-${index}`} className="mb-10">
+                {renderRepeatableItems(section.data?.items || [], section.id || `repeatable-${index}`)}
+              </div>
+            );
+          }
+
+          if (section.type === "gallery") {
+            const galleryImages = section.data?.galleryImages || [];
+            if (!Array.isArray(galleryImages) || galleryImages.length === 0) return null;
+            return (
+              <div key={section.id || `gallery-${index}`} className="mt-12 relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#86c167] py-12">
+                <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12">
+                  <Gallery galleryImages={galleryImages} title="Photo/Visual Gallery" embedded />
+                </div>
+              </div>
+            );
+          }
+
+          if (section.type === "relatedInformation") {
+            const items = Array.isArray(section.data?.items)
+              ? section.data.items.filter((item) => item && (item.title || item.description))
+              : [];
+            if (items.length === 0) return null;
+            const key = section.id || `related-${index}`;
+            const activeIndex = Math.min(activeRelatedIndexBySection[key] || 0, items.length - 1);
+            const activeItem = items[activeIndex];
+            return (
+              <div key={key} className="mt-12 scroll-mt-24" ref={relatedInfoRef}>
+                <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  <div className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
+                    {items.map((item, itemIndex) => {
+                      const isActive = itemIndex === activeIndex;
+                      return (
+                        <button
+                          key={`${key}-${item.id || itemIndex}`}
+                          type="button"
+                          onClick={() => {
+                            setActiveRelatedIndexBySection((prev) => ({ ...prev, [key]: itemIndex }));
+                            requestAnimationFrame(() => {
+                              relatedInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            });
+                          }}
+                          className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
+                            isActive ? "bg-[#a9c98c] text-white" : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          {item.title || `Information ${itemIndex + 1}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="p-6 md:p-8">
+                    {activeItem?.title && (
+                      <h3 className="text-2xl font-semibold text-green-600 mb-4">{activeItem.title}</h3>
+                    )}
+                    {hasMeaningfulHtml(activeItem?.description) && (
+                      <div
+                        className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
+                        dangerouslySetInnerHTML={{ __html: getCleanHtml(activeItem.description) }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (section.type === "faq") {
+            const items = section.data?.items || [];
+            if (!Array.isArray(items) || items.length === 0) return null;
+            return (
+              <div key={section.id || `faq-${index}`} className="mt-12">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6" style={{ fontFamily: '"MuseoModerno", sans-serif' }}>
+                  {section.data?.faqSectionTitle || "Frequently Asked Questions"}
+                </h2>
+                <div className="space-y-4">
+                  {items.map((faqItem, faqIndex) => (
+                    <details
+                      key={`${section.id || "faq"}-${faqItem.id || faqIndex}`}
+                      className="bg-white border border-gray-200 rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                    >
+                      <summary className="flex items-center justify-between p-4 cursor-pointer font-semibold text-gray-800 hover:bg-gray-50">
+                        <span className="text-base pr-4">{faqItem.question}</span>
+                        <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </summary>
+                      {hasMeaningfulHtml(faqItem.answer) && (
+                        <div
+                          className="px-4 pb-4 text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: getCleanHtml(faqItem.answer) }}
+                        />
+                      )}
+                    </details>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })}
+
+        {Array.isArray(tours) && tours.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">{pageData.section || "Tours"}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {tours.map((tour, index) => {
+                const rawImage = tour?.image || "";
+                const imageUrl = rawImage.startsWith("http") ? rawImage : `${BASE_URL}/uploads/${rawImage}`;
                 return (
-                  <button
-                    key={`${item.title || "info"}-${index}`}
-                    type="button"
-                    onClick={() => {
-                      setActiveRelatedIndex(index);
-                      requestAnimationFrame(() => {
-                        relatedInfoRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                      });
-                    }}
-                    className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
-                      isActive
-                        ? "bg-[#a9c98c] text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {item.title || `Information ${index + 1}`}
-                  </button>
+                  <div key={`${tour.name}-${index}`} className="bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <div className="h-48 overflow-hidden relative bg-gray-100">
+                      <img
+                        src={imageUrl}
+                        alt={tour.name || "Tour"}
+                        onError={(event) => {
+                          event.currentTarget.src = "https://placehold.co/600x400?text=No+Image";
+                        }}
+                        className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight h-12 line-clamp-2">{tour.name}</h3>
+                      {tour.reviews !== undefined && (
+                        <div className="text-xs text-gray-400 mb-3">( {tour.reviews} reviews )</div>
+                      )}
+                      <div className="flex justify-between items-end border-t border-gray-100 pt-3 mt-2">
+                        <div className="flex items-center text-xs text-gray-500">
+                          <span className="mr-1">🕒</span> {tour.duration || "Duration"}, {tour.difficulty || "Tour"}
+                        </div>
+                        <button className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-1 px-3 rounded-sm">
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
-            <div className="p-6 md:p-8">
-              {activeRelatedItem?.title && (
-                <h3 className="text-2xl font-semibold text-green-600 mb-4">
-                  {activeRelatedItem.title}
-                </h3>
-              )}
-              {activeRelatedItem?.description && (
-                <div
-                  className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
-                  dangerouslySetInnerHTML={{
-                    __html: sanitizeHtml(activeRelatedItem.description),
-                  }}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {Array.isArray(repeatableSectionsAfterRelated) &&
-        repeatableSectionsAfterRelated.length > 0 && (
-          <div className="space-y-8 mt-12">
-            {repeatableSectionsAfterRelated.map((section) => {
-              const imageMedia = getMediaObject(section.image);
-              const imageUrl = getMediaUrl(imageMedia, "large");
-              const imageAlt = getMediaAlt(
-                imageMedia,
-                section.title || "Section image"
-              );
-              const isLight = section.background === "light";
-              const imagePosition = section.imagePosition || "left";
-              const imageLeft = !String(imagePosition).startsWith("right");
-              const gridTemplateClass = (() => {
-                switch (imagePosition) {
-                  case "left-25":
-                    return "lg:grid-cols-[25%_minmax(0,1fr)]";
-                  case "left-50":
-                    return "lg:grid-cols-[50%_minmax(0,1fr)]";
-                  case "right-25":
-                    return "lg:grid-cols-[minmax(0,1fr)_25%]";
-                  case "right-50":
-                    return "lg:grid-cols-[minmax(0,1fr)_50%]";
-                  case "right":
-                    return "lg:grid-cols-[minmax(0,1fr)_360px]";
-                  default:
-                    return "lg:grid-cols-[360px_minmax(0,1fr)]";
-                }
-              })();
-              const sectionImageObjectPosition = (() => {
-                switch (imagePosition) {
-                  case "left-25":
-                    return "25% center";
-                  case "left-50":
-                    return "50% center";
-                  case "right-25":
-                    return "right 25%";
-                  case "right-50":
-                    return "right 50%";
-                  default:
-                    return "center";
-                }
-              })();
-              const hasImage = !!imageUrl;
-
-              return (
-                <section
-                  key={section.id || section.title}
-                  className={`${isLight ? "bg-gray-50" : "bg-white"} py-4`}
-                >
-                  <div
-                    className={
-                      hasImage
-                        ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}`
-                        : "grid grid-cols-1 gap-0"
-                    }
-                  >
-                    {hasImage && imageLeft && (
-                      <div className="w-full">
-                        <figure>
-                          <img
-                            src={imageUrl}
-                            alt={imageAlt}
-                            className="w-full h-64 object-cover rounded-lg"
-                            style={{ objectPosition: sectionImageObjectPosition }}
-                          />
-                          {section.imageCaption && (
-                            <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
-                              {section.imageCaption}
-                            </figcaption>
-                          )}
-                        </figure>
-                      </div>
-                    )}
-
-                    <div>
-                      {section.title && (
-                        <h3
-                          className="text-3xl font-semibold text-green-600 mb-4"
-                          style={{ fontFamily: "\"MuseoModerno\", sans-serif" }}
-                        >
-                          {section.title}
-                        </h3>
-                      )}
-                      {section.description && (
-                        <div
-                          className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
-                          dangerouslySetInnerHTML={{
-                            __html: sanitizeHtml(section.description),
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    {hasImage && !imageLeft && (
-                      <div className="w-full">
-                        <figure>
-                          <img
-                            src={imageUrl}
-                            alt={imageAlt}
-                            className="w-full h-64 object-cover rounded-lg"
-                            style={{ objectPosition: sectionImageObjectPosition }}
-                          />
-                          {section.imageCaption && (
-                            <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
-                              {section.imageCaption}
-                            </figcaption>
-                          )}
-                        </figure>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              );
-            })}
           </div>
         )}
 
-      {Array.isArray(faq) && faq.length > 0 && (
-        <div className="mt-12">
-          <h2
-            className="text-2xl font-bold text-gray-800 mb-6"
-            style={{ fontFamily: "\"MuseoModerno\", sans-serif" }}
-          >
-            {faqSectionTitle}
-          </h2>
-          <div className="space-y-4">
-            {faq.map((faqItem, index) => (
-              <details
-                key={`${faqItem.question}-${index}`}
-                className="bg-white border border-gray-200 rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
-              >
-                <summary className="flex items-center justify-between p-4 cursor-pointer font-semibold text-gray-800 hover:bg-gray-50">
-                  <span className="text-base pr-4">
-                    {faqItem.question}
-                  </span>
-                  <svg
-                    className="w-5 h-5 text-emerald-500 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </summary>
-                {hasMeaningfulHtml(faqItem.answer) && (
-                  <div
-                    className="px-4 pb-4 text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: getCleanHtml(faqItem.answer) }}
-                  />
-                )}
-              </details>
-            ))}
+        {children}
+
+        {showBookingForm && (
+          <div className="mt-12">
+            <Form />
           </div>
-        </div>
-      )}
-
-      {Array.isArray(tours) && tours.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            {pageData.section || "Tours"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {tours.map((tour, index) => {
-              const rawImage = tour?.image || "";
-              const imageUrl =
-                rawImage.startsWith("http") ? rawImage : `${BASE_URL}/uploads/${rawImage}`;
-
-              return (
-                <div
-                  key={`${tour.name}-${index}`}
-                  className="bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="h-48 overflow-hidden relative bg-gray-100">
-                    <img
-                      src={imageUrl}
-                      alt={tour.name || "Tour"}
-                      onError={(event) => {
-                        event.currentTarget.src =
-                          "https://placehold.co/600x400?text=No+Image";
-                      }}
-                      className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight h-12 line-clamp-2">
-                      {tour.name}
-                    </h3>
-                    {tour.reviews !== undefined && (
-                      <div className="text-xs text-gray-400 mb-3">
-                        ( {tour.reviews} reviews )
-                      </div>
-                    )}
-                    <div className="flex justify-between items-end border-t border-gray-100 pt-3 mt-2">
-                      <div className="flex items-center text-xs text-gray-500">
-                        <span className="mr-1">🕒</span>{" "}
-                        {tour.duration || "Duration"}, {tour.difficulty || "Tour"}
-                      </div>
-                      <button className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-1 px-3 rounded-sm">
-                        View Details
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {children}
-
-      {showBookingForm && (
-        <div className="mt-12">
-          <Form />
-        </div>
-      )}
+        )}
       </div>
     </>
   );

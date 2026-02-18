@@ -32,6 +32,23 @@ const normalizeCmsItems = (payload) => {
   return [];
 };
 
+const getCmsOgImage = (pageData) => {
+  const sections = Array.isArray(pageData?.sections) ? pageData.sections : [];
+  const gallerySection = sections.find(
+    (section) =>
+      section?.is_enabled !== false &&
+      section?.type === "gallery" &&
+      Array.isArray(section?.data?.galleryImages) &&
+      section.data.galleryImages.length > 0
+  );
+
+  if (gallerySection) {
+    return getMediaUrl(getMediaObject(gallerySection.data.galleryImages[0]), "large");
+  }
+
+  return getMediaUrl(getMediaObject(pageData?.content?.galleryImages?.[0]), "large");
+};
+
 const fetchPackageBySlug = cache(async (slug) => {
   if (!slug) return { tourRecord: null, tourData: null };
 
@@ -140,10 +157,7 @@ export const generateMetadata = async ({ params }) => {
     ) ||
     "Travel information and helpful details.";
   const metaKeywords = pageData.meta_keywords || "";
-  const ogImage = getMediaUrl(
-    getMediaObject(pageData.content?.galleryImages?.[0]),
-    "large"
-  );
+  const ogImage = getCmsOgImage(pageData);
 
   return {
     title: metaTitle,

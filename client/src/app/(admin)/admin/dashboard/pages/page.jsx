@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   DndContext,
@@ -26,11 +27,36 @@ import {
   ChevronDown,
   ChevronUp,
   GripVertical,
+  Copy,
 } from "lucide-react";
 import RichEditor from "@/components/editor/RichEditor";
 import MediaPickerModal from "@/components/media/MediaPickerModal";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
+
+const MODULE_TYPES = [
+  { type: "pageBanner", label: "Page Banner", hint: "Top banner image" },
+  { type: "team", label: "Team", hint: "Founder + members" },
+  { type: "packages", label: "Packages", hint: "Package list block" },
+  {
+    type: "repeatableTextImage",
+    label: "Repeatable Text/Image",
+    hint: "Can be added multiple times",
+  },
+  { type: "gallery", label: "Gallery", hint: "Image gallery" },
+  {
+    type: "relatedInformation",
+    label: "Related Information",
+    hint: "Tabbed information block",
+  },
+  { type: "faq", label: "FAQ", hint: "Questions and answers" },
+  { type: "bookingForm", label: "Booking Form", hint: "Show booking form" },
+];
+
+const MODULE_LABELS = MODULE_TYPES.reduce((acc, item) => {
+  acc[item.type] = item.label;
+  return acc;
+}, {});
 
 const initialFormData = {
   section: "",
@@ -42,27 +68,9 @@ const initialFormData = {
   coverImage: null,
   coverImagePosition: "none",
   category: "",
-  teamSectionTitle: "",
-  founderTitle: "",
-  founderDetails: "",
-  founderCtaLabel: "",
-  founderCtaLink: "",
-  selectedTeamMembers: [],
-  packagesSectionTitle: "",
-  packagesSectionSubtitle: "",
-  packagesSectionDescription: "",
-  packagesSectionPackageIds: [],
-  repeatableSections: [],
-  repeatableSectionsAfterRelated: [],
-  pageBannerImage: null,
   meta_title: "",
   meta_description: "",
   meta_keywords: "",
-  galleryImages: [],
-  faq: [],
-  faqSectionTitle: "",
-  relatedInformation: [],
-  showBookingForm: false,
 };
 
 const normalizeMedia = (media) => {
@@ -72,6 +80,106 @@ const normalizeMedia = (media) => {
   }
   return media;
 };
+
+const normalizeSectionData = (section) => {
+  const type = section?.type;
+  const data = section?.data || {};
+
+  if (type === "pageBanner") {
+    return { pageBannerImage: data.pageBannerImage ?? null };
+  }
+
+  if (type === "team") {
+    return {
+      teamSectionTitle: data.teamSectionTitle || "",
+      founderTitle: data.founderTitle || "",
+      founderDetails: data.founderDetails || "",
+      founderCtaLabel: data.founderCtaLabel || "",
+      founderCtaLink: data.founderCtaLink || "",
+      selectedTeamMembers: Array.isArray(data.selectedTeamMembers)
+        ? data.selectedTeamMembers.map(String)
+        : [],
+    };
+  }
+
+  if (type === "packages") {
+    return {
+      packagesSectionTitle: data.packagesSectionTitle || "",
+      packagesSectionSubtitle: data.packagesSectionSubtitle || "",
+      packagesSectionDescription: data.packagesSectionDescription || "",
+      packagesSectionPackageIds: Array.isArray(data.packagesSectionPackageIds)
+        ? data.packagesSectionPackageIds.map(String)
+        : [],
+    };
+  }
+
+  if (type === "repeatableTextImage") {
+    return {
+      items: Array.isArray(data.items)
+        ? data.items.map((item, index) => ({
+            id: item?.id || `${Date.now()}-${index}`,
+            title: item?.title || "",
+            description: item?.description || "",
+            image: item?.image || "",
+            imageCaption: item?.imageCaption || "",
+            background: item?.background === "light" ? "light" : "white",
+            imagePosition: ["left-25", "left-50", "right-25", "right-50"].includes(item?.imagePosition)
+              ? item.imagePosition
+              : item?.imagePosition === "right"
+              ? "right-25"
+              : "left-25",
+          }))
+        : [],
+    };
+  }
+
+  if (type === "gallery") {
+    return {
+      galleryImages: (Array.isArray(data.galleryImages) ? data.galleryImages : [])
+        .map((img) => normalizeMedia(img))
+        .filter(Boolean),
+    };
+  }
+
+  if (type === "relatedInformation") {
+    return {
+      items: Array.isArray(data.items)
+        ? data.items.map((item, index) => ({
+            id: item?.id || `${Date.now()}-${index}`,
+            title: item?.title || "",
+            description: item?.description || "",
+          }))
+        : [],
+    };
+  }
+
+  if (type === "faq") {
+    return {
+      faqSectionTitle: data.faqSectionTitle || "",
+      items: Array.isArray(data.items)
+        ? data.items.map((item, index) => ({
+            id: item?.id || `${Date.now()}-${index}`,
+            question: item?.question || "",
+            answer: item?.answer || "",
+          }))
+        : [],
+    };
+  }
+
+  if (type === "bookingForm") {
+    return {
+      showBookingForm: !!data.showBookingForm,
+    };
+  }
+
+  return data || {};
+};
+
+const normalizeSection = (section) => ({
+  ...section,
+  data: normalizeSectionData(section),
+  is_enabled: section?.is_enabled !== false,
+});
 
 const itemChevronToggleClass =
   "h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center justify-center transition-colors";
@@ -97,11 +205,7 @@ const SortableSectionCard = ({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
+    <div ref={setNodeRef} style={style} className="rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <button
@@ -122,23 +226,14 @@ const SortableSectionCard = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggle}
-            onPointerDown={(event) => event.stopPropagation()}
-            className={itemChevronToggleClass}
-          >
+          <button type="button" onClick={onToggle} className={itemChevronToggleClass}>
             {isOpen ? (
               <ChevronUp className="w-5 h-5 stroke-[2.5]" />
             ) : (
               <ChevronDown className="w-5 h-5 stroke-[2.5]" />
             )}
           </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="text-gray-400 hover:text-red-500"
-          >
+          <button type="button" onClick={onRemove} className="text-gray-400 hover:text-red-500">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -185,22 +280,14 @@ const SortableSectionCard = ({
               <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
                 {section.image ? (
                   <img
-                    src={
-                      section.image.variants?.thumbnail ||
-                      section.image.url ||
-                      section.image
-                    }
+                    src={section.image.variants?.thumbnail || section.image.url || section.image}
                     alt="Section"
                     className="w-full h-32 object-contain rounded"
                   />
                 ) : (
                   <p className="text-sm text-gray-500">No image selected</p>
                 )}
-                <div
-                  className={`mt-3 grid gap-2 ${
-                    section.image ? "grid-cols-2" : "grid-cols-1"
-                  }`}
-                >
+                <div className={`mt-3 grid gap-2 ${section.image ? "grid-cols-2" : "grid-cols-1"}`}>
                   <button
                     type="button"
                     onClick={onSelectImage}
@@ -250,14 +337,7 @@ const SortableSectionCard = ({
   );
 };
 
-const SortableRelatedInfoCard = ({
-  item,
-  index,
-  isOpen,
-  onToggle,
-  onRemove,
-  onChange,
-}) => {
+const SortableRelatedInfoCard = ({ item, index, isOpen, onToggle, onRemove, onChange }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
 
@@ -267,11 +347,7 @@ const SortableRelatedInfoCard = ({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-    >
+    <div ref={setNodeRef} style={style} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <button
@@ -279,8 +355,6 @@ const SortableRelatedInfoCard = ({
             {...attributes}
             {...listeners}
             className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
-            title="Drag to reorder"
-            aria-label="Drag to reorder"
           >
             <GripVertical className="w-4 h-4" />
           </button>
@@ -289,25 +363,14 @@ const SortableRelatedInfoCard = ({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggle}
-            onPointerDown={(event) => event.stopPropagation()}
-            className={itemChevronToggleClass}
-            title={isOpen ? "Collapse" : "Expand"}
-          >
+          <button type="button" onClick={onToggle} className={itemChevronToggleClass}>
             {isOpen ? (
               <ChevronUp className="w-5 h-5 stroke-[2.5]" />
             ) : (
               <ChevronDown className="w-5 h-5 stroke-[2.5]" />
             )}
           </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="text-red-500 hover:text-red-700 transition-colors"
-            title="Remove information"
-          >
+          <button type="button" onClick={onRemove} className="text-red-500 hover:text-red-700">
             <Trash2 size={14} />
           </button>
         </div>
@@ -316,14 +379,12 @@ const SortableRelatedInfoCard = ({
       {isOpen && (
         <div className="space-y-2">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Information Title
-            </label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Information Title</label>
             <input
               type="text"
               value={item.title}
               onChange={(e) => onChange("title", e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
               placeholder="Enter title"
             />
           </div>
@@ -344,14 +405,7 @@ const SortableRelatedInfoCard = ({
   );
 };
 
-const SortableFaqCard = ({
-  item,
-  index,
-  isOpen,
-  onToggle,
-  onRemove,
-  onChange,
-}) => {
+const SortableFaqCard = ({ item, index, isOpen, onToggle, onRemove, onChange }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
 
@@ -361,11 +415,7 @@ const SortableFaqCard = ({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-    >
+    <div ref={setNodeRef} style={style} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <button
@@ -373,8 +423,6 @@ const SortableFaqCard = ({
             {...attributes}
             {...listeners}
             className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
-            title="Drag to reorder"
-            aria-label="Drag to reorder"
           >
             <GripVertical className="w-4 h-4" />
           </button>
@@ -383,25 +431,14 @@ const SortableFaqCard = ({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggle}
-            onPointerDown={(event) => event.stopPropagation()}
-            className={itemChevronToggleClass}
-            title={isOpen ? "Collapse" : "Expand"}
-          >
+          <button type="button" onClick={onToggle} className={itemChevronToggleClass}>
             {isOpen ? (
               <ChevronUp className="w-5 h-5 stroke-[2.5]" />
             ) : (
               <ChevronDown className="w-5 h-5 stroke-[2.5]" />
             )}
           </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="text-red-500 hover:text-red-700 transition-colors"
-            title="Remove FAQ"
-          >
+          <button type="button" onClick={onRemove} className="text-red-500 hover:text-red-700">
             <Trash2 size={14} />
           </button>
         </div>
@@ -410,27 +447,144 @@ const SortableFaqCard = ({
       {isOpen && (
         <div className="space-y-2">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Question
-            </label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Question</label>
             <input
               type="text"
               value={item.question}
               onChange={(e) => onChange("question", e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
               placeholder="Enter your question"
             />
           </div>
-
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Answer
-            </label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Answer</label>
             <RichEditor
               value={item.answer}
               onChange={(value) => onChange("answer", value)}
               height="h-60"
             />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SortableSelectedItem = ({ id, title, onRemove }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-700 bg-white shadow-sm"
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="text-gray-400 hover:text-gray-600"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+        <span className="line-clamp-1">{title}</span>
+      </div>
+      <button type="button" onClick={onRemove} className="text-xs font-semibold text-red-500">
+        Remove
+      </button>
+    </div>
+  );
+};
+
+const SortableModuleCard = ({
+  section,
+  isOpen,
+  onToggle,
+  onToggleEnabled,
+  onDuplicate,
+  onDelete,
+  onSave,
+  children,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-800 truncate">
+              {MODULE_LABELS[section.type] || section.type}
+            </p>
+            <p className="text-xs text-gray-400 truncate">{section.type}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={section.is_enabled}
+              onChange={(e) => onToggleEnabled(e.target.checked)}
+              className="sr-only"
+            />
+            <span
+              className={`px-2 py-1 text-xs rounded-md ${
+                section.is_enabled
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {section.is_enabled ? "Enabled" : "Disabled"}
+            </span>
+          </label>
+          <button type="button" onClick={onDuplicate} className="text-gray-400 hover:text-gray-600">
+            <Copy className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={onDelete} className="text-gray-400 hover:text-red-500">
+            <Trash2 className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={onToggle} className={itemChevronToggleClass}>
+            {isOpen ? (
+              <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="p-4 space-y-4">
+          {children}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onSave}
+              className="px-3 py-1.5 rounded-md bg-[var(--admin-primary)] text-white text-sm"
+            >
+              Save Block
+            </button>
           </div>
         </div>
       )}
@@ -446,35 +600,30 @@ const CmsAdminPage = () => {
     sessionStorage.getItem("admin_token");
 
   const [formData, setFormData] = useState(initialFormData);
+  const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editPageId, setEditPageId] = useState(null);
+  const [editPageDbId, setEditPageDbId] = useState(null);
   const [pages, setPages] = useState([]);
   const [sortedPages, setSortedPages] = useState([]);
   const [listLoading, setListLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(10);
-  const [teamSectionOpen, setTeamSectionOpen] = useState(false);
-  const [packagesSectionOpen, setPackagesSectionOpen] = useState(false);
-  const [repeatableSectionsOpen, setRepeatableSectionsOpen] = useState(false);
-  const [repeatableSectionsAfterRelatedOpen, setRepeatableSectionsAfterRelatedOpen] =
-    useState(false);
-  const [relatedInformationOpen, setRelatedInformationOpen] = useState(false);
-  const [faqSectionOpen, setFaqSectionOpen] = useState(false);
-  const [sectionMediaModalOpen, setSectionMediaModalOpen] = useState(false);
-  const [coverImageModalOpen, setCoverImageModalOpen] = useState(false);
-  const [pageBannerModalOpen, setPageBannerModalOpen] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState(null);
-  const [activeSectionTarget, setActiveSectionTarget] = useState("primary");
-  const [openSections, setOpenSections] = useState({});
-  const [openSectionsAfterRelated, setOpenSectionsAfterRelated] = useState({});
-  const [openRelatedInfo, setOpenRelatedInfo] = useState({});
-  const [openFaqs, setOpenFaqs] = useState({});
   const [packageOptions, setPackageOptions] = useState([]);
-  const [packagesSelectId, setPackagesSelectId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [openModules, setOpenModules] = useState({});
+  const [openRepeatableItems, setOpenRepeatableItems] = useState({});
+  const [openRelatedItems, setOpenRelatedItems] = useState({});
+  const [openFaqItems, setOpenFaqItems] = useState({});
+  const [packagesSelectBySection, setPackagesSelectBySection] = useState({});
+
+  const [coverImageModalOpen, setCoverImageModalOpen] = useState(false);
+  const [sectionMediaModalOpen, setSectionMediaModalOpen] = useState(false);
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
+  const [mediaTarget, setMediaTarget] = useState(null);
+  const [galleryTargetSectionId, setGalleryTargetSectionId] = useState(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
@@ -501,36 +650,11 @@ const CmsAdminPage = () => {
     return String(raw);
   };
 
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-      .ql-editor img {
-        max-width: 45%;
-        height: auto;
-        display: inline-block;
-        margin: 10px;
-        vertical-align: top;
-      }
-      .ql-editor img.ql-align-center {
-        display: block;
-        margin: 10px auto;
-        max-width: 100%;
-      }
-      .ql-editor img.ql-align-right {
-        float: right;
-        margin: 0 0 10px 20px;
-      }
-      .ql-editor img.ql-align-left {
-        float: left;
-        margin: 0 20px 10px 0;
-      }
-      .ql-container {
-        overflow: visible !important;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
+  const inputClass =
+    "w-full p-2 border border-gray-300 rounded focus:ring-[var(--admin-primary-ring)] focus:border-[var(--admin-primary-border)]";
+  const selectClass =
+    "w-full p-2 border border-gray-300 rounded bg-white pr-10 shadow-sm focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-[var(--admin-primary-border)] appearance-none";
+  const labelClass = "block text-sm font-medium text-gray-700 mt-4";
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -543,9 +667,7 @@ const CmsAdminPage = () => {
         return String(a.name || "").localeCompare(String(b.name || ""));
       });
       setCategories(sorted);
-    } catch (error) {
-      console.error("Fetch Categories Error:", error);
-      toast.error("Failed to load categories.");
+    } catch {
       setCategories([]);
     }
   }, []);
@@ -554,20 +676,14 @@ const CmsAdminPage = () => {
     setListLoading(true);
     try {
       const token = getToken();
-      if (!token) {
-        setListLoading(false);
-        toast.error("Authentication token not found. Please log in again.");
-        return;
-      }
+      if (!token) return;
       const response = await axios.get(`${BASE_URL}/cms/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const list = response.data.data || [];
       setPages(list);
       setSortedPages(list);
-    } catch (error) {
-      console.error("Fetch Pages Error:", error);
-      toast.error("Failed to load CMS pages.");
+    } catch {
       setPages([]);
       setSortedPages([]);
     } finally {
@@ -581,9 +697,7 @@ const CmsAdminPage = () => {
       const members =
         response.data?.teams || response.data?.data || response.data || [];
       setTeamMembers(Array.isArray(members) ? members : []);
-    } catch (error) {
-      console.error("Fetch Team Members Error:", error);
-      toast.error("Failed to load team members.");
+    } catch {
       setTeamMembers([]);
     }
   }, []);
@@ -601,9 +715,7 @@ const CmsAdminPage = () => {
         }
       });
       setPackageOptions(Array.from(byKey.values()));
-    } catch (error) {
-      console.error("Fetch Packages Error:", error);
-      toast.error("Failed to load packages.");
+    } catch {
       setPackageOptions([]);
     }
   }, []);
@@ -614,6 +726,18 @@ const CmsAdminPage = () => {
     fetchTeamMembers();
     fetchPackages();
   }, [fetchCategories, fetchCmsPages, fetchTeamMembers, fetchPackages]);
+
+  const fetchPageSections = useCallback(async (pageId) => {
+    const token = getToken();
+    if (!token || !pageId) return [];
+
+    const response = await axios.get(`${BASE_URL}/cms/${pageId}/sections`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const list = response.data?.data || [];
+    return list.map(normalizeSection);
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -634,152 +758,22 @@ const CmsAdminPage = () => {
     });
   };
 
-  const handleQuillChange = (name, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const addFaq = () => {
-    const nextId = Date.now();
-    setFormData((prev) => ({
-      ...prev,
-      faq: [...prev.faq, { id: nextId, question: "", answer: "" }],
-    }));
-    setOpenFaqs((prev) => ({ ...prev, [nextId]: true }));
-  };
-
-  const removeFaq = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      faq: prev.faq.filter((_, i) => i !== index),
-    }));
-    setOpenFaqs((prev) => {
-      const next = { ...prev };
-      const targetId = formData.faq[index]?.id;
-      if (targetId != null) delete next[targetId];
-      return next;
-    });
-  };
-
-  const handleFaqChange = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      faq: prev.faq.map((faq, i) =>
-        i === index ? { ...faq, [field]: value } : faq
-      ),
-    }));
-  };
-
-  const toggleFaqOpen = (faqId) => {
-    setOpenFaqs((prev) => {
-      const current = prev[faqId];
-      const nextValue = current == null ? false : !current;
-      return { ...prev, [faqId]: nextValue };
-    });
-  };
-
-  const addRelatedInfo = () => {
-    const nextId = Date.now();
-    setFormData((prev) => ({
-      ...prev,
-      relatedInformation: [
-        ...prev.relatedInformation,
-        { id: nextId, title: "", description: "" },
-      ],
-    }));
-    setOpenRelatedInfo((prev) => ({ ...prev, [nextId]: true }));
-  };
-
-  const removeRelatedInfo = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      relatedInformation: prev.relatedInformation.filter((_, i) => i !== index),
-    }));
-    setOpenRelatedInfo((prev) => {
-      const next = { ...prev };
-      const targetId = formData.relatedInformation[index]?.id;
-      if (targetId != null) delete next[targetId];
-      return next;
-    });
-  };
-
-  const handleRelatedInfoChange = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      relatedInformation: prev.relatedInformation.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
-
-  const toggleRelatedInfoOpen = (infoId) => {
-    setOpenRelatedInfo((prev) => {
-      const current = prev[infoId];
-      const nextValue = current == null ? false : !current;
-      return { ...prev, [infoId]: nextValue };
-    });
-  };
-
   const handleCancelEdit = () => {
     setEditPageId(null);
+    setEditPageDbId(null);
     setFormData(initialFormData);
-    setShowMoreDetails(false);
-    setPackagesSectionOpen(false);
-    setRepeatableSectionsOpen(false);
-    setRepeatableSectionsAfterRelatedOpen(false);
-    setRelatedInformationOpen(false);
-    setFaqSectionOpen(false);
-    setActiveSectionTarget("primary");
-    setOpenSections({});
-    setOpenSectionsAfterRelated({});
-    setOpenRelatedInfo({});
-    setOpenFaqs({});
+    setSections([]);
+    setOpenModules({});
+    setOpenRepeatableItems({});
+    setOpenRelatedItems({});
+    setOpenFaqItems({});
   };
 
-  const stopEditorKeyPropagation = useCallback((event) => {
-    const target = event.target;
-    if (target?.closest?.(".ql-editor")) {
-      event.stopPropagation();
-    }
-  }, []);
-
-  const getCategoryName = (categoryId) => {
-    const target = categoryId != null ? String(categoryId) : "";
-    const category = categories.find(
-      (cat) => String(cat._id || cat.id) === target
-    );
-    return category ? category.name : "No Category";
-  };
-
-  const handleEdit = (pageData) => {
+  const handleEdit = async (pageData) => {
     setEditPageId(pageData.section);
-    const sections = Array.isArray(pageData.content?.repeatableSections)
-      ? pageData.content.repeatableSections.map((section) => ({
-          id: section.id || `${Date.now()}-${Math.random()}`,
-          title: section.title || "",
-          description: section.description || "",
-          image: section.image || "",
-          imageCaption: section.imageCaption || "",
-          background: section.background || "white",
-          imagePosition: section.imagePosition || "left",
-        }))
-      : [];
-    const sectionsAfterRelated = Array.isArray(
-      pageData.content?.repeatableSectionsAfterRelated
-    )
-      ? pageData.content.repeatableSectionsAfterRelated.map((section) => ({
-          id: section.id || `${Date.now()}-${Math.random()}`,
-          title: section.title || "",
-          description: section.description || "",
-          image: section.image || "",
-          imageCaption: section.imageCaption || "",
-          background: section.background || "white",
-          imagePosition: section.imagePosition || "left",
-        }))
-      : [];
-    const nextForm = {
+    setEditPageDbId(pageData.id || pageData._id || null);
+
+    setFormData({
       section: pageData.section || "",
       slug: pageData.slug || "",
       status: pageData.status || false,
@@ -788,81 +782,25 @@ const CmsAdminPage = () => {
       description: pageData.content?.description || "",
       coverImage: normalizeMedia(pageData.content?.coverImage),
       coverImagePosition: pageData.content?.coverImagePosition || "none",
-      category:
-        pageData.categoryId != null ? String(pageData.categoryId) : "",
-      teamSectionTitle: pageData.content?.teamSectionTitle || "",
-      founderTitle: pageData.content?.founderTitle || "",
-      founderDetails: pageData.content?.founderDetails || "",
-      founderCtaLabel: pageData.content?.founderCtaLabel || "",
-      founderCtaLink: pageData.content?.founderCtaLink || "",
-      selectedTeamMembers: pageData.content?.selectedTeamMembers || [],
-      packagesSectionTitle: pageData.content?.packagesSectionTitle || "",
-      packagesSectionSubtitle: pageData.content?.packagesSectionSubtitle || "",
-      packagesSectionDescription:
-        pageData.content?.packagesSectionDescription || "",
-      packagesSectionPackageIds: (pageData.content?.packagesSectionPackageIds ||
-        []).map(String),
-      repeatableSections: sections,
-      repeatableSectionsAfterRelated: sectionsAfterRelated,
-      pageBannerImage: normalizeMedia(pageData.content?.pageBannerImage),
+      category: pageData.categoryId != null ? String(pageData.categoryId) : "",
       meta_title: pageData.meta_title || "",
       meta_description: pageData.meta_description || "",
       meta_keywords: pageData.meta_keywords || "",
-      galleryImages: (pageData.content?.galleryImages || [])
-        .map((img) => normalizeMedia(img))
-        .filter(Boolean),
-      faq: (pageData.content?.faq || []).map((item, index) => ({
-        id: item.id || `${Date.now()}-${index}`,
-        question: item.question || "",
-        answer: item.answer || "",
-      })),
-      faqSectionTitle: pageData.content?.faqSectionTitle || "",
-      relatedInformation: (pageData.content?.relatedInformation || []).map(
-        (item, index) => ({
-          id: item.id || `${Date.now()}-${index}`,
-          title: item.title || "",
-          description: item.description || "",
-        })
-      ),
-      showBookingForm: pageData.content?.showBookingForm || false,
-    };
-    setFormData(nextForm);
-    setPackagesSectionOpen(
-      !!nextForm.packagesSectionTitle ||
-        !!nextForm.packagesSectionSubtitle ||
-        !!nextForm.packagesSectionDescription ||
-        (nextForm.packagesSectionPackageIds || []).length > 0
-    );
-    setRepeatableSectionsOpen((nextForm.repeatableSections || []).length > 0);
-    setRepeatableSectionsAfterRelatedOpen(
-      (nextForm.repeatableSectionsAfterRelated || []).length > 0
-    );
-    setRelatedInformationOpen((nextForm.relatedInformation || []).length > 0);
-    setFaqSectionOpen((nextForm.faq || []).length > 0);
-    setActiveSectionTarget("primary");
-    setOpenSections({});
-    setOpenSectionsAfterRelated({});
-    setOpenRelatedInfo({});
-    setOpenFaqs({});
-    const hasExtras =
-      !!nextForm.teamSectionTitle ||
-      !!nextForm.founderTitle ||
-      !!nextForm.founderDetails ||
-      !!nextForm.founderCtaLabel ||
-      !!nextForm.founderCtaLink ||
-      (nextForm.selectedTeamMembers || []).length > 0 ||
-      !!nextForm.packagesSectionTitle ||
-      !!nextForm.packagesSectionSubtitle ||
-      !!nextForm.packagesSectionDescription ||
-      (nextForm.packagesSectionPackageIds || []).length > 0 ||
-      (nextForm.repeatableSections || []).length > 0 ||
-      (nextForm.repeatableSectionsAfterRelated || []).length > 0 ||
-      !!nextForm.pageBannerImage ||
-      (nextForm.galleryImages || []).length > 0 ||
-      (nextForm.faq || []).length > 0 ||
-      (nextForm.relatedInformation || []).length > 0 ||
-      !!nextForm.showBookingForm;
-    setShowMoreDetails(hasExtras);
+    });
+
+    try {
+      const sectionRows = await fetchPageSections(pageData.id || pageData._id);
+      setSections(sectionRows);
+      setOpenModules(
+        sectionRows.reduce((acc, section) => {
+          acc[section.id] = false;
+          return acc;
+        }, {})
+      );
+    } catch {
+      setSections([]);
+    }
+
     const scrollContainer = document.getElementById("admin-scroll-area");
     if (scrollContainer) {
       scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
@@ -871,12 +809,161 @@ const CmsAdminPage = () => {
     }
   };
 
-  const handleGallerySelect = (media) => {
-    setFormData((prev) => {
-      const existingIds = new Set(prev.galleryImages.map((img) => img.mediaId));
-      if (existingIds.has(media.mediaId)) return prev;
-      return { ...prev, galleryImages: [...prev.galleryImages, media] };
+  const updateSectionDataLocal = (sectionId, updater) => {
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === sectionId
+          ? {
+              ...section,
+              data: typeof updater === "function" ? updater(section.data || {}) : updater,
+            }
+          : section
+      )
+    );
+  };
+
+  const saveSection = async (sectionId) => {
+    const token = getToken();
+    if (!token) {
+      toast.error("Authentication token not found.");
+      return;
+    }
+
+    const section = sections.find((item) => item.id === sectionId);
+    if (!section) return;
+
+    try {
+      await axios.put(
+        `${BASE_URL}/cms/sections/${sectionId}`,
+        { data: section.data || {} },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Section saved");
+    } catch {
+      toast.error("Failed to save section");
+    }
+  };
+
+  const addSection = async (type) => {
+    if (!editPageDbId) {
+      toast.error("Save the page first, then add modules.");
+      return;
+    }
+
+    const token = getToken();
+    if (!token) {
+      toast.error("Authentication token not found.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/cms/${editPageDbId}/sections`,
+        { type },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const created = normalizeSection(response.data?.data);
+      setSections((prev) => [...prev, created]);
+      setOpenModules((prev) => ({ ...prev, [created.id]: true }));
+      toast.success(`${MODULE_LABELS[type]} added`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to add module");
+    }
+  };
+
+  const toggleSectionEnabled = async (sectionId, isEnabled) => {
+    const token = getToken();
+    if (!token) return;
+
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === sectionId ? { ...section, is_enabled: isEnabled } : section
+      )
+    );
+
+    try {
+      await axios.patch(
+        `${BASE_URL}/cms/sections/${sectionId}/toggle`,
+        { is_enabled: isEnabled },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch {
+      toast.error("Failed to toggle section");
+    }
+  };
+
+  const duplicateSection = async (sectionId) => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/cms/sections/${sectionId}/duplicate`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const duplicated = normalizeSection(response.data?.data);
+      setSections((prev) => {
+        const sourceIndex = prev.findIndex((section) => section.id === sectionId);
+        if (sourceIndex === -1) return [...prev, duplicated];
+        const next = [...prev];
+        next.splice(sourceIndex + 1, 0, duplicated);
+        return next;
+      });
+      setOpenModules((prev) => ({ ...prev, [duplicated.id]: true }));
+      toast.success("Section duplicated");
+    } catch {
+      toast.error("Failed to duplicate section");
+    }
+  };
+
+  const deleteSection = async (sectionId) => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      await axios.delete(`${BASE_URL}/cms/sections/${sectionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSections((prev) => prev.filter((section) => section.id !== sectionId));
+      setOpenModules((prev) => {
+        const next = { ...prev };
+        delete next[sectionId];
+        return next;
+      });
+      toast.success("Section deleted");
+    } catch {
+      toast.error("Failed to delete section");
+    }
+  };
+
+  const handleSectionsDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    let nextSections = [];
+    setSections((prev) => {
+      const oldIndex = prev.findIndex((section) => section.id === active.id);
+      const newIndex = prev.findIndex((section) => section.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      nextSections = arrayMove(prev, oldIndex, newIndex);
+      return nextSections;
     });
+
+    if (!editPageDbId || !nextSections.length) return;
+
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      await axios.post(
+        `${BASE_URL}/cms/${editPageDbId}/sections/reorder`,
+        { orderedSectionIds: nextSections.map((section) => section.id) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch {
+      toast.error("Failed to reorder sections");
+    }
   };
 
   const handleCoverImageSelect = (media) => {
@@ -886,335 +973,63 @@ const CmsAdminPage = () => {
     }));
   };
 
-  const handlePageBannerSelect = (media) => {
-    setFormData((prev) => ({
-      ...prev,
-      pageBannerImage: media,
-    }));
-  };
+  const handleSectionMediaSelect = (media) => {
+    if (!mediaTarget?.sectionId) return;
 
-  const handleSectionImageSelect = (media) => {
-    if (!activeSectionId) return;
-    setFormData((prev) => ({
-      ...prev,
-      repeatableSections:
-        activeSectionTarget === "primary"
-          ? prev.repeatableSections.map((section) =>
-              section.id === activeSectionId
-                ? { ...section, image: media }
-                : section
-            )
-          : prev.repeatableSections,
-      repeatableSectionsAfterRelated:
-        activeSectionTarget === "secondary"
-          ? prev.repeatableSectionsAfterRelated.map((section) =>
-              section.id === activeSectionId
-                ? { ...section, image: media }
-                : section
-            )
-          : prev.repeatableSectionsAfterRelated,
-    }));
-  };
+    if (mediaTarget.kind === "pageBannerImage") {
+      updateSectionDataLocal(mediaTarget.sectionId, (data) => ({
+        ...data,
+        pageBannerImage: media,
+      }));
+      return;
+    }
 
-  const handleAddSection = () => {
-    const newSection = {
-      id: `${Date.now()}-${Math.random()}`,
-      title: "",
-      description: "",
-      image: "",
-      imageCaption: "",
-      background: "white",
-      imagePosition: "left",
-    };
-    setFormData((prev) => ({
-      ...prev,
-      repeatableSections: [...prev.repeatableSections, newSection],
-    }));
-    setOpenSections((prev) => ({ ...prev, [newSection.id]: true }));
-  };
-
-  const handleAddSectionAfterRelated = () => {
-    const newSection = {
-      id: `${Date.now()}-${Math.random()}`,
-      title: "",
-      description: "",
-      image: "",
-      imageCaption: "",
-      background: "white",
-      imagePosition: "left",
-    };
-    setFormData((prev) => ({
-      ...prev,
-      repeatableSectionsAfterRelated: [
-        ...prev.repeatableSectionsAfterRelated,
-        newSection,
-      ],
-    }));
-    setOpenSectionsAfterRelated((prev) => ({ ...prev, [newSection.id]: true }));
-  };
-
-  const handleRemoveSection = (sectionId) => {
-    setFormData((prev) => ({
-      ...prev,
-      repeatableSections: prev.repeatableSections.filter(
-        (section) => section.id !== sectionId
-      ),
-    }));
-    setOpenSections((prev) => {
-      const next = { ...prev };
-      delete next[sectionId];
-      return next;
-    });
-  };
-
-  const handleRemoveSectionAfterRelated = (sectionId) => {
-    setFormData((prev) => ({
-      ...prev,
-      repeatableSectionsAfterRelated: prev.repeatableSectionsAfterRelated.filter(
-        (section) => section.id !== sectionId
-      ),
-    }));
-    setOpenSectionsAfterRelated((prev) => {
-      const next = { ...prev };
-      delete next[sectionId];
-      return next;
-    });
-  };
-
-  const handleSectionChange = (sectionId, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      repeatableSections: prev.repeatableSections.map((section) =>
-        section.id === sectionId ? { ...section, [field]: value } : section
-      ),
-    }));
-  };
-
-  const handleSectionChangeAfterRelated = (sectionId, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      repeatableSectionsAfterRelated: prev.repeatableSectionsAfterRelated.map(
-        (section) =>
-          section.id === sectionId ? { ...section, [field]: value } : section
-      ),
-    }));
-  };
-
-  const toggleSectionOpen = (sectionId) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
-    }));
-  };
-
-  const toggleSectionOpenAfterRelated = (sectionId) => {
-    setOpenSectionsAfterRelated((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
-    }));
-  };
-
-  const handleRelatedInfoDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setFormData((prev) => {
-      const oldIndex = prev.relatedInformation.findIndex(
-        (item) => item.id === active.id
-      );
-      const newIndex = prev.relatedInformation.findIndex(
-        (item) => item.id === over.id
-      );
-      return {
-        ...prev,
-        relatedInformation: arrayMove(
-          prev.relatedInformation,
-          oldIndex,
-          newIndex
+    if (mediaTarget.kind === "repeatableItemImage") {
+      updateSectionDataLocal(mediaTarget.sectionId, (data) => ({
+        ...data,
+        items: (data.items || []).map((item) =>
+          item.id === mediaTarget.itemId ? { ...item, image: media } : item
         ),
-      };
-    });
+      }));
+    }
   };
 
-  const handleFaqDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setFormData((prev) => {
-      const oldIndex = prev.faq.findIndex((item) => item.id === active.id);
-      const newIndex = prev.faq.findIndex((item) => item.id === over.id);
-      return {
-        ...prev,
-        faq: arrayMove(prev.faq, oldIndex, newIndex),
-      };
-    });
-  };
+  const handleGalleryMediaSelect = (media) => {
+    if (!galleryTargetSectionId) return;
 
-  const handleSectionDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setFormData((prev) => {
-      const oldIndex = prev.repeatableSections.findIndex(
-        (section) => section.id === active.id
+    updateSectionDataLocal(galleryTargetSectionId, (data) => {
+      const current = Array.isArray(data.galleryImages) ? data.galleryImages : [];
+      const existingIds = new Set(
+        current.map((img) => String(img?.mediaId || img?.url || ""))
       );
-      const newIndex = prev.repeatableSections.findIndex(
-        (section) => section.id === over.id
-      );
+      const key = String(media?.mediaId || media?.url || "");
+      if (existingIds.has(key)) return data;
       return {
-        ...prev,
-        repeatableSections: arrayMove(
-          prev.repeatableSections,
-          oldIndex,
-          newIndex
-        ),
+        ...data,
+        galleryImages: [...current, media],
       };
     });
-  };
-
-  const handleSectionAfterRelatedDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setFormData((prev) => {
-      const oldIndex = prev.repeatableSectionsAfterRelated.findIndex(
-        (section) => section.id === active.id
-      );
-      const newIndex = prev.repeatableSectionsAfterRelated.findIndex(
-        (section) => section.id === over.id
-      );
-      return {
-        ...prev,
-        repeatableSectionsAfterRelated: arrayMove(
-          prev.repeatableSectionsAfterRelated,
-          oldIndex,
-          newIndex
-        ),
-      };
-    });
-  };
-
-  const handleAddTeamMember = (memberId) => {
-    if (!memberId) return;
-    setFormData((prev) => {
-      if (prev.selectedTeamMembers.includes(memberId)) return prev;
-      return {
-        ...prev,
-        selectedTeamMembers: [...prev.selectedTeamMembers, memberId],
-      };
-    });
-  };
-
-  const handleRemoveTeamMember = (memberId) => {
-    setFormData((prev) => ({
-      ...prev,
-      selectedTeamMembers: prev.selectedTeamMembers.filter(
-        (id) => id !== memberId
-      ),
-    }));
-  };
-
-  const handleAddPackage = () => {
-    if (!packagesSelectId) return;
-    setFormData((prev) => {
-      const normalizedId = String(packagesSelectId);
-      if ((prev.packagesSectionPackageIds || []).includes(normalizedId)) {
-        return prev;
-      }
-      return {
-        ...prev,
-        packagesSectionPackageIds: [
-          ...(prev.packagesSectionPackageIds || []),
-          normalizedId,
-        ],
-      };
-    });
-    setPackagesSelectId("");
-  };
-
-  const handleRemovePackage = (id) => {
-    setFormData((prev) => ({
-      ...prev,
-      packagesSectionPackageIds: (prev.packagesSectionPackageIds || []).filter(
-        (pkgId) => String(pkgId) !== String(id)
-      ),
-    }));
-  };
-
-  const handlePackagesDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setFormData((prev) => {
-      const items = prev.packagesSectionPackageIds || [];
-      const oldIndex = items.findIndex(
-        (pkgId) => String(pkgId) === String(active.id)
-      );
-      const newIndex = items.findIndex(
-        (pkgId) => String(pkgId) === String(over.id)
-      );
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      return {
-        ...prev,
-        packagesSectionPackageIds: arrayMove(items, oldIndex, newIndex),
-      };
-    });
-  };
-
-  const removeGalleryImage = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      galleryImages: prev.galleryImages.filter((_, i) => i !== index),
-    }));
-    toast.success("Image removed");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const cleanedFaq = formData.faq.map(({ id, ...faq }) => faq);
-    const cleanedRelatedInfo = formData.relatedInformation.map(
-      ({ id, ...item }) => item
-    );
-
-    const metaTitle = formData.meta_title?.toString().trim() || "";
-    const metaDescription = formData.meta_description?.toString().trim() || "";
-    const metaKeywords = formData.meta_keywords?.toString().trim() || "";
-
-    const packagesSectionPackageIds = (
-      formData.packagesSectionPackageIds || []
-    ).map(String);
-
     const payload = {
       section: formData.section,
       slug: formData.slug?.trim() || undefined,
-      content: {
-        subtitle: formData.subtitle?.trim() || "",
-        title: formData.title?.trim() || "",
-        description: formData.description,
-        coverImage: formData.coverImage,
-        coverImagePosition: formData.coverImagePosition || "none",
-        teamSectionTitle: formData.teamSectionTitle?.trim() || "",
-        founderTitle: formData.founderTitle?.trim() || "",
-        founderDetails: formData.founderDetails,
-        founderCtaLabel: formData.founderCtaLabel?.trim() || "",
-        founderCtaLink: formData.founderCtaLink?.trim() || "",
-        selectedTeamMembers: formData.selectedTeamMembers || [],
-        packagesSectionTitle: formData.packagesSectionTitle?.trim() || "",
-        packagesSectionSubtitle: formData.packagesSectionSubtitle?.trim() || "",
-        packagesSectionDescription: formData.packagesSectionDescription || "",
-        packagesSectionPackageIds,
-        repeatableSections: formData.repeatableSections || [],
-        repeatableSectionsAfterRelated:
-          formData.repeatableSectionsAfterRelated || [],
-        pageBannerImage: formData.pageBannerImage,
-        galleryImages: formData.galleryImages,
-        faqSectionTitle: formData.faqSectionTitle?.trim() || "",
-        faq: cleanedFaq,
-        relatedInformation: cleanedRelatedInfo,
-        showBookingForm: formData.showBookingForm,
-      },
       status: formData.status,
       categoryId: formData.category?.trim() || "",
-      meta_title: metaTitle || undefined,
-      meta_description: metaDescription || undefined,
-      meta_keywords: metaKeywords || undefined,
+      meta_title: formData.meta_title?.trim() || undefined,
+      meta_description: formData.meta_description?.trim() || undefined,
+      meta_keywords: formData.meta_keywords?.trim() || undefined,
+      content: {
+        title: formData.title?.trim() || "",
+        subtitle: formData.subtitle?.trim() || "",
+        description: formData.description || "",
+        coverImage: formData.coverImage,
+        coverImagePosition: formData.coverImagePosition || "none",
+      },
     };
 
     Object.keys(payload).forEach((key) => {
@@ -1224,50 +1039,43 @@ const CmsAdminPage = () => {
     try {
       const token = getToken();
       if (!token) {
-        toast.error("Authentication token not found. Please log in again.");
+        toast.error("Authentication token not found.");
         return;
       }
+
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      let successMessage;
 
       if (editPageId) {
         const encodedSection = encodeURIComponent(editPageId);
         await axios.put(`${BASE_URL}/cms/${encodedSection}`, payload, config);
-        successMessage = "CMS Page updated successfully!";
+
+        if (sections.length > 0) {
+          await Promise.all(
+            sections.map((section) =>
+              axios.put(
+                `${BASE_URL}/cms/sections/${section.id}`,
+                { data: section.data || {} },
+                config
+              )
+            )
+          );
+        }
+
+        toast.success("CMS page updated successfully");
       } else {
-        const data = await axios.post(`${BASE_URL}/cms/`, payload, config);
+        const response = await axios.post(`${BASE_URL}/cms/`, payload, config);
+        const created = response.data?.data;
 
-        console.log(data.data);
-        successMessage = "CMS Page created successfully!";
+        if (created) {
+          setEditPageId(created.section);
+          setEditPageDbId(created.id || created._id || null);
+          toast.success("Page created. You can now add modules.");
+        }
       }
 
-      toast.success(successMessage);
-      if (!editPageId) {
-        handleCancelEdit();
-      }
       fetchCmsPages();
     } catch (error) {
-      console.error("API Error:", error);
-
-      let errorMessage = `Failed to ${
-        editPageId ? "update" : "create"
-      } CMS page`;
-
-      if (!error.response) {
-        // Network error
-        errorMessage =
-          "Network error: Cannot connect to the server. Please ensure the backend server is running on " +
-          BASE_URL;
-      } else if (error.response?.status === 403) {
-        errorMessage =
-          "Authorization failed. Your admin role may not be properly configured. Contact an administrator.";
-      } else if (error.response?.status === 500) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message || "Failed to save page");
     } finally {
       setLoading(false);
     }
@@ -1277,121 +1085,40 @@ const CmsAdminPage = () => {
     const pageToDelete = pages.find((p) => p.section === section);
     const title = pageToDelete?.content?.title || "This Page";
 
-    const confirmed = await new Promise((resolve) => {
-      toast(
-        (t) => (
-          <div className="flex items-center justify-center">
-            <p className="text-sm font-semibold mb-2">
-              Are you sure you want to delete{" "}
-              <span className="text-red-600 font-bold">"{title}"</span>?
-            </p>
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  resolve(false);
-                }}
-                className="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  resolve(true);
-                }}
-                className="px-3 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ),
-        { duration: Infinity }
-      );
-    });
+    const confirmed = window.confirm(`Delete page \"${title}\"?`);
+    if (!confirmed) return;
 
-    if (!confirmed) {
-      return;
-    }
-
-    const deleteToastId = toast.loading(`Deleting ${title}...`);
     try {
       const token = getToken();
       if (!token) {
-        toast.error("Authentication token not found. Please log in again.");
+        toast.error("Authentication token not found.");
         return;
       }
+
       const encodedSection = encodeURIComponent(section);
 
       await axios.delete(`${BASE_URL}/cms/${encodedSection}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      toast.success(`${title} deleted successfully!`, { id: deleteToastId });
+      toast.success(`${title} deleted successfully`);
       fetchCmsPages();
+
+      if (editPageId === section) handleCancelEdit();
     } catch (error) {
-      console.error("Delete Error:", error);
-      toast.error(
-        error.response?.data?.message || `Failed to delete ${title}`,
-        {
-          id: deleteToastId,
-        }
-      );
+      toast.error(error.response?.data?.message || `Failed to delete ${title}`);
     }
-  };
-
-  const SortableSelectedItem = ({ id, title, onRemove }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } =
-      useSortable({ id });
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    };
-
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-700 bg-white shadow-sm"
-      >
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="text-gray-400 hover:text-gray-600"
-            {...attributes}
-            {...listeners}
-            aria-label="Drag handle"
-          >
-            <GripVertical className="w-4 h-4" />
-          </button>
-          <span className="line-clamp-1">{title}</span>
-        </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-xs font-semibold text-red-500 hover:text-red-600"
-        >
-          Remove
-        </button>
-      </div>
-    );
   };
 
   const filteredPages = useMemo(() => {
     if (!searchQuery.trim()) return sortedPages;
-
     const query = searchQuery.toLowerCase();
+
     return sortedPages.filter((page) => {
       const title = page.content?.title?.toLowerCase() || "";
       const subtitle = page.content?.subtitle?.toLowerCase() || "";
       const section = page.section?.toLowerCase() || "";
-
-      return (
-        title.includes(query) ||
-        subtitle.includes(query) ||
-        section.includes(query)
-      );
+      return title.includes(query) || subtitle.includes(query) || section.includes(query);
     });
   }, [sortedPages, searchQuery]);
 
@@ -1407,14 +1134,13 @@ const CmsAdminPage = () => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     let nextOrder = [];
+
     setSortedPages((items) => {
       const oldIndex = items.findIndex(
-        (page) =>
-          String(page._id || page.id || page.section) === String(active.id)
+        (page) => String(page._id || page.id || page.section) === String(active.id)
       );
       const newIndex = items.findIndex(
-        (page) =>
-          String(page._id || page.id || page.section) === String(over.id)
+        (page) => String(page._id || page.id || page.section) === String(over.id)
       );
       if (oldIndex === -1 || newIndex === -1) return items;
       nextOrder = arrayMove(items, oldIndex, newIndex);
@@ -1422,12 +1148,11 @@ const CmsAdminPage = () => {
     });
 
     if (!nextOrder.length) return;
+
     try {
       const token = getToken();
-      if (!token) {
-        toast.error("Authentication required. Please login again.");
-        return;
-      }
+      if (!token) return;
+
       await axios.post(
         `${BASE_URL}/cms/reorder`,
         {
@@ -1440,10 +1165,737 @@ const CmsAdminPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-    } catch (error) {
-      console.error("Failed to save page order:", error);
+    } catch {
       toast.error("Failed to save page order");
     }
+  };
+
+  const getCategoryName = (categoryId) => {
+    const target = categoryId != null ? String(categoryId) : "";
+    const category = categories.find(
+      (cat) => String(cat._id || cat.id) === target
+    );
+    return category ? category.name : "No Category";
+  };
+
+  const renderSectionEditor = (section) => {
+    const data = section.data || {};
+
+    if (section.type === "pageBanner") {
+      return (
+        <div>
+          <label className={labelClass}>Page Banner Image</label>
+          <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
+            {data.pageBannerImage ? (
+              <img
+                src={
+                  data.pageBannerImage.variants?.thumbnail ||
+                  data.pageBannerImage.url ||
+                  data.pageBannerImage
+                }
+                alt="Banner"
+                className="w-full h-40 object-contain rounded"
+              />
+            ) : (
+              <p className="text-sm text-gray-500">No banner image selected</p>
+            )}
+            <div className={`mt-3 grid gap-2 ${data.pageBannerImage ? "grid-cols-2" : "grid-cols-1"}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMediaTarget({ sectionId: section.id, kind: "pageBannerImage" });
+                  setSectionMediaModalOpen(true);
+                }}
+                className="w-full border border-gray-200 rounded-md py-2 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Select Image
+              </button>
+              {data.pageBannerImage && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateSectionDataLocal(section.id, (prev) => ({
+                      ...prev,
+                      pageBannerImage: null,
+                    }))
+                  }
+                  className="w-full border border-gray-200 rounded-md py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  Remove Image
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (section.type === "team") {
+      const selected = data.selectedTeamMembers || [];
+      return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Section Title</label>
+              <input
+                type="text"
+                value={data.teamSectionTitle || ""}
+                onChange={(e) =>
+                  updateSectionDataLocal(section.id, (prev) => ({
+                    ...prev,
+                    teamSectionTitle: e.target.value,
+                  }))
+                }
+                className={inputClass}
+                placeholder="Our Team"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Founder Title</label>
+              <input
+                type="text"
+                value={data.founderTitle || ""}
+                onChange={(e) =>
+                  updateSectionDataLocal(section.id, (prev) => ({
+                    ...prev,
+                    founderTitle: e.target.value,
+                  }))
+                }
+                className={inputClass}
+                placeholder="Short Biography of ..."
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Founder Detail</label>
+            <RichEditor
+              value={data.founderDetails || ""}
+              onChange={(value) =>
+                updateSectionDataLocal(section.id, (prev) => ({
+                  ...prev,
+                  founderDetails: value,
+                }))
+              }
+              height="h-64"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Button Label</label>
+              <input
+                type="text"
+                value={data.founderCtaLabel || ""}
+                onChange={(e) =>
+                  updateSectionDataLocal(section.id, (prev) => ({
+                    ...prev,
+                    founderCtaLabel: e.target.value,
+                  }))
+                }
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Button Link</label>
+              <input
+                type="text"
+                value={data.founderCtaLink || ""}
+                onChange={(e) =>
+                  updateSectionDataLocal(section.id, (prev) => ({
+                    ...prev,
+                    founderCtaLink: e.target.value,
+                  }))
+                }
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <label className={labelClass}>Available Team</label>
+              <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
+                {teamMembers
+                  .filter((member) => !selected.includes(member.id || member.name))
+                  .map((member) => (
+                    <button
+                      key={member.id || member.name}
+                      type="button"
+                      onClick={() =>
+                        updateSectionDataLocal(section.id, (prev) => ({
+                          ...prev,
+                          selectedTeamMembers: [
+                            ...(prev.selectedTeamMembers || []),
+                            member.id || member.name,
+                          ],
+                        }))
+                      }
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-gray-100 text-left"
+                    >
+                      <span className="text-sm text-gray-700">{member.name}</span>
+                      <Plus className="w-4 h-4 text-gray-500" />
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Selected Team</label>
+              <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
+                {selected.map((memberId) => {
+                  const member = teamMembers.find(
+                    (item) => (item.id || item.name) === memberId
+                  );
+                  return (
+                    <div
+                      key={memberId}
+                      className="flex items-center justify-between px-3 py-2 rounded-md border border-gray-100 bg-gray-50"
+                    >
+                      <span className="text-sm text-gray-700">{member?.name || memberId}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            selectedTeamMembers: (prev.selectedTeamMembers || []).filter(
+                              (id) => id !== memberId
+                            ),
+                          }))
+                        }
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (section.type === "packages") {
+      const selectedIds = data.packagesSectionPackageIds || [];
+      const selectedOption = packagesSelectBySection[section.id] || "";
+
+      const handlePackagesDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = selectedIds.findIndex((id) => String(id) === String(active.id));
+        const newIndex = selectedIds.findIndex((id) => String(id) === String(over.id));
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        updateSectionDataLocal(section.id, (prev) => ({
+          ...prev,
+          packagesSectionPackageIds: arrayMove(selectedIds, oldIndex, newIndex),
+        }));
+      };
+
+      return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Title</label>
+              <input
+                type="text"
+                value={data.packagesSectionTitle || ""}
+                onChange={(e) =>
+                  updateSectionDataLocal(section.id, (prev) => ({
+                    ...prev,
+                    packagesSectionTitle: e.target.value,
+                  }))
+                }
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Subtitle</label>
+              <input
+                type="text"
+                value={data.packagesSectionSubtitle || ""}
+                onChange={(e) =>
+                  updateSectionDataLocal(section.id, (prev) => ({
+                    ...prev,
+                    packagesSectionSubtitle: e.target.value,
+                  }))
+                }
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <label className={labelClass}>Short Description</label>
+            <RichEditor
+              value={data.packagesSectionDescription || ""}
+              onChange={(value) =>
+                updateSectionDataLocal(section.id, (prev) => ({
+                  ...prev,
+                  packagesSectionDescription: value,
+                }))
+              }
+              height="h-56"
+            />
+          </div>
+
+          <div className="mt-14">
+            <label className={labelClass}>Select Packages</label>
+            <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-gray-200 bg-white p-3">
+                <label className="text-xs font-semibold text-gray-500">Available Packages</label>
+                <div className="mt-2 flex gap-2">
+                  <select
+                    value={selectedOption}
+                    onChange={(e) =>
+                      setPackagesSelectBySection((prev) => ({
+                        ...prev,
+                        [section.id]: e.target.value,
+                      }))
+                    }
+                    className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm"
+                  >
+                    <option value="">Select a package</option>
+                    {packageOptions.map((pkg, idx) => {
+                      const id = pkg.__key || getPackageKey(pkg, idx);
+                      const label = pkg.title || "Untitled Package";
+                      return (
+                        <option key={`${id}-${idx}`} value={id}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedOption) return;
+                      if (selectedIds.includes(String(selectedOption))) return;
+                      updateSectionDataLocal(section.id, (prev) => ({
+                        ...prev,
+                        packagesSectionPackageIds: [
+                          ...(prev.packagesSectionPackageIds || []),
+                          String(selectedOption),
+                        ],
+                      }));
+                      setPackagesSelectBySection((prev) => ({
+                        ...prev,
+                        [section.id]: "",
+                      }));
+                    }}
+                    className="h-12 px-4 rounded-xl bg-[var(--admin-primary)] text-white text-sm"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-3">
+                <label className="text-xs font-semibold text-gray-500">Selected Packages</label>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handlePackagesDragEnd}
+                >
+                  <SortableContext
+                    items={selectedIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="mt-2 max-h-60 overflow-y-auto space-y-2">
+                      {selectedIds.map((id, idx) => {
+                        const pkg = packageOptions.find(
+                          (item) => String(item.__key) === String(id)
+                        );
+                        return (
+                          <SortableSelectedItem
+                            key={`${id}-${idx}`}
+                            id={String(id)}
+                            title={pkg?.title || "Selected Package"}
+                            onRemove={() =>
+                              updateSectionDataLocal(section.id, (prev) => ({
+                                ...prev,
+                                packagesSectionPackageIds: (
+                                  prev.packagesSectionPackageIds || []
+                                ).filter((pkgId) => String(pkgId) !== String(id)),
+                              }))
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (section.type === "repeatableTextImage") {
+      const items = Array.isArray(data.items) ? data.items : [];
+
+      const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        updateSectionDataLocal(section.id, (prev) => ({
+          ...prev,
+          items: arrayMove(items, oldIndex, newIndex),
+        }));
+      };
+
+      return (
+        <div>
+          {items.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-4">
+                  {items.map((item, index) => {
+                    const key = `${section.id}-${item.id}`;
+                    return (
+                      <SortableSectionCard
+                        key={item.id}
+                        section={item}
+                        index={index}
+                        isOpen={!!openRepeatableItems[key]}
+                        onToggle={() =>
+                          setOpenRepeatableItems((prev) => ({ ...prev, [key]: !prev[key] }))
+                        }
+                        onRemove={() =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            items: (prev.items || []).filter((s) => s.id !== item.id),
+                          }))
+                        }
+                        onChange={(field, value) =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            items: (prev.items || []).map((entry) =>
+                              entry.id === item.id ? { ...entry, [field]: value } : entry
+                            ),
+                          }))
+                        }
+                        onSelectImage={() => {
+                          setMediaTarget({
+                            sectionId: section.id,
+                            kind: "repeatableItemImage",
+                            itemId: item.id,
+                          });
+                          setSectionMediaModalOpen(true);
+                        }}
+                        onRemoveImage={() =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            items: (prev.items || []).map((entry) =>
+                              entry.id === item.id ? { ...entry, image: "" } : entry
+                            ),
+                          }))
+                        }
+                        labelClass={labelClass}
+                        inputClass={inputClass}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="text-sm text-gray-500">No sections added yet.</p>
+          )}
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                const newItem = {
+                  id: `${Date.now()}-${Math.random()}`,
+                  title: "",
+                  description: "",
+                  image: "",
+                  imageCaption: "",
+                  background: "white",
+                  imagePosition: "left-25",
+                };
+
+                updateSectionDataLocal(section.id, (prev) => ({
+                  ...prev,
+                  items: [...(prev.items || []), newItem],
+                }));
+
+                const key = `${section.id}-${newItem.id}`;
+                setOpenRepeatableItems((prev) => ({ ...prev, [key]: true }));
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--admin-primary)] text-white text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Item
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (section.type === "gallery") {
+      const images = Array.isArray(data.galleryImages) ? data.galleryImages : [];
+      return (
+        <div>
+          <label className={labelClass}>Photo Gallery Images</label>
+          <button
+            type="button"
+            onClick={() => {
+              setGalleryTargetSectionId(section.id);
+              setGalleryModalOpen(true);
+            }}
+            className="mt-2 flex items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-lg"
+          >
+            <div className="text-center">
+              <ImagePlus className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600">Select gallery images</p>
+            </div>
+          </button>
+
+          {images.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {images.map((image, index) => (
+                <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                  <img
+                    src={image.variants?.thumbnail || image.url || image}
+                    alt={`Gallery ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateSectionDataLocal(section.id, (prev) => ({
+                        ...prev,
+                        galleryImages: (prev.galleryImages || []).filter((_, i) => i !== index),
+                      }))
+                    }
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (section.type === "relatedInformation") {
+      const items = Array.isArray(data.items) ? data.items : [];
+
+      const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        updateSectionDataLocal(section.id, (prev) => ({
+          ...prev,
+          items: arrayMove(items, oldIndex, newIndex),
+        }));
+      };
+
+      return (
+        <div>
+          {items.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {items.map((item, index) => {
+                    const key = `${section.id}-${item.id}`;
+                    return (
+                      <SortableRelatedInfoCard
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        isOpen={!!openRelatedItems[key]}
+                        onToggle={() =>
+                          setOpenRelatedItems((prev) => ({ ...prev, [key]: !prev[key] }))
+                        }
+                        onRemove={() =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            items: (prev.items || []).filter((entry) => entry.id !== item.id),
+                          }))
+                        }
+                        onChange={(field, value) =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            items: (prev.items || []).map((entry) =>
+                              entry.id === item.id ? { ...entry, [field]: value } : entry
+                            ),
+                          }))
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="text-sm text-gray-500">No related information added yet.</p>
+          )}
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                const newItem = { id: `${Date.now()}-${Math.random()}`, title: "", description: "" };
+                updateSectionDataLocal(section.id, (prev) => ({
+                  ...prev,
+                  items: [...(prev.items || []), newItem],
+                }));
+                const key = `${section.id}-${newItem.id}`;
+                setOpenRelatedItems((prev) => ({ ...prev, [key]: true }));
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg"
+            >
+              <Plus size={18} />
+              Add Information
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (section.type === "faq") {
+      const items = Array.isArray(data.items) ? data.items : [];
+
+      const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        updateSectionDataLocal(section.id, (prev) => ({
+          ...prev,
+          items: arrayMove(items, oldIndex, newIndex),
+        }));
+      };
+
+      return (
+        <div>
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Section Title</label>
+            <input
+              type="text"
+              value={data.faqSectionTitle || ""}
+              onChange={(e) =>
+                updateSectionDataLocal(section.id, (prev) => ({
+                  ...prev,
+                  faqSectionTitle: e.target.value,
+                }))
+              }
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
+            />
+          </div>
+
+          {items.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {items.map((faq, index) => {
+                    const key = `${section.id}-${faq.id}`;
+                    return (
+                      <SortableFaqCard
+                        key={faq.id}
+                        item={faq}
+                        index={index}
+                        isOpen={!!openFaqItems[key]}
+                        onToggle={() => setOpenFaqItems((prev) => ({ ...prev, [key]: !prev[key] }))}
+                        onRemove={() =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            items: (prev.items || []).filter((entry) => entry.id !== faq.id),
+                          }))
+                        }
+                        onChange={(field, value) =>
+                          updateSectionDataLocal(section.id, (prev) => ({
+                            ...prev,
+                            items: (prev.items || []).map((entry) =>
+                              entry.id === faq.id ? { ...entry, [field]: value } : entry
+                            ),
+                          }))
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="text-sm text-gray-500">No FAQs added yet.</p>
+          )}
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                const newItem = {
+                  id: `${Date.now()}-${Math.random()}`,
+                  question: "",
+                  answer: "",
+                };
+                updateSectionDataLocal(section.id, (prev) => ({
+                  ...prev,
+                  items: [...(prev.items || []), newItem],
+                }));
+                const key = `${section.id}-${newItem.id}`;
+                setOpenFaqItems((prev) => ({ ...prev, [key]: true }));
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg"
+            >
+              <Plus size={18} />
+              Add FAQ
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (section.type === "bookingForm") {
+      return (
+        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Show Booking Form</h3>
+              <p className="text-xs text-gray-500">Display booking form on this page</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!data.showBookingForm}
+                onChange={(e) =>
+                  updateSectionDataLocal(section.id, (prev) => ({
+                    ...prev,
+                    showBookingForm: e.target.checked,
+                  }))
+                }
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600" />
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    return <p className="text-sm text-gray-500">Unknown section type</p>;
   };
 
   const SortablePageRow = ({ page }) => {
@@ -1456,32 +1908,18 @@ const CmsAdminPage = () => {
     };
 
     return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="py-4 flex justify-between items-center"
-      >
+      <div ref={setNodeRef} style={style} className="py-4 flex justify-between items-center">
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <span
-            className="mt-1 text-gray-400 cursor-grab select-none"
-            {...attributes}
-            {...listeners}
-            aria-label="Drag handle"
-          >
+          <span className="mt-1 text-gray-400 cursor-grab select-none" {...attributes} {...listeners}>
             ⋮⋮
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-base md:text-lg font-semibold truncate">
-              {page.content?.title || "N/A"}
-            </p>
+            <p className="text-base md:text-lg font-semibold truncate">{page.content?.title || "N/A"}</p>
             {page.content?.subtitle && (
-              <p className="text-sm md:text-base text-gray-600 truncate">
-                {page.content.subtitle}
-              </p>
+              <p className="text-sm md:text-base text-gray-600 truncate">{page.content.subtitle}</p>
             )}
             <p className="text-xs md:text-sm text-gray-500 truncate">
-              {page.section} | Status: Status:{" "}
-              {page.status ? "Published" : "Draft"}
+              {page.section} | Status: {page.status ? "Published" : "Draft"}
             </p>
             {page.categoryId && (
               <p className="text-xs text-[var(--admin-primary)] mt-1">
@@ -1497,10 +1935,7 @@ const CmsAdminPage = () => {
           >
             Edit
           </button>
-          <button
-            onClick={() => handleDelete(page.section)}
-            className="text-red-600 hover:text-red-900 font-medium"
-          >
+          <button onClick={() => handleDelete(page.section)} className="text-red-600 hover:text-red-900 font-medium">
             Delete
           </button>
         </div>
@@ -1508,34 +1943,19 @@ const CmsAdminPage = () => {
     );
   };
 
-  const inputClass =
-    "w-full p-2 border border-gray-300 rounded focus:ring-[var(--admin-primary-ring)] focus:border-[var(--admin-primary-border)]";
-  const selectClass =
-    "w-full p-2 border border-gray-300 rounded bg-white pr-10 shadow-sm focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-[var(--admin-primary-border)] appearance-none";
-  const labelClass = "block text-sm font-medium text-gray-700 mt-4";
-
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-50">
       <Toaster position="top-center" />
 
       <div className="bg-white shadow-xl rounded-lg p-6 mb-10">
         <h1 className="text-3xl font-bold mb-6 border-b pb-2">
-          {editPageId
-            ? `Edit Page: ${formData.title || editPageId}`
-            : "Create New Page Content"}
+          {editPageId ? `Edit Page: ${formData.title || editPageId}` : "Create New Page Content"}
         </h1>
 
-        <form
-          onSubmit={handleSubmit}
-          onKeyDownCapture={stopEditorKeyPropagation}
-          onKeyUpCapture={stopEditorKeyPropagation}
-          onKeyPressCapture={stopEditorKeyPropagation}
-        >
+        <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
-              <label htmlFor="section" className={labelClass}>
-                Section Name
-              </label>
+              <label htmlFor="section" className={labelClass}>Section Name</label>
               <input
                 type="text"
                 id="section"
@@ -1543,14 +1963,11 @@ const CmsAdminPage = () => {
                 value={formData.section}
                 onChange={handleInputChange}
                 className={inputClass}
-                placeholder="Adventure Sports"
                 required
               />
             </div>
             <div>
-              <label htmlFor="slug" className={labelClass}>
-                Slug
-              </label>
+              <label htmlFor="slug" className={labelClass}>Slug</label>
               <input
                 type="text"
                 id="slug"
@@ -1558,7 +1975,6 @@ const CmsAdminPage = () => {
                 value={formData.slug}
                 onChange={handleInputChange}
                 className={inputClass}
-                placeholder="adventure-sports"
               />
             </div>
             <div className="flex items-end pb-2">
@@ -1568,21 +1984,16 @@ const CmsAdminPage = () => {
                 name="status"
                 checked={formData.status}
                 onChange={handleInputChange}
-                className="h-4 w-4 text-[var(--admin-primary)] border-gray-300 rounded mr-2"
+                className="h-4 w-4 mr-2"
               />
-              <label
-                htmlFor="status"
-                className="text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="status" className="text-sm font-medium text-gray-700">
                 Publish Page
               </label>
             </div>
           </div>
 
           <div>
-            <label htmlFor="category" className={labelClass}>
-              Category
-            </label>
+            <label htmlFor="category" className={labelClass}>Category</label>
             <div className="relative">
               <select
                 id="category"
@@ -1593,32 +2004,16 @@ const CmsAdminPage = () => {
               >
                 <option value="">Select a category</option>
                 {categories.map((cat) => (
-                <option
-                  key={cat._id || cat.id}
-                  value={String(cat._id || cat.id)}
-                >
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M6 8l4 4 4-4" />
-                </svg>
-              </span>
+                  <option key={cat._id || cat.id} value={String(cat._id || cat.id)}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div>
-            <label htmlFor="title" className={labelClass}>
-              Content Title
-            </label>
+            <label htmlFor="title" className={labelClass}>Content Title</label>
             <input
               type="text"
               id="title"
@@ -1626,15 +2021,12 @@ const CmsAdminPage = () => {
               value={formData.title}
               onChange={handleInputChange}
               className={inputClass}
-              placeholder="Easy to Hard Adventure Sports"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="subtitle" className={labelClass}>
-              Content Subtitle
-            </label>
+            <label htmlFor="subtitle" className={labelClass}>Content Subtitle</label>
             <input
               type="text"
               id="subtitle"
@@ -1642,7 +2034,6 @@ const CmsAdminPage = () => {
               value={formData.subtitle ?? ""}
               onChange={handleInputChange}
               className={inputClass}
-              placeholder="Enter subtitle here"
             />
           </div>
 
@@ -1662,25 +2053,19 @@ const CmsAdminPage = () => {
               ) : (
                 <p className="text-sm text-gray-500">No cover image selected</p>
               )}
-              <div
-                className={`mt-3 grid gap-2 ${
-                  formData.coverImage ? "grid-cols-2" : "grid-cols-1"
-                }`}
-              >
+              <div className={`mt-3 grid gap-2 ${formData.coverImage ? "grid-cols-2" : "grid-cols-1"}`}>
                 <button
                   type="button"
                   onClick={() => setCoverImageModalOpen(true)}
-                  className="w-full border border-gray-200 rounded-md py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  className="w-full border border-gray-200 rounded-md py-2 text-sm text-gray-600"
                 >
                   Select Image
                 </button>
                 {formData.coverImage && (
                   <button
                     type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({ ...prev, coverImage: null }))
-                    }
-                    className="w-full border border-gray-200 rounded-md py-2 text-sm text-red-600 hover:bg-red-50"
+                    onClick={() => setFormData((prev) => ({ ...prev, coverImage: null }))}
+                    className="w-full border border-gray-200 rounded-md py-2 text-sm text-red-600"
                   >
                     Remove Image
                   </button>
@@ -1709,18 +2094,16 @@ const CmsAdminPage = () => {
           </div>
 
           <div>
-            <label className={labelClass}>Description </label>
+            <label className={labelClass}>Description</label>
             <RichEditor
               value={formData.description}
-              onChange={(value) => handleQuillChange("description", value)}
+              onChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
               height="h-80"
             />
           </div>
 
           <div className="mt-[60px]">
-            <label htmlFor="meta_title" className={labelClass}>
-              Meta Title
-            </label>
+            <label htmlFor="meta_title" className={labelClass}>Meta Title</label>
             <input
               type="text"
               id="meta_title"
@@ -1728,28 +2111,22 @@ const CmsAdminPage = () => {
               value={formData.meta_title}
               onChange={handleInputChange}
               className={inputClass}
-              placeholder="SEO title for this page"
             />
           </div>
 
           <div>
-            <label htmlFor="meta_description" className={labelClass}>
-              Meta Description
-            </label>
+            <label htmlFor="meta_description" className={labelClass}>Meta Description</label>
             <textarea
               id="meta_description"
               name="meta_description"
               value={formData.meta_description}
               onChange={handleInputChange}
               className={`${inputClass} min-h-[96px]`}
-              placeholder="Short SEO description (150–160 chars)"
             />
           </div>
 
           <div>
-            <label htmlFor="meta_keywords" className={labelClass}>
-              Meta Keywords
-            </label>
+            <label htmlFor="meta_keywords" className={labelClass}>Meta Keywords</label>
             <input
               type="text"
               id="meta_keywords"
@@ -1757,899 +2134,88 @@ const CmsAdminPage = () => {
               value={formData.meta_keywords}
               onChange={handleInputChange}
               className={inputClass}
-              placeholder="comma,separated,keywords"
             />
           </div>
 
-          <div className="mt-8 mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-gray-800">
-                Optional Blocks
-              </h3>
-              <p className="text-sm text-gray-500">
-                Optional blocks: team, packages, gallery, FAQ, booking
-              </p>
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-4 rounded-xl border border-gray-200 p-4 bg-gray-50 h-fit">
+              <h3 className="text-base font-semibold text-gray-800">Module Palette</h3>
+              <p className="text-sm text-gray-500 mt-1">Add reusable blocks to the page.</p>
+              <div className="mt-4 space-y-2">
+                {MODULE_TYPES.map((module) => (
+                  <button
+                    key={module.type}
+                    type="button"
+                    onClick={() => addSection(module.type)}
+                    className="w-full text-left p-3 border border-gray-200 rounded-lg bg-white hover:border-[var(--admin-primary-border)]"
+                  >
+                    <p className="text-sm font-semibold text-gray-800">{module.label}</p>
+                    <p className="text-xs text-gray-500">{module.hint}</p>
+                  </button>
+                ))}
+              </div>
+              {!editPageDbId && (
+                <p className="mt-3 text-xs text-amber-600">Save the page first to add modules.</p>
+              )}
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showMoreDetails}
-                onChange={(e) => setShowMoreDetails(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-            </label>
-          </div>
 
-          {showMoreDetails && (
-            <>
-              <div className="rounded-xl border border-gray-200 p-5 bg-white mb-8">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-800">
-                      Page Banner Image
-                    </h4>
-                    <p className="text-sm text-gray-500">
-                      Optional top banner for this page.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPageBannerModalOpen(true)}
-                    className="text-sm font-semibold text-[var(--admin-primary)] hover:underline"
-                  >
-                    Select Image
-                  </button>
-                </div>
-                <div className="mt-4 border border-dashed border-gray-300 rounded-lg p-4 text-center">
-                  {formData.pageBannerImage ? (
-                    <img
-                      src={
-                        formData.pageBannerImage.variants?.thumbnail ||
-                        formData.pageBannerImage.url ||
-                        formData.pageBannerImage
-                      }
-                      alt="Banner"
-                      className="w-full h-40 object-contain rounded"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No banner image selected
-                    </p>
-                  )}
-                  {formData.pageBannerImage && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          pageBannerImage: null,
-                        }))
-                      }
-                      className="mt-3 w-full border border-gray-200 rounded-md py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      Remove Image
-                    </button>
-                  )}
-                </div>
+            <div className="lg:col-span-8 rounded-xl border border-gray-200 p-4 bg-white">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-gray-800">Sections ({sections.length})</h3>
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-5 bg-white">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-gray-800">
-                    Our Team Block
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setTeamSectionOpen((prev) => !prev)}
-                    aria-label={
-                      teamSectionOpen
-                        ? "Collapse our team block"
-                        : "Expand our team block"
-                    }
-                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
+              {sections.length === 0 ? (
+                <p className="text-sm text-gray-500">No modules added yet.</p>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleSectionsDragEnd}
+                >
+                  <SortableContext
+                    items={sections.map((section) => section.id)}
+                    strategy={verticalListSortingStrategy}
                   >
-                    {teamSectionOpen ? (
-                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
-                    ) : (
-                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
-                    )}
-                  </button>
-                </div>
-
-                {!teamSectionOpen && (
-                  <p className="mt-3 text-sm text-gray-500">
-                    Click the arrow to update the Our Team block.
-                  </p>
-                )}
-                {teamSectionOpen && (
-                  <div className="mt-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>Section Title</label>
-                        <input
-                          type="text"
-                          name="teamSectionTitle"
-                          value={formData.teamSectionTitle}
-                          onChange={handleInputChange}
-                          className={inputClass}
-                          placeholder="Our Team"
-                        />
-                      </div>
-
-                      <div>
-                        <label className={labelClass}>Founder Title</label>
-                        <input
-                          type="text"
-                          name="founderTitle"
-                          value={formData.founderTitle}
-                          onChange={handleInputChange}
-                          className={inputClass}
-                          placeholder="Short Biography of ..."
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className={labelClass}>Founder Detail</label>
-                      <RichEditor
-                        value={formData.founderDetails}
-                        onChange={(value) =>
-                          handleQuillChange("founderDetails", value)
-                        }
-                        height="h-64"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>Button Label</label>
-                        <input
-                          type="text"
-                          name="founderCtaLabel"
-                          value={formData.founderCtaLabel}
-                          onChange={handleInputChange}
-                          className={inputClass}
-                          placeholder="Meet the Owner"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Button Link</label>
-                        <input
-                          type="text"
-                          name="founderCtaLink"
-                          value={formData.founderCtaLink}
-                          onChange={handleInputChange}
-                          className={inputClass}
-                          placeholder="/meet-the-owner"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div>
-                        <label className={labelClass}>Available Team</label>
-                        <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
-                          {teamMembers
-                            .filter(
-                              (member) =>
-                                !formData.selectedTeamMembers.includes(
-                                  member.id || member.name
-                                )
-                            )
-                            .map((member) => (
-                              <button
-                                key={member.id || member.name}
-                                type="button"
-                                onClick={() =>
-                                  handleAddTeamMember(member.id || member.name)
-                                }
-                                className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-gray-100 hover:border-[var(--admin-primary-border)] hover:bg-[var(--admin-primary-soft)] text-left"
-                              >
-                                <span className="text-sm text-gray-700">
-                                  {member.name}
-                                </span>
-                                <Plus className="w-4 h-4 text-gray-500" />
-                              </button>
-                            ))}
-                          {teamMembers.length === 0 && (
-                            <p className="text-sm text-gray-500">
-                              No team members available.
-                            </p>
-                          )}
-                          {teamMembers.length > 0 &&
-                            teamMembers.filter(
-                              (member) =>
-                                !formData.selectedTeamMembers.includes(
-                                  member.id || member.name
-                                )
-                            ).length === 0 && (
-                              <p className="text-sm text-gray-500">
-                                All team members are selected.
-                              </p>
-                            )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className={labelClass}>Selected Team</label>
-                        <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
-                          {formData.selectedTeamMembers.map((memberId) => {
-                            const member = teamMembers.find(
-                              (item) => (item.id || item.name) === memberId
-                            );
-                            return (
-                              <div
-                                key={memberId}
-                                className="flex items-center justify-between px-3 py-2 rounded-md border border-gray-100 bg-gray-50"
-                              >
-                                <span className="text-sm text-gray-700">
-                                  {member?.name || memberId}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveTeamMember(memberId)}
-                                  className="text-gray-400 hover:text-red-500"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                            );
-                          })}
-                          {formData.selectedTeamMembers.length === 0 && (
-                            <p className="text-sm text-gray-500">
-                              No team members selected.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-gray-200 p-5 bg-white mt-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-gray-800">
-                    Packages Block
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setPackagesSectionOpen((prev) => !prev)}
-                    aria-label={
-                      packagesSectionOpen
-                        ? "Collapse packages block"
-                        : "Expand packages block"
-                    }
-                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
-                  >
-                    {packagesSectionOpen ? (
-                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
-                    ) : (
-                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
-                    )}
-                  </button>
-                </div>
-
-                {!packagesSectionOpen && (
-                  <p className="mt-3 text-sm text-gray-500">
-                    Click the arrow to update the Packages block.
-                  </p>
-                )}
-                {packagesSectionOpen && (
-                  <div className="mt-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>Title</label>
-                        <input
-                          type="text"
-                          name="packagesSectionTitle"
-                          value={formData.packagesSectionTitle}
-                          onChange={handleInputChange}
-                          className={inputClass}
-                          placeholder="Featured Packages"
-                        />
-                      </div>
-
-                      <div>
-                        <label className={labelClass}>Subtitle</label>
-                        <input
-                          type="text"
-                          name="packagesSectionSubtitle"
-                          value={formData.packagesSectionSubtitle}
-                          onChange={handleInputChange}
-                          className={inputClass}
-                          placeholder="Handpicked tours for you"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mb-8">
-                      <label className={labelClass}>Short Description</label>
-                      <RichEditor
-                        value={formData.packagesSectionDescription}
-                        onChange={(value) =>
-                          handleQuillChange(
-                            "packagesSectionDescription",
-                            value
-                          )
-                        }
-                        height="h-56"
-                      />
-                    </div>
-
-                    <div className="mt-14">
-                      <label className={labelClass}>Select Packages</label>
-                      <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="rounded-xl border border-gray-200 bg-white p-3">
-                          <label className="text-xs font-semibold text-gray-500">
-                            Available Packages
-                          </label>
-                          <div className="mt-2 flex gap-2">
-                            <select
-                              value={packagesSelectId}
-                              onChange={(e) =>
-                                setPackagesSelectId(e.target.value)
-                              }
-                              className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-[var(--admin-primary-border)]"
-                            >
-                              <option value="">Select a package</option>
-                              {packageOptions.map((pkg, idx) => {
-                                const id = pkg.__key || getPackageKey(pkg, idx);
-                                const label = pkg.title || "Untitled Package";
-                                const optionKey = id || `${label}-${idx}`;
-                                return (
-                                  <option key={optionKey} value={id}>
-                                    {label}
-                                  </option>
-                                );
-                              })}
-                            </select>
-                            <button
-                              type="button"
-                              onClick={handleAddPackage}
-                              className="h-12 px-4 rounded-xl bg-[var(--admin-primary)] text-white text-sm font-semibold hover:bg-[var(--admin-primary-strong)] transition"
-                            >
-                              Add
-                            </button>
-                          </div>
-                          {packageOptions.length === 0 && (
-                            <p className="mt-2 text-sm text-gray-500">
-                              No packages found.
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="rounded-xl border border-gray-200 bg-white p-3">
-                          <label className="text-xs font-semibold text-gray-500">
-                            Selected Packages
-                          </label>
-                          <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handlePackagesDragEnd}
-                          >
-                            <SortableContext
-                              items={formData.packagesSectionPackageIds}
-                              strategy={verticalListSortingStrategy}
-                            >
-                              <div className="mt-2 max-h-60 overflow-y-auto space-y-2">
-                                {formData.packagesSectionPackageIds.map(
-                                  (id, idx) => {
-                                    const pkg = packageOptions.find(
-                                      (item) =>
-                                        String(item.__key) === String(id)
-                                    );
-                                    return (
-                                      <SortableSelectedItem
-                                        key={`${id}-${idx}`}
-                                        id={String(id)}
-                                        title={
-                                          pkg?.title || "Selected Package"
-                                        }
-                                        onRemove={() => handleRemovePackage(id)}
-                                      />
-                                    );
-                                  }
-                                )}
-                                {formData.packagesSectionPackageIds.length ===
-                                  0 && (
-                                  <p className="text-sm text-gray-500">
-                                    No packages selected.
-                                  </p>
-                                )}
-                              </div>
-                            </SortableContext>
-                          </DndContext>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-gray-200 p-5 bg-white mt-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-gray-800">
-                    Repetable Text/Image Block
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setRepeatableSectionsOpen((prev) => !prev)}
-                    aria-label={
-                      repeatableSectionsOpen
-                        ? "Collapse repeatable section block"
-                        : "Expand repeatable section block"
-                    }
-                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
-                  >
-                    {repeatableSectionsOpen ? (
-                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
-                    ) : (
-                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
-                    )}
-                  </button>
-                </div>
-
-                {!repeatableSectionsOpen && (
-                  <p className="mt-3 text-sm text-gray-500">
-                    Click the arrow to update the Repetable Text/Image block.
-                  </p>
-                )}
-                {repeatableSectionsOpen && (
-                  <div className="mt-4">
-                    {formData.repeatableSections.length === 0 ? (
-                      <p className="text-sm text-gray-500">
-                        No sections added yet.
-                      </p>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleSectionDragEnd}
-                      >
-                        <SortableContext
-                          items={formData.repeatableSections.map(
-                            (section) => section.id
-                          )}
-                          strategy={verticalListSortingStrategy}
+                    <div className="space-y-4">
+                      {sections.map((section) => (
+                        <SortableModuleCard
+                          key={section.id}
+                          section={section}
+                          isOpen={!!openModules[section.id]}
+                          onToggle={() =>
+                            setOpenModules((prev) => ({ ...prev, [section.id]: !prev[section.id] }))
+                          }
+                          onToggleEnabled={(enabled) => toggleSectionEnabled(section.id, enabled)}
+                          onDuplicate={() => duplicateSection(section.id)}
+                          onDelete={() => deleteSection(section.id)}
+                          onSave={() => saveSection(section.id)}
                         >
-                          <div className="space-y-4">
-                            {formData.repeatableSections.map((section, index) => (
-                              <SortableSectionCard
-                                key={section.id}
-                                section={section}
-                                index={index}
-                                isOpen={!!openSections[section.id]}
-                                onToggle={() => toggleSectionOpen(section.id)}
-                                onRemove={() => handleRemoveSection(section.id)}
-                                onChange={(field, value) =>
-                                  handleSectionChange(section.id, field, value)
-                                }
-                                onSelectImage={() => {
-                                  setActiveSectionTarget("primary");
-                                  setActiveSectionId(section.id);
-                                  setSectionMediaModalOpen(true);
-                                }}
-                                onRemoveImage={() =>
-                                  handleSectionChange(section.id, "image", "")
-                                }
-                                labelClass={labelClass}
-                                inputClass={inputClass}
-                              />
-                            ))}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={handleAddSection}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--admin-primary)] text-white text-sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Section
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-8">
-                <label className={labelClass}>
-                  Photo Gallery Images
-                  <span className="text-sm font-normal text-gray-500 ml-2">
-                    (Upload multiple images for the photo gallery)
-                  </span>
-                </label>
-                <div className="mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setGalleryModalOpen(true)}
-                    className="flex items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-[var(--admin-primary-border)] hover:bg-[var(--admin-primary-soft)] transition-colors"
-                  >
-                    <div className="text-center">
-                      <ImagePlus className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">
-                        Select gallery images
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Choose from Media Library
-                      </p>
-                    </div>
-                  </button>
-                </div>
-
-                {formData.galleryImages.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-3">
-                      Uploaded Images ({formData.galleryImages.length})
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {formData.galleryImages.map((image, index) => (
-                        <div
-                          key={index}
-                          className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-[var(--admin-primary-border)] transition-colors"
-                        >
-                          <img
-                            src={image.variants?.thumbnail || image.url}
-                            alt={`Gallery ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeGalleryImage(index)}
-                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                          {renderSectionEditor(section)}
+                        </SortableModuleCard>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          </div>
 
-              {/* Related Information Section */}
-              <div className="mt-8 mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Related Information
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setRelatedInformationOpen((prev) => !prev)}
-                    aria-label={
-                      relatedInformationOpen
-                        ? "Collapse related information section"
-                        : "Expand related information section"
-                    }
-                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
-                  >
-                    {relatedInformationOpen ? (
-                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
-                    ) : (
-                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
-                    )}
-                  </button>
-                </div>
-
-                {!relatedInformationOpen && (
-                  <p className="text-sm text-gray-500">
-                    Click the arrow to update related information.
-                  </p>
-                )}
-                {relatedInformationOpen &&
-                  (formData.relatedInformation.length > 0 ? (
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleRelatedInfoDragEnd}
-                    >
-                      <SortableContext
-                        items={formData.relatedInformation.map((item) => item.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="space-y-3">
-                          {formData.relatedInformation.map((item, index) => {
-                            const infoId = item.id ?? index;
-                            const isOpen =
-                              openRelatedInfo[infoId] === undefined
-                                ? false
-                                : openRelatedInfo[infoId];
-                            return (
-                              <SortableRelatedInfoCard
-                                key={infoId}
-                                item={item}
-                                index={index}
-                                isOpen={isOpen}
-                                onToggle={() => toggleRelatedInfoOpen(infoId)}
-                                onRemove={() => removeRelatedInfo(index)}
-                                onChange={(field, value) =>
-                                  handleRelatedInfoChange(index, field, value)
-                                }
-                              />
-                            );
-                          })}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  ) : (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                      No related information added yet. Click "Add Information" to
-                      create one.
-                    </p>
-                  ))}
-                {relatedInformationOpen && (
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={addRelatedInfo}
-                      className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                    >
-                      <Plus size={18} />
-                      Add Information
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-gray-200 p-5 bg-white mt-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-gray-800">
-                    Repetable Text/Image Block
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRepeatableSectionsAfterRelatedOpen((prev) => !prev)
-                    }
-                    aria-label={
-                      repeatableSectionsAfterRelatedOpen
-                        ? "Collapse repeatable section block"
-                        : "Expand repeatable section block"
-                    }
-                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
-                  >
-                    {repeatableSectionsAfterRelatedOpen ? (
-                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
-                    ) : (
-                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
-                    )}
-                  </button>
-                </div>
-
-                {!repeatableSectionsAfterRelatedOpen && (
-                  <p className="mt-3 text-sm text-gray-500">
-                    Click the arrow to update the Repetable Text/Image block.
-                  </p>
-                )}
-                {repeatableSectionsAfterRelatedOpen && (
-                  <div className="mt-4">
-                    {formData.repeatableSectionsAfterRelated.length === 0 ? (
-                      <p className="text-sm text-gray-500">
-                        No sections added yet.
-                      </p>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleSectionAfterRelatedDragEnd}
-                      >
-                        <SortableContext
-                          items={formData.repeatableSectionsAfterRelated.map(
-                            (section) => section.id
-                          )}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <div className="space-y-4">
-                            {formData.repeatableSectionsAfterRelated.map(
-                              (section, index) => (
-                              <SortableSectionCard
-                                key={section.id}
-                                section={section}
-                                index={index}
-                                isOpen={!!openSectionsAfterRelated[section.id]}
-                                onToggle={() =>
-                                  toggleSectionOpenAfterRelated(section.id)
-                                }
-                                onRemove={() =>
-                                  handleRemoveSectionAfterRelated(section.id)
-                                }
-                                onChange={(field, value) =>
-                                  handleSectionChangeAfterRelated(
-                                    section.id,
-                                    field,
-                                    value
-                                  )
-                                }
-                                onSelectImage={() => {
-                                  setActiveSectionTarget("secondary");
-                                  setActiveSectionId(section.id);
-                                  setSectionMediaModalOpen(true);
-                                }}
-                                onRemoveImage={() =>
-                                  handleSectionChangeAfterRelated(
-                                    section.id,
-                                    "image",
-                                    ""
-                                  )
-                                }
-                                labelClass={labelClass}
-                                inputClass={inputClass}
-                              />
-                            )
-                            )}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={handleAddSectionAfterRelated}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--admin-primary)] text-white text-sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Section
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* FAQ Section */}
-              <div className="mt-8 mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Frequently Asked Questions
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setFaqSectionOpen((prev) => !prev)}
-                    aria-label={
-                      faqSectionOpen
-                        ? "Collapse frequently asked questions section"
-                        : "Expand frequently asked questions section"
-                    }
-                    className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
-                  >
-                    {faqSectionOpen ? (
-                      <ChevronUp className="w-6 h-6 stroke-[2.75]" />
-                    ) : (
-                      <ChevronDown className="w-6 h-6 stroke-[2.75]" />
-                    )}
-                  </button>
-                </div>
-
-                {!faqSectionOpen && (
-                  <p className="text-sm text-gray-500">
-                    Click the arrow to update frequently asked questions.
-                  </p>
-                )}
-                {faqSectionOpen && (
-                  <>
-                    <div className="mb-4">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Section Title
-                      </label>
-                      <input
-                        type="text"
-                        name="faqSectionTitle"
-                        value={formData.faqSectionTitle}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        placeholder="Frequently Asked Questions"
-                      />
-                    </div>
-
-                    {formData.faq.length > 0 ? (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleFaqDragEnd}
-                      >
-                        <SortableContext
-                          items={formData.faq.map((item) => item.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <div className="space-y-3">
-                            {formData.faq.map((faq, index) => {
-                              const faqId = faq.id ?? index;
-                              const isOpen =
-                                openFaqs[faqId] === undefined
-                                  ? false
-                                  : openFaqs[faqId];
-                              return (
-                                <SortableFaqCard
-                                  key={faqId}
-                                  item={faq}
-                                  index={index}
-                                  isOpen={isOpen}
-                                  onToggle={() => toggleFaqOpen(faqId)}
-                                  onRemove={() => removeFaq(index)}
-                                  onChange={(field, value) =>
-                                    handleFaqChange(index, field, value)
-                                  }
-                                />
-                              );
-                            })}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    ) : (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        No FAQs added yet. Click "Add FAQ" to create one.
-                      </p>
-                    )}
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={addFaq}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                      >
-                        <Plus size={18} />
-                        Add FAQ
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Show Booking Form Toggle */}
-              <div className="mt-8 mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Show Booking Form
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Display the booking form on this page
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="showBookingForm"
-                      checked={formData.showBookingForm}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          showBookingForm: e.target.checked,
-                        })
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                  </label>
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="flex space-x-4">
+          <div className="flex space-x-4 mt-8">
             <button
               type="submit"
               disabled={loading}
-              className={`flex-1 py-3 px-4 rounded-md text-white font-semibold transition duration-200 ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[var(--admin-primary)] hover:bg-[var(--admin-primary-strong)]"
+              className={`flex-1 py-3 px-4 rounded-md text-white font-semibold ${
+                loading ? "bg-gray-400" : "bg-[var(--admin-primary)]"
               }`}
             >
-              {loading
-                ? "Saving..."
-                : editPageId
-                ? "Update CMS Page"
-                : "Save New CMS Page"}
+              {loading ? "Saving..." : editPageId ? "Update CMS Page" : "Save New CMS Page"}
             </button>
 
             {editPageId && (
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="py-3 px-4 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 font-semibold transition duration-200"
+                className="py-3 px-4 rounded-md text-gray-700 bg-gray-200"
               >
                 Cancel Edit
               </button>
@@ -2659,9 +2225,7 @@ const CmsAdminPage = () => {
       </div>
 
       <div className="mt-10 bg-white shadow-xl rounded-lg p-6">
-        <h2 className="text-2xl font-bold mb-4 border-b pb-2">
-          Existing CMS Pages ({pages.length})
-        </h2>
+        <h2 className="text-2xl font-bold mb-4 border-b pb-2">Existing CMS Pages ({pages.length})</h2>
 
         <div className="mb-6">
           <input
@@ -2669,47 +2233,29 @@ const CmsAdminPage = () => {
             placeholder="Search by title, subtitle, or section..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-ring)]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {searchQuery && (
-            <p className="mt-2 text-sm text-gray-600">
-              Found {filteredPages.length} page
-              {filteredPages.length !== 1 ? "s" : ""}
-            </p>
-          )}
         </div>
 
         {listLoading ? (
           <div className="p-4 text-center">Loading pages...</div>
         ) : pages.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            No CMS pages found. Start creating one!
-          </div>
+          <div className="p-4 text-center text-gray-500">No CMS pages found.</div>
         ) : filteredPages.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            No pages match your search.
-          </div>
+          <div className="p-4 text-center text-gray-500">No pages match your search.</div>
         ) : (
           <>
             {isSearchActive ? (
               <div className="divide-y divide-gray-200">
                 {filteredPages.slice(0, visibleCount).map((page) => (
-                  <div
-                    key={page._id || page.id || page.section}
-                    className="py-4 flex justify-between items-center"
-                  >
+                  <div key={page._id || page.id || page.section} className="py-4 flex justify-between items-center">
                     <div className="flex-1 min-w-0">
-                      <p className="text-base md:text-lg font-semibold truncate">
-                        {page.content?.title || "N/A"}
-                      </p>
+                      <p className="text-base md:text-lg font-semibold truncate">{page.content?.title || "N/A"}</p>
                       {page.content?.subtitle && (
-                        <p className="text-sm md:text-base text-gray-600 truncate">
-                          {page.content.subtitle}
-                        </p>
+                        <p className="text-sm md:text-base text-gray-600 truncate">{page.content.subtitle}</p>
                       )}
                       <p className="text-xs md:text-sm text-gray-500 truncate">
-                        {page.section} | Status: Status:{" "}
-                        {page.status ? "Published" : "Draft"}
+                        {page.section} | Status: {page.status ? "Published" : "Draft"}
                       </p>
                       {page.categoryId && (
                         <p className="text-xs text-[var(--admin-primary)] mt-1">
@@ -2720,14 +2266,11 @@ const CmsAdminPage = () => {
                     <div className="space-x-4">
                       <button
                         onClick={() => handleEdit(page)}
-                        className="text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)] font-medium"
+                        className="text-[var(--admin-primary)] font-medium"
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleDelete(page.section)}
-                        className="text-red-600 hover:text-red-900 font-medium"
-                      >
+                      <button onClick={() => handleDelete(page.section)} className="text-red-600 font-medium">
                         Delete
                       </button>
                     </div>
@@ -2741,28 +2284,24 @@ const CmsAdminPage = () => {
                 onDragEnd={handlePagesDragEnd}
               >
                 <SortableContext
-                  items={filteredPages.map((page) =>
-                    String(page._id || page.id || page.section)
-                  )}
+                  items={filteredPages.map((page) => String(page._id || page.id || page.section))}
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="divide-y divide-gray-200">
                     {filteredPages.slice(0, visibleCount).map((page) => (
-                      <SortablePageRow
-                        key={page._id || page.id || page.section}
-                        page={page}
-                      />
+                      <SortablePageRow key={page._id || page.id || page.section} page={page} />
                     ))}
                   </div>
                 </SortableContext>
               </DndContext>
             )}
+
             {filteredPages.length > visibleCount && (
               <div className="mt-6 flex justify-center">
                 <button
                   type="button"
                   onClick={() => setVisibleCount((prev) => prev + 10)}
-                  className="px-5 py-2.5 bg-[var(--admin-primary)] hover:bg-[var(--admin-primary-strong)] text-white font-semibold rounded-lg transition"
+                  className="px-5 py-2.5 bg-[var(--admin-primary)] text-white font-semibold rounded-lg"
                 >
                   Load More
                 </button>
@@ -2771,12 +2310,7 @@ const CmsAdminPage = () => {
           </>
         )}
       </div>
-      <MediaPickerModal
-        open={galleryModalOpen}
-        onOpenChange={setGalleryModalOpen}
-        onSelect={handleGallerySelect}
-        title="Add Gallery Image"
-      />
+
       <MediaPickerModal
         open={coverImageModalOpen}
         onOpenChange={setCoverImageModalOpen}
@@ -2784,16 +2318,16 @@ const CmsAdminPage = () => {
         title="Select Cover Image"
       />
       <MediaPickerModal
-        open={pageBannerModalOpen}
-        onOpenChange={setPageBannerModalOpen}
-        onSelect={handlePageBannerSelect}
-        title="Select Page Banner Image"
-      />
-      <MediaPickerModal
         open={sectionMediaModalOpen}
         onOpenChange={setSectionMediaModalOpen}
-        onSelect={handleSectionImageSelect}
+        onSelect={handleSectionMediaSelect}
         title="Select Section Image"
+      />
+      <MediaPickerModal
+        open={galleryModalOpen}
+        onOpenChange={setGalleryModalOpen}
+        onSelect={handleGalleryMediaSelect}
+        title="Add Gallery Image"
       />
     </div>
   );
@@ -2801,7 +2335,7 @@ const CmsAdminPage = () => {
 
 const CmsAdminPageWithAuth = () => (
   <ProtectedRoute>
-    <RoleProtectedRoute allowedRoles={["admin", "editor", "superadmin"]}>
+    <RoleProtectedRoute allowedRoles={["admin", "superadmin"]}>
       <CmsAdminPage />
     </RoleProtectedRoute>
   </ProtectedRoute>

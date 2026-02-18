@@ -15,6 +15,62 @@ cmsrouter.post(
   cmsController.reorderCMSSections
 );
 
+cmsrouter.get(
+  "/:pageId/sections",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.getCMSPageSections
+);
+
+cmsrouter.post(
+  "/:pageId/sections/migrate-legacy",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.migrateLegacyCMSPageSections
+);
+
+cmsrouter.post(
+  "/:pageId/sections",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.addCMSPageSection
+);
+
+cmsrouter.post(
+  "/:pageId/sections/reorder",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.reorderCMSPageSections
+);
+
+cmsrouter.put(
+  "/sections/:sectionId",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.updateCMSPageSection
+);
+
+cmsrouter.patch(
+  "/sections/:sectionId/toggle",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.toggleCMSPageSection
+);
+
+cmsrouter.post(
+  "/sections/:sectionId/duplicate",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.duplicateCMSPageSection
+);
+
+cmsrouter.delete(
+  "/sections/:sectionId",
+  isAuthenticated,
+  isAuthorized(["admin", "superadmin"]),
+  cmsController.deleteCMSPageSection
+);
+
 // Generic CRUD operations
 cmsrouter.get("/", cmsController.getAllCMSSections);
 

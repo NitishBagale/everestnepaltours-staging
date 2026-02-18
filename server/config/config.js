@@ -5,17 +5,22 @@ const baseConfig = {
   dialect: "postgres",
 };
 
-const sslConfig =
-  process.env.SSL === "true"
-    ? {
-        dialectOptions: {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false,
-          },
-        },
-      }
-    : {};
+const makeSslConfig = ({ production = false } = {}) => {
+  const envSsl = (process.env.SSL || "").toLowerCase();
+  const forceSslInProd = production && envSsl !== "false";
+  const enabled = envSsl === "true" || forceSslInProd;
+
+  if (!enabled) return {};
+
+  return {
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
+  };
+};
 
 module.exports = {
   development: {
@@ -29,7 +34,7 @@ module.exports = {
           host: process.env.DB_HOST,
           port: process.env.DB_PORT,
         }),
-    ...sslConfig,
+    ...makeSslConfig({ production: false }),
   },
   production: {
     ...baseConfig,
@@ -42,6 +47,6 @@ module.exports = {
           host: process.env.DB_HOST,
           port: process.env.DB_PORT,
         }),
-    ...sslConfig,
+    ...makeSslConfig({ production: true }),
   },
 };
