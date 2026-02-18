@@ -872,19 +872,28 @@ const CmsAdminPage = () => {
   };
 
   const toggleSectionEnabled = async (sectionId, isEnabled) => {
+    if (!isEnabled) {
+      const confirmed = window.confirm(
+        "Disabling will delete this section. Continue?"
+      );
+      if (!confirmed) return;
+      await deleteSection(sectionId);
+      return;
+    }
+
     const token = getToken();
     if (!token) return;
 
     setSections((prev) =>
       prev.map((section) =>
-        section.id === sectionId ? { ...section, is_enabled: isEnabled } : section
+        section.id === sectionId ? { ...section, is_enabled: true } : section
       )
     );
 
     try {
       await axios.patch(
         `${BASE_URL}/cms/sections/${sectionId}/toggle`,
-        { is_enabled: isEnabled },
+        { is_enabled: true },
         { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch {

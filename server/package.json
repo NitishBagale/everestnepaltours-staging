@@ -8,7 +8,9 @@
     "db:migrate": "sequelize db:migrate",
     "db:sync": "node ./scripts/dbSync.js",
     "db:migrate:cms-sections": "node ./scripts/migrateCmsPageSections.js",
-    "db:live:cms-sections": "SSL=true PGSSLMODE=require npm run db:migrate -- --env production && SSL=true PGSSLMODE=require npm run db:migrate:cms-sections"
+    "db:live:cms-sections": "SSL=true PGSSLMODE=require npm run db:migrate -- --env production && SSL=true PGSSLMODE=require npm run db:migrate:cms-sections",
+    "db:cms-sections:cleanup-disabled": "node ./scripts/cleanupDisabledCmsSections.js",
+    "db:live:cms-sections:cleanup-disabled": "SSL=true PGSSLMODE=require node ./scripts/cleanupDisabledCmsSections.js --apply"
   },
   "dependencies": {
     "axios": "^1.13.2",

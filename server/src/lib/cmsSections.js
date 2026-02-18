@@ -285,14 +285,16 @@ const buildLegacySectionsFromContent = (content = {}) => {
     },
   ];
 
-  return sectionEntries.map((entry) => {
-    const normalizedData = normalizeSectionData(entry.type, entry.data);
-    return {
-      type: entry.type,
-      data: normalizedData,
-      is_enabled: hasMeaningfulSectionData(entry.type, normalizedData),
-    };
-  });
+  return sectionEntries
+    .map((entry) => {
+      const normalizedData = normalizeSectionData(entry.type, entry.data);
+      return {
+        type: entry.type,
+        data: normalizedData,
+        is_enabled: hasMeaningfulSectionData(entry.type, normalizedData),
+      };
+    })
+    .filter((entry) => entry.is_enabled);
 };
 
 module.exports = {
