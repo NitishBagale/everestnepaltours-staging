@@ -181,6 +181,63 @@ const normalizeSection = (section) => ({
   is_enabled: section?.is_enabled !== false,
 });
 
+const stripHtmlText = (html = "") =>
+  String(html)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .trim();
+
+const buildLocalFallbackSections = (pageData) => {
+  const content = pageData?.content || {};
+  const list = [];
+  let sortOrder = 1;
+
+  const bannerMedia = content.pageBannerImage || content.coverImage || null;
+  if (bannerMedia) {
+    list.push(
+      normalizeSection({
+        id: `fallback:${pageData?.id || pageData?._id || pageData?.section}:pageBanner`,
+        page_id: pageData?.id || pageData?._id || null,
+        type: "pageBanner",
+        sort_order: sortOrder,
+        is_enabled: true,
+        data: { pageBannerImage: bannerMedia },
+        __fallbackOnly: true,
+      })
+    );
+    sortOrder += 1;
+  }
+
+  const description = typeof content.description === "string" ? content.description : "";
+  if (stripHtmlText(description)) {
+    list.push(
+      normalizeSection({
+        id: `fallback:${pageData?.id || pageData?._id || pageData?.section}:repeatableTextImage:1`,
+        page_id: pageData?.id || pageData?._id || null,
+        type: "repeatableTextImage",
+        sort_order: sortOrder,
+        is_enabled: true,
+        data: {
+          items: [
+            {
+              id: `fallback-item:${pageData?.id || pageData?._id || pageData?.section}:1`,
+              title: content.title || pageData?.section || "",
+              description,
+              image: bannerMedia || "",
+              imageCaption: "",
+              background: "white",
+              imagePosition: bannerMedia ? "right-50" : "left-50",
+            },
+          ],
+        },
+        __fallbackOnly: true,
+      })
+    );
+  }
+
+  return list;
+};
+
 const itemChevronToggleClass =
   "h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center justify-center transition-colors";
 
@@ -706,7 +763,23 @@ const CmsAdminPage = () => {
     try {
       const res = await axios.get(`${BASE_URL}/package-tour/`);
       const list = res.data?.data || res.data || [];
-      const normalized = list.map((pkg) => pkg.package || pkg);
+      const normalized = list.map((row) => {
+        const nested = row?.package && typeof row.package === "object" ? row.package : null;
+        if (!nested) return row;
+        // Preserve DB row id for CMS package modules while exposing nested package fields.
+        return {
+          ...nested,
+          id: row.id ?? row._id ?? nested.id ?? nested._id ?? null,
+          packageId: row.id ?? row._id ?? nested.packageId ?? nested.package_id ?? null,
+          slug: nested.slug || row.slug || row.packageSlug || null,
+          title:
+            nested.title ||
+            nested.mainTitle ||
+            row.title ||
+            row.mainTitle ||
+            "Untitled Package",
+        };
+      });
       const byKey = new Map();
       normalized.forEach((pkg, idx) => {
         const key = getPackageKey(pkg, idx);
@@ -790,15 +863,26 @@ const CmsAdminPage = () => {
 
     try {
       const sectionRows = await fetchPageSections(pageData.id || pageData._id);
-      setSections(sectionRows);
+      const nextSections =
+        Array.isArray(sectionRows) && sectionRows.length
+          ? sectionRows
+          : buildLocalFallbackSections(pageData);
+      setSections(nextSections);
       setOpenModules(
-        sectionRows.reduce((acc, section) => {
+        nextSections.reduce((acc, section) => {
           acc[section.id] = false;
           return acc;
         }, {})
       );
     } catch {
-      setSections([]);
+      const fallback = buildLocalFallbackSections(pageData);
+      setSections(fallback);
+      setOpenModules(
+        fallback.reduce((acc, section) => {
+          acc[section.id] = false;
+          return acc;
+        }, {})
+      );
     }
 
     const scrollContainer = document.getElementById("admin-scroll-area");
@@ -1060,13 +1144,15 @@ const CmsAdminPage = () => {
 
         if (sections.length > 0) {
           await Promise.all(
-            sections.map((section) =>
+            sections
+              .filter((section) => !String(section.id || "").startsWith("fallback:"))
+              .map((section) =>
               axios.put(
                 `${BASE_URL}/cms/sections/${section.id}`,
                 { data: section.data || {} },
                 config
               )
-            )
+              )
           );
         }
 
@@ -1516,13 +1602,21 @@ const CmsAdminPage = () => {
                     <div className="mt-2 max-h-60 overflow-y-auto space-y-2">
                       {selectedIds.map((id, idx) => {
                         const pkg = packageOptions.find(
-                          (item) => String(item.__key) === String(id)
+                          (item) =>
+                            String(item.__key) === String(id) ||
+                            String(item.id ?? "") === String(id) ||
+                            String(item.packageId ?? "") === String(id)
                         );
                         return (
                           <SortableSelectedItem
                             key={`${id}-${idx}`}
                             id={String(id)}
-                            title={pkg?.title || "Selected Package"}
+                            title={
+                              pkg?.title ||
+                              pkg?.mainTitle ||
+                              pkg?.slug ||
+                              `Package (${String(id).slice(0, 8)})`
+                            }
                             onRemove={() =>
                               updateSectionDataLocal(section.id, (prev) => ({
                                 ...prev,

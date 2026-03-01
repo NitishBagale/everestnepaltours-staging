@@ -71,6 +71,9 @@ const BlogAdminPage = () => {
   const [blogPosts, setBlogPosts] = useState([]);
   const [editBlogSlug, setEditBlogSlug] = useState(null);
   const [editBlogTitle, setEditBlogTitle] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const getToken = () => {
     return Cookies.get("accessToken") || Cookies.get("token");
@@ -123,6 +126,10 @@ const BlogAdminPage = () => {
       setFormData(mapBlogToForm(selected));
     }
   }, [blogPosts, editBlogSlug, editBlogTitle]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, blogPosts.length]);
 
   const handleEdit = (postData) => {
     const source = resolveBlogSource(postData);
@@ -274,6 +281,25 @@ const BlogAdminPage = () => {
       );
     }
   };
+
+  const filteredBlogPosts = blogPosts.filter((post) => {
+    const title = post?.mainTitle || "";
+    const slug = post?.slug || "";
+    const query = searchTerm.trim().toLowerCase();
+    return (
+      title.toLowerCase().includes(query) || slug.toLowerCase().includes(query)
+    );
+  });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredBlogPosts.length / itemsPerPage)
+  );
+
+  const pagedBlogPosts = filteredBlogPosts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <>
@@ -462,65 +488,116 @@ const BlogAdminPage = () => {
             </form>
           </div>
 
-          <div className="bg-white shadow-xl rounded-lg p-4 md:p-6 lg:p-8">
-            <h2 className="text-lg md:text-xl lg:text-2xl font-bold mb-4 border-b pb-2">
-              Your Blog Posts ({blogPosts.length})
-            </h2>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-4 py-4 border-b border-gray-200">
+              <h2 className="text-lg md:text-xl font-bold text-gray-800">
+                Your Blog Posts ({filteredBlogPosts.length})
+              </h2>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by title or slug..."
+                className="w-full sm:w-72 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-ring)]/30 focus:border-[var(--admin-primary-border)]"
+              />
+            </div>
 
-            {listLoading ? (
-              <div className="p-4 text-center text-sm md:text-base">
-                Loading blog posts...
-              </div>
-            ) : blogPosts.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 text-sm md:text-base">
-                No blog posts found.
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {blogPosts.map((post) => (
-                  <div
-                    key={post.slug}
-                    className="py-3 md:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-[var(--admin-primary-soft-strong)] text-left text-gray-700">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Image</th>
+                    <th className="px-4 py-3 font-semibold">Title</th>
+                    <th className="px-4 py-3 font-semibold">Date</th>
+                    <th className="px-4 py-3 font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {listLoading ? (
+                    <tr>
+                      <td className="px-4 py-6 text-center text-gray-500" colSpan={4}>
+                        Loading blog posts...
+                      </td>
+                    </tr>
+                  ) : pagedBlogPosts.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-6 text-center text-gray-500" colSpan={4}>
+                        No blog posts found.
+                      </td>
+                    </tr>
+                  ) : (
+                    pagedBlogPosts.map((post) => (
+                      <tr key={post.slug} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <img
+                            src={post.coverImage || "/default-blog-cover.jpg"}
+                            alt={post.mainTitle}
+                            className="w-16 h-12 object-cover rounded border border-gray-200"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "/default-blog-cover.jpg";
+                            }}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-gray-800 max-w-[420px]">
+                          <div className="font-semibold line-clamp-1">
+                            {post.mainTitle || "Untitled"}
+                          </div>
+                          <div className="text-xs text-gray-500 line-clamp-1 mt-0.5">
+                            Slug: {post.slug || "—"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                          {post.date ? new Date(post.date).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(post)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft-strong)] text-xs font-semibold"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(post.mainTitle)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredBlogPosts.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  Showing {pagedBlogPosts.length} of {filteredBlogPosts.length} posts
+                  {" • "}
+                  Page {currentPage} of {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                   >
-                    <div className="flex items-start grow min-w-0 w-full sm:w-auto">
-                      <img
-                        src={post.coverImage || "/default-blog-cover.jpg"}
-                        alt={post.mainTitle}
-                        className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded mr-3 sm:mr-4 shrink-0"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "/default-blog-cover.jpg";
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm md:text-base font-semibold truncate">
-                          {post.mainTitle}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {new Date(post.date).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate">
-                          Slug: {post.slug}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 sm:gap-4 shrink-0 w-full sm:w-auto justify-end">
-                      <button
-                        onClick={() => handleEdit(post)}
-                        className="text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)] font-medium text-sm px-3 py-1.5 border border-[var(--admin-primary-border)] rounded hover:bg-[var(--admin-primary-soft)] transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(post.mainTitle)}
-                        className="text-red-600 hover:text-red-900 font-medium text-sm px-3 py-1.5 border border-red-600 rounded hover:bg-red-50 transition"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>

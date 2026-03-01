@@ -50,6 +50,7 @@ const TourDetailPage = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [openItineraryIndex, setOpenItineraryIndex] = useState(null);
   const [expandAll, setExpandAll] = useState(false);
+  const [activeTravelInfoIndex, setActiveTravelInfoIndex] = useState(0);
   const [packageReviews, setPackageReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [askExpertStatus, setAskExpertStatus] = useState("idle");
@@ -160,6 +161,65 @@ const TourDetailPage = ({
     if (!packageReviews.length) return [];
     return packageReviews;
   }, [packageReviews]);
+
+  const travelInfoItems = useMemo(() => {
+    if (!Array.isArray(tourData?.customSections)) return [];
+    return tourData.customSections
+      .filter((section) => section?.type === "travelInfo")
+      .map((section, index) => ({
+        id: section.id || `travel-info-${index}`,
+        title: section.title || "",
+        description: section.content?.[0] || section.description || "",
+      }))
+      .filter((item) => {
+        const descriptionText = String(item.description || "")
+          .replace(/<[^>]+>/g, "")
+          .replace(/&nbsp;|&#160;/gi, " ")
+          .trim();
+        return String(item.title || "").trim() || descriptionText.length > 0;
+      });
+  }, [tourData?.customSections]);
+
+  const additionalInfoSections = useMemo(() => {
+    if (!Array.isArray(tourData?.customSections)) return [];
+    return tourData.customSections.filter((section) => section?.type === "paragraph");
+  }, [tourData?.customSections]);
+
+  const includeExcludeSections = useMemo(() => {
+    if (!Array.isArray(tourData?.customSections)) return [];
+    return tourData.customSections.filter((section) => section?.type === "list");
+  }, [tourData?.customSections]);
+
+  const packageSectionOrder = useMemo(() => {
+    const baseOrder = ["itinerary", "includeExclude", "faq", "travelInfo"];
+    const additionalTokens = additionalInfoSections.map(
+      (section) => `additionalInfo:${String(section.id)}`
+    );
+    const allowed = new Set([...baseOrder, ...additionalTokens]);
+    const incoming = Array.isArray(tourData?.packageSectionOrder)
+      ? tourData.packageSectionOrder.map(String)
+      : [];
+    const picked = incoming.filter((item) => allowed.has(item));
+    const missingBase = baseOrder.filter((item) => !picked.includes(item));
+    const missingAdditional = additionalTokens.filter((item) => !picked.includes(item));
+    return [...picked, ...missingBase, ...missingAdditional];
+  }, [tourData?.packageSectionOrder, additionalInfoSections]);
+  const firstAdditionalInfoBlockIndex = useMemo(
+    () => packageSectionOrder.findIndex((item) => item.startsWith("additionalInfo:")),
+    [packageSectionOrder]
+  );
+
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const offset = 88;
+    const top = element.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    setActiveTravelInfoIndex(0);
+  }, [travelInfoItems.length, tourData?.slug, tourData?.id]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -374,6 +434,7 @@ const TourDetailPage = ({
     })
     .sort((a, b) => a.order - b.order);
 
+
   const hasTripFacts = Boolean(
     tourData?.trip_attractions ||
       tourData?.trip_max_elevation ||
@@ -441,7 +502,32 @@ const TourDetailPage = ({
           showStickyNav ? "translate-y-0" : "-translate-y-full"
         }`}
       >
-</div>
+        <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-6 text-lg font-semibold text-[#4cae76]">
+            <button type="button" onClick={() => scrollToSection("additional-info")}>
+              Overview
+            </button>
+            <button type="button" onClick={() => scrollToSection("itinerary")}>
+              Detailed Itinerary
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollToSection("enquiry-form")}
+              className="bg-[#57af79] hover:bg-[#479968] text-white font-semibold px-6 py-3 rounded-md transition-colors"
+            >
+              Ask to Expert
+            </button>
+            <a
+              href="/customize-trip"
+              className="bg-[#9fc77d] hover:bg-[#8eb66c] text-white font-semibold px-6 py-3 rounded-md transition-colors"
+            >
+              Customize/Book
+            </a>
+          </div>
+        </div>
+      </div>
 
       <div className="pt-0 pb-10 md:pb-14">
         <div className="py-5 mb-8 border-b pb-8 bg-[#f8f9fa]">
@@ -755,7 +841,7 @@ const TourDetailPage = ({
               </div>
             )}
 
-          {normalizedItinerary.length > 0 && (
+          {false && normalizedItinerary.length > 0 && (
             <div>
               <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <h2
@@ -940,7 +1026,7 @@ const TourDetailPage = ({
           )}
 
           {/* Cost Include/Exclude Sections */}
-          {tourData.customSections?.length > 0 && (
+          {false && tourData.customSections?.length > 0 && (
             <div className="space-y-8">
               {tourData.customSections
                 .filter((section) => section.type === "list")
@@ -996,6 +1082,309 @@ const TourDetailPage = ({
               })}
             </div>
           )}
+
+          <div className="space-y-10">
+            {packageSectionOrder.map((blockKey, blockIndex) => {
+              if (blockKey === "itinerary" && normalizedItinerary.length > 0) {
+                return (
+                  <div key={`ordered-itinerary-${blockIndex}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+                      <h2
+                        className="text-3xl md:text-4xl font-bold flex items-center gap-2 text-[#35a576]"
+                        id="itinerary"
+                      >
+                        {tourData.itinerary_title || "Itinerary"}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExpandAll((prev) => !prev);
+                          setOpenItineraryIndex(null);
+                        }}
+                        className="bg-[#35a576] hover:bg-[#2f8c6e] text-white font-semibold px-4 py-2 rounded-md transition-colors"
+                      >
+                        {expandAll ? "Collapse All" : "Expand All"}
+                      </button>
+                    </div>
+                    <div
+                      className="ml-8 md:ml-10 space-y-6"
+                      style={{ borderLeft: "2px dotted rgb(158, 202, 131)" }}
+                    >
+                      {normalizedItinerary.map((item, index) => (
+                        <div key={item.id || index} className="relative pl-6 md:pl-8">
+                          <div className="absolute left-0 top-0 -translate-x-1/2 flex items-center justify-center">
+                            {index === 0 ? (
+                              <span className="w-12 h-12 rounded-full bg-[#a6c97a] text-white flex items-center justify-center">
+                                <MapPin className="w-5 h-5" />
+                              </span>
+                            ) : index === normalizedItinerary.length - 1 ? (
+                              <span className="w-9 h-9 rounded-full bg-[#a6c97a] text-white flex items-center justify-center">
+                                <Flag className="w-4 h-4 fill-white" />
+                              </span>
+                            ) : (
+                              <span className="w-4 h-4 rounded-full bg-white border-2 border-[#a6c97a]" />
+                            )}
+                          </div>
+                          <div
+                            className="cursor-pointer hover:bg-gray-50 p-4 rounded-lg transition-colors"
+                            onClick={() => {
+                              setExpandAll(false);
+                              setOpenItineraryIndex(
+                                openItineraryIndex === index ? null : index
+                              );
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <h4 className="text-xl md:text-2xl font-bold text-slate-900">
+                                  Day {item.order}: {item.title}
+                                </h4>
+                                <div className="flex flex-wrap items-center gap-5 text-sm mt-2">
+                                  {item.driveTime && (
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                      <Clock className="w-4 h-4 text-green-600 shrink-0" />
+                                      <span>{item.driveTime}</span>
+                                    </div>
+                                  )}
+                                  {item.accommodation && (
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                      <Hotel className="w-4 h-4 text-green-600 shrink-0" />
+                                      <span>{item.accommodation}</span>
+                                    </div>
+                                  )}
+                                  {item.meal && (
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                      <Utensils className="w-4 h-4 text-green-600 shrink-0" />
+                                      <span>{item.meal}</span>
+                                    </div>
+                                  )}
+                                  {item.elevation && (
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                      <Mountain className="w-4 h-4 text-green-600 shrink-0" />
+                                      <span>Elevation: {item.elevation}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="shrink-0 mt-1">
+                                <div
+                                  className={`transition-transform duration-300 ${
+                                    expandAll || openItineraryIndex === index
+                                      ? "rotate-180"
+                                      : "rotate-0"
+                                  }`}
+                                >
+                                  <ChevronDown className="w-5 h-5 text-slate-400" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                              expandAll || openItineraryIndex === index
+                                ? "max-h-[2000px] opacity-100"
+                                : "max-h-0 opacity-0"
+                            }`}
+                          >
+                            <div className="mt-4 pl-3 pb-2">
+                              {hasMeaningfulHtml(item.richText) ? (
+                                <div
+                                  className="prose prose-slate max-w-none text-slate-600 text-sm md:text-base leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li[data-list='bullet']]:list-disc [&_li[data-list='ordered']]:list-decimal"
+                                  dangerouslySetInnerHTML={{
+                                    __html: sanitizeHtml(item.richText),
+                                  }}
+                                />
+                              ) : null}
+                              {!hasMeaningfulHtml(item.richText) && item.description && (
+                                <p className="text-slate-600 text-sm md:text-base mb-4 whitespace-pre-line leading-relaxed">
+                                  {item.description}
+                                </p>
+                              )}
+                              {item.images?.length > 0 && (
+                                <div className="mt-4 space-y-4">
+                                  {item.images.map((image, imageIndex) => (
+                                    <div
+                                      key={image.id || `${item.id}-${imageIndex}`}
+                                      className="w-full"
+                                    >
+                                      <img
+                                        src={getMediaUrl(image.media, "medium")}
+                                        srcSet={getMediaSrcSet(image.media)}
+                                        sizes="(max-width: 768px) 100vw, 70vw"
+                                        alt={getMediaAlt(image.media, item.title)}
+                                        className="h-auto object-contain rounded-lg border border-slate-200"
+                                        style={{
+                                          width: `${Math.max(
+                                            25,
+                                            Math.min(100, Number(image.sizePercent) || 100)
+                                          )}%`,
+                                          maxWidth: "100%",
+                                        }}
+                                        loading="lazy"
+                                      />
+                                      {image.caption && (
+                                        <p className="text-sm text-slate-500 mt-1">
+                                          {image.caption}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {item.activities?.length > 0 && (
+                                <ul className="space-y-2">
+                                  {item.activities.map((act, i) => (
+                                    <li
+                                      key={i}
+                                      className="text-slate-600 text-sm md:text-base flex items-start gap-2"
+                                    >
+                                      <span className="shrink-0">•</span>{" "}
+                                      <span className="wrap-break-word break-all">
+                                        {act}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (blockKey === "includeExclude" && includeExcludeSections.length > 0) {
+                return (
+                  <div key={`ordered-include-exclude-${blockIndex}`} className="space-y-8">
+                    {includeExcludeSections.map((section, index) => (
+                      <div key={section.id || index}>
+                        <h3 className="text-2xl font-bold text-[#35a576] mb-4">
+                          {section.title}
+                        </h3>
+                        {hasMeaningfulHtml(section.description) && (
+                          <div
+                            className="prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(section.description),
+                            }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              if (blockKey === "faq" && tourData.faq?.length > 0) {
+                return (
+                  <div key={`ordered-faq-${blockIndex}`} className="mt-0 px-8 md:px-10">
+                    <h2 className="text-3xl md:text-4xl font-bold text-[#35a576] mb-4">
+                      Frequently Asked Questions
+                    </h2>
+                    <div className="space-y-4">
+                      {tourData.faq.map((faqItem, index) => (
+                        <details
+                          key={index}
+                          className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                        >
+                          <summary className="flex items-center justify-between p-5 cursor-pointer font-semibold text-[#35a576] hover:bg-gray-50">
+                            <span className="text-lg pr-4">{faqItem.question}</span>
+                            <ChevronDown className="w-5 h-5 text-teal-600 shrink-0" />
+                          </summary>
+                          {hasMeaningfulHtml(faqItem.answer) && (
+                            <div
+                              className="px-5 pb-5 text-lg text-gray-600 leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: getCleanHtml(faqItem.answer) }}
+                            />
+                          )}
+                        </details>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (blockKey === "travelInfo" && travelInfoItems.length > 0) {
+                return (
+                  <div key={`ordered-travel-info-${blockIndex}`} className="mt-10 px-8 md:px-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                      <div className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
+                        {travelInfoItems.map((item, index) => {
+                          const isActive = index === activeTravelInfoIndex;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => setActiveTravelInfoIndex(index)}
+                              className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
+                                isActive
+                                  ? "bg-[#a9c98c] text-white"
+                                  : "text-gray-600 hover:bg-gray-100"
+                              }`}
+                            >
+                              {item.title || `Information ${index + 1}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="p-6 md:p-8">
+                        {hasMeaningfulHtml(
+                          travelInfoItems[
+                            Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)
+                          ]?.description
+                        ) && (
+                          <div
+                            className="prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li[data-list='bullet']]:list-disc [&_li[data-list='ordered']]:list-decimal"
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(
+                                travelInfoItems[
+                                  Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)
+                                ]?.description
+                              ),
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (blockKey.startsWith("additionalInfo:")) {
+                const targetId = blockKey.split(":")[1];
+                const section = additionalInfoSections.find(
+                  (item) => String(item.id) === targetId
+                );
+                if (!section) return null;
+                return (
+                  <div
+                    key={`ordered-additional-${targetId}-${blockIndex}`}
+                    id={
+                      blockIndex === firstAdditionalInfoBlockIndex
+                        ? "additional-info"
+                        : undefined
+                    }
+                    className="mt-10"
+                  >
+                    <h3 className="text-2xl font-bold text-[#35a576] mb-4">
+                      {section.title}
+                    </h3>
+                    <div className="other-info-list prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed">
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(section.content?.[0] || ""),
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+          </div>
         </div>
 
         <div className="mt-4 pt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -1024,7 +1413,7 @@ const TourDetailPage = ({
         </div>
 
         {/* Custom Package FAQs */}
-        {tourData.faq && tourData.faq.length > 0 && (
+        {false && tourData.faq && tourData.faq.length > 0 && (
           <div className="mt-0 px-8 md:px-10">
             <h2 className="text-3xl md:text-4xl font-bold text-[#35a576] mb-4">
               Frequently Asked Questions
@@ -1067,11 +1456,69 @@ const TourDetailPage = ({
           </div>
         )}
 
+        {/* Travel Info Tabs */}
+        {false && travelInfoItems.length > 0 && (
+          <div className="mt-10 px-8 md:px-10">
+            <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <div className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
+                {travelInfoItems.map((item, index) => {
+                  const isActive = index === activeTravelInfoIndex;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveTravelInfoIndex(index)}
+                      className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
+                        isActive
+                          ? "bg-[#a9c98c] text-white"
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {item.title || `Information ${index + 1}`}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="p-6 md:p-8">
+                {travelInfoItems[
+                  Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)
+                ]?.title && (
+                  <h3 className="text-2xl font-semibold text-green-600 mb-4">
+                    {
+                      travelInfoItems[
+                        Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)
+                      ]?.title
+                    }
+                  </h3>
+                )}
+                {hasMeaningfulHtml(
+                  travelInfoItems[
+                    Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)
+                  ]?.description
+                ) && (
+                  <div
+                    className="prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li[data-list='bullet']]:list-disc [&_li[data-list='ordered']]:list-decimal"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHtml(
+                        travelInfoItems[
+                          Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)
+                        ]?.description
+                      ),
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Additional Info Sections */}
-        {tourData.customSections?.length > 0 && (
+        {false && tourData.customSections?.length > 0 && (
           <div className="mt-10 space-y-8">
             {tourData.customSections
-              .filter((section) => section.type !== "list")
+              .filter(
+                (section) => section.type !== "list" && section.type !== "travelInfo"
+              )
               .map((section, index) => {
                 const isOdd = (index + 1) % 2 === 1;
                 return (
@@ -1201,8 +1648,10 @@ const TourDetailPage = ({
       </div>
         {/* Booking Form */}
         {tourData.showBookingForm && (
-          <div className="bg-[#fff]" id="booking-form">
+          <div className="bg-[#fff]" id="enquiry-form">
+            <div id="booking-form">
             <Form />
+            </div>
           </div>
         )}
 

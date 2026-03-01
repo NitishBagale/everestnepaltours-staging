@@ -18,56 +18,56 @@ cmsrouter.post(
 cmsrouter.get(
   "/:pageId/sections",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.getCMSPageSections
 );
 
 cmsrouter.post(
   "/:pageId/sections/migrate-legacy",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.migrateLegacyCMSPageSections
 );
 
 cmsrouter.post(
   "/:pageId/sections",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.addCMSPageSection
 );
 
 cmsrouter.post(
   "/:pageId/sections/reorder",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.reorderCMSPageSections
 );
 
 cmsrouter.put(
   "/sections/:sectionId",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.updateCMSPageSection
 );
 
 cmsrouter.patch(
   "/sections/:sectionId/toggle",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.toggleCMSPageSection
 );
 
 cmsrouter.post(
   "/sections/:sectionId/duplicate",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.duplicateCMSPageSection
 );
 
 cmsrouter.delete(
   "/sections/:sectionId",
   isAuthenticated,
-  isAuthorized(["admin", "superadmin"]),
+  isAuthorized(["admin", "superadmin", "editor"]),
   cmsController.deleteCMSPageSection
 );
 

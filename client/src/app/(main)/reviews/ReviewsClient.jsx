@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import axios from "axios";
 import { FaStar } from "react-icons/fa";
@@ -17,39 +17,79 @@ const StarRating = ({ rating }) => {
   );
 };
 
+const PAGE_SIZE = 10;
+
 const ReviewsClient = () => {
   const [reviews, setReviews] = useState([]);
   const [avgStats, setAvgStats] = useState({ average: 0, count: 0 });
+  const [totalFromApi, setTotalFromApi] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [cmsTitle, setCmsTitle] = useState("Reviews");
   const [cmsSubtitle, setCmsSubtitle] = useState("Guest Feedback");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const loadMoreRef = useRef(null);
+
+  const parseReviewResponse = useCallback((rawData) => {
+    if (Array.isArray(rawData)) {
+      return { list: rawData, pages: null, total: rawData.length };
+    }
+    if (rawData && Array.isArray(rawData.data)) {
+      return {
+        list: rawData.data,
+        pages: Number(rawData.pages) || null,
+        total: Number(rawData.total) || rawData.data.length,
+      };
+    }
+    if (rawData && Array.isArray(rawData.reviews)) {
+      return {
+        list: rawData.reviews,
+        pages: Number(rawData.pages) || null,
+        total: Number(rawData.total) || rawData.reviews.length,
+      };
+    }
+    console.warn("API did not return an array. Response was:", rawData);
+    return { list: [], pages: null, total: 0 };
+  }, []);
+
+  const fetchReviewPage = useCallback(
+    async (targetPage, append) => {
+      const res = await axios.get(
+        `${BASE_URL}/review/?page=${targetPage}&limit=${PAGE_SIZE}`
+      );
+      const { list, pages, total } = parseReviewResponse(res.data);
+
+      setReviews((prev) => {
+        if (!append) return list;
+        const existing = new Set(prev.map((item) => String(item.id || item._id)));
+        const incoming = list.filter(
+          (item) => !existing.has(String(item.id || item._id))
+        );
+        return [...prev, ...incoming];
+      });
+      setPage(targetPage);
+      if (targetPage === 1) setTotalFromApi(total);
+      if (pages) {
+        setHasMore(targetPage < pages);
+      } else {
+        setHasMore(list.length === PAGE_SIZE);
+      }
+    },
+    [parseReviewResponse]
+  );
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        const [reviewsRes, ratingRes, cmsRes] = await Promise.all([
-          axios.get(`${BASE_URL}/review/`),
+        const [ratingRes, cmsRes] = await Promise.all([
           axios.get(`${BASE_URL}/review/average-rating`),
           axios.get(`${BASE_URL}/cms/`),
         ]);
-
-        const rawData = reviewsRes.data;
-        let validReviewsArray = [];
-
-        if (Array.isArray(rawData)) {
-          validReviewsArray = rawData;
-        } else if (rawData && Array.isArray(rawData.data)) {
-          validReviewsArray = rawData.data;
-        } else if (rawData && Array.isArray(rawData.reviews)) {
-          validReviewsArray = rawData.reviews;
-        } else {
-          console.warn("API did not return an array. Response was:", rawData);
-        }
-
-        setReviews(validReviewsArray);
+        await fetchReviewPage(1, false);
         setAvgStats(ratingRes.data || {});
 
         const cmsList = cmsRes?.data?.data || [];
@@ -69,7 +109,32 @@ const ReviewsClient = () => {
     };
 
     fetchData();
-  }, []);
+  }, [fetchReviewPage]);
+
+  useEffect(() => {
+    if (!hasMore || loading) return undefined;
+    const node = loadMoreRef.current;
+    if (!node) return undefined;
+
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        const first = entries[0];
+        if (!first?.isIntersecting || loadingMore) return;
+        try {
+          setLoadingMore(true);
+          await fetchReviewPage(page + 1, true);
+        } catch (err) {
+          console.error("Error loading more reviews:", err);
+        } finally {
+          setLoadingMore(false);
+        }
+      },
+      { rootMargin: "200px 0px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fetchReviewPage, hasMore, loading, loadingMore, page]);
 
   const normalizedReviews = useMemo(
     () =>
@@ -83,7 +148,7 @@ const ReviewsClient = () => {
   );
 
   const totalReviews =
-    avgStats.totalReviews || avgStats.count || reviews.length || 0;
+    totalFromApi || avgStats.totalReviews || avgStats.count || reviews.length || 0;
   const averageRating =
     totalReviews > 0
       ? avgStats.averageRating || avgStats.average || 0
@@ -192,6 +257,11 @@ const ReviewsClient = () => {
         ) : (
           <div className="text-center text-gray-500 italic">
             No reviews found.
+          </div>
+        )}
+        {Array.isArray(normalizedReviews) && normalizedReviews.length > 0 && (
+          <div ref={loadMoreRef} className="py-6 text-center text-gray-500">
+            {loadingMore ? "Loading more reviews..." : hasMore ? "Scroll to load more" : "No more reviews"}
           </div>
         )}
       </div>

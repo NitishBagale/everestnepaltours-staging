@@ -13,6 +13,17 @@ import {
   normalizePackageRecord,
 } from "@/lib/packageListing";
 
+const toSlugFallback = (value) =>
+  value
+    ? String(value)
+        .toLowerCase()
+        .replace(/,/g, "")
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "")
+    : "";
+
 // Filter popular packages by tags / seo keywords / title keyword
 const Popular = ({
   tags = [],
@@ -105,12 +116,7 @@ const Popular = ({
         ) : (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map((item, index) => {
-              const slug = item.title
-                ? item.title
-                    .toLowerCase()
-                    .replace(/,/g, "")
-                    .replace(/\s+/g, "-")
-                : "";
+              const slug = item.slug || toSlugFallback(item.title);
               const media = getMediaObject(item.mainImage || item.image);
               const imageSrc = getMediaUrl(media, "medium") || "bhutan.jpg";
               const reviewCount = getPackageReviewCount(item, reviewCountMap);

@@ -161,6 +161,7 @@ const Packages = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
   useEffect(() => {
     setCurrentPage(1);
@@ -305,10 +306,12 @@ const Packages = () => {
             </div>
           )}
 
-          {filteredData.length > itemsPerPage && (
+          {filteredData.length > 0 && (
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
               <p className="text-xs text-gray-500">
-                Page {currentPage} of {Math.ceil(filteredData.length / itemsPerPage)}
+                Showing {pagedData.length} of {filteredData.length} packages
+                {" • "}
+                Page {currentPage} of {totalPages}
               </p>
               <div className="flex gap-2">
                 <button
@@ -323,15 +326,10 @@ const Packages = () => {
                   type="button"
                   onClick={() =>
                     setCurrentPage((prev) =>
-                      Math.min(
-                        Math.ceil(filteredData.length / itemsPerPage),
-                        prev + 1
-                      )
+                      Math.min(totalPages, prev + 1)
                     )
                   }
-                  disabled={
-                    currentPage === Math.ceil(filteredData.length / itemsPerPage)
-                  }
+                  disabled={currentPage === totalPages}
                   className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                 >
                   Next

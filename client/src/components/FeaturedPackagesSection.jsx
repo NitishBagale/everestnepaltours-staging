@@ -14,6 +14,17 @@ import {
   normalizePackageRecord,
 } from "@/lib/packageListing";
 
+const toSlugFallback = (value) =>
+  value
+    ? String(value)
+        .toLowerCase()
+        .replace(/,/g, "")
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "")
+    : "";
+
 const FeaturedPackagesSection = () => {
   const [featured, setFeatured] = useState({
     title: "",
@@ -88,9 +99,7 @@ const FeaturedPackagesSection = () => {
         {selected.length > 0 && (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {selected.map((item, index) => {
-              const slug = item.title
-                ? item.title.toLowerCase().replace(/,/g, "").replace(/\s+/g, "-")
-                : "";
+              const slug = item.slug || toSlugFallback(item.title);
               const media = getMediaObject(item.mainImage || item.image);
               const imageSrc = getMediaUrl(media, "medium") || "/bhutan.jpg";
               const imageAlt = getPackageCardAlt(media, item, "Featured package image");

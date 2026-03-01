@@ -126,6 +126,27 @@ const normalizeItineraryPayload = (itinerary = []) =>
 const itemChevronToggleClass =
   "h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center justify-center transition-colors";
 
+const BASE_PACKAGE_BLOCKS = [
+  { id: "itinerary", label: "Day-by-Day Itinerary" },
+  { id: "includeExclude", label: "Include / Exclude" },
+  { id: "faq", label: "Frequently Asked Questions" },
+  { id: "travelInfo", label: "Travel Info" },
+];
+const BASE_PACKAGE_BLOCK_IDS = BASE_PACKAGE_BLOCKS.map((item) => item.id);
+const additionalInfoToken = (id) => `additionalInfo:${String(id)}`;
+const normalizePackageSectionOrder = (value, sections) => {
+  const additionalTokens = (Array.isArray(sections) ? sections : [])
+    .filter((section) => section?.type === "paragraph")
+    .map((section) => additionalInfoToken(section.id));
+  const allowed = new Set([...BASE_PACKAGE_BLOCK_IDS, ...additionalTokens]);
+  const incoming = Array.isArray(value) ? value.map(String) : [];
+  const picked = incoming.filter((item) => allowed.has(item));
+  const missingBase = BASE_PACKAGE_BLOCK_IDS.filter((item) => !picked.includes(item));
+  const missingAdditional = additionalTokens.filter((item) => !picked.includes(item));
+  return [...picked, ...missingBase, ...missingAdditional];
+};
+
+
 const SortableItineraryCard = ({ id, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
@@ -155,6 +176,33 @@ const SortableFaqCard = ({ id, children }) => {
   );
 };
 
+const SortablePackageBlockCard = ({ id, label }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg bg-gray-50"
+    >
+      <button
+        type="button"
+        className="text-gray-400 hover:text-gray-600"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+    </div>
+  );
+};
+
+
 const CreatePackage = () => {
   const router = useRouter();
   const [isPublishing, setIsPublishing] = useState(false);
@@ -170,10 +218,12 @@ const CreatePackage = () => {
   const [includedExcludedOpen, setIncludedExcludedOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);
   const [additionalInfoOpen, setAdditionalInfoOpen] = useState(false);
+  const [travelInfoOpen, setTravelInfoOpen] = useState(false);
   const [openItineraryItems, setOpenItineraryItems] = useState({});
   const [openIncludedExcludedItems, setOpenIncludedExcludedItems] = useState({});
   const [openFaqItems, setOpenFaqItems] = useState({});
   const [openAdditionalInfoItems, setOpenAdditionalInfoItems] = useState({});
+  const [openTravelInfoItems, setOpenTravelInfoItems] = useState({});
   const sensors = useSensors(useSensor(PointerSensor));
 
   const [formData, setFormData] = useState({
@@ -205,6 +255,7 @@ const CreatePackage = () => {
     faq: [],
     faq_section_title: "",
     showBookingForm: false,
+    packageSectionOrder: BASE_PACKAGE_BLOCK_IDS,
     customSections: [],
     meta_title: "",
     meta_description: "",
@@ -444,19 +495,32 @@ const CreatePackage = () => {
 
   const addCustomTextSection = () => {
     setAdditionalInfoOpen(true);
+    const newSection = { id: Date.now(), title: "", type: "paragraph", content: [""] };
+    const nextSections = [...formData.customSections, newSection];
+    const nextOrder = normalizePackageSectionOrder(
+      [...(formData.packageSectionOrder || []), additionalInfoToken(newSection.id)],
+      nextSections
+    );
     setFormData({
       ...formData,
-      customSections: [
-        ...formData.customSections,
-        { id: Date.now(), title: "", type: "paragraph", content: [""] },
-      ],
+      customSections: nextSections,
+      packageSectionOrder: nextOrder,
     });
   };
 
   const removeCustomSection = (index) => {
+    const target = formData.customSections[index];
+    const nextSections = formData.customSections.filter((_, i) => i !== index);
+    const nextOrder = normalizePackageSectionOrder(
+      (formData.packageSectionOrder || []).filter(
+        (item) => item !== additionalInfoToken(target?.id)
+      ),
+      nextSections
+    );
     setFormData({
       ...formData,
-      customSections: formData.customSections.filter((_, i) => i !== index),
+      customSections: nextSections,
+      packageSectionOrder: nextOrder,
     });
   };
 
@@ -557,6 +621,56 @@ const CreatePackage = () => {
         nextSections[index] = reordered[pos];
       });
       return { ...prev, customSections: nextSections };
+    });
+  };
+
+  const handleTravelInfoDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const travelIndices = prev.customSections
+        .map((section, index) => (section.type === "travelInfo" ? index : null))
+        .filter((index) => index !== null);
+      const travelSections = travelIndices.map((index) => prev.customSections[index]);
+      const oldIndex = travelSections.findIndex((section) => section.id === active.id);
+      const newIndex = travelSections.findIndex((section) => section.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      const reordered = arrayMove(travelSections, oldIndex, newIndex);
+      const nextSections = [...prev.customSections];
+      travelIndices.forEach((index, pos) => {
+        nextSections[index] = reordered[pos];
+      });
+      return { ...prev, customSections: nextSections };
+    });
+  };
+
+  const handlePackageSectionOrderDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const currentOrder = normalizePackageSectionOrder(
+        prev.packageSectionOrder,
+        prev.customSections
+      );
+      const oldIndex = currentOrder.findIndex((item) => item === active.id);
+      const newIndex = currentOrder.findIndex((item) => item === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return {
+        ...prev,
+        packageSectionOrder: arrayMove(currentOrder, oldIndex, newIndex),
+      };
+    });
+  };
+
+
+  const addTravelInfoSection = () => {
+    setTravelInfoOpen(true);
+    setFormData({
+      ...formData,
+      customSections: [
+        ...formData.customSections,
+        { id: Date.now(), title: "", type: "travelInfo", content: [""] },
+      ],
     });
   };
 
@@ -674,6 +788,10 @@ const CreatePackage = () => {
           faq_section_title: formData.faq_section_title,
           showBookingForm: formData.showBookingForm,
           customSections: cleanedCustomSections,
+          packageSectionOrder: normalizePackageSectionOrder(
+            formData.packageSectionOrder,
+            cleanedCustomSections
+          ),
           meta_title: formData.meta_title,
           meta_description: formData.meta_description,
         },
@@ -963,6 +1081,46 @@ const CreatePackage = () => {
                 height="h-48"
               />
             </div>
+          </div>
+
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h2 className="text-lg font-bold text-gray-900">Package Blocks Order</h2>
+            <p className="text-sm text-gray-500">
+              Additional Info blocks can be placed anywhere in this order.
+            </p>
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragEnd={handlePackageSectionOrderDragEnd}
+            >
+              <SortableContext
+                items={normalizePackageSectionOrder(
+                  formData.packageSectionOrder,
+                  formData.customSections
+                )}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {normalizePackageSectionOrder(
+                    formData.packageSectionOrder,
+                    formData.customSections
+                  ).map((id) => (
+                    <SortablePackageBlockCard
+                      key={id}
+                      id={id}
+                      label={
+                        id.startsWith("additionalInfo:")
+                          ? `Additional Info: ${
+                              formData.customSections.find(
+                                (section) => additionalInfoToken(section.id) === id
+                              )?.title || "Untitled"
+                            }`
+                          : BASE_PACKAGE_BLOCKS.find((item) => item.id === id)?.label || id
+                      }
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
 
           <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -1860,6 +2018,160 @@ const CreatePackage = () => {
                     className="text-sm px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg font-semibold hover:bg-[var(--admin-primary-soft-strong)] transition-colors flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" /> Add Section
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8">
+            <div className="flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => setTravelInfoOpen((prev) => !prev)}
+                className="text-lg font-bold text-gray-900 flex items-center gap-2"
+              >
+                Travel Info
+              </button>
+              <button
+                type="button"
+                onClick={() => setTravelInfoOpen((prev) => !prev)}
+                aria-label={
+                  travelInfoOpen
+                    ? "Collapse travel info section"
+                    : "Expand travel info section"
+                }
+                className="h-10 w-10 rounded-xl border-2 border-gray-300 bg-white text-gray-700 flex items-center justify-center shadow-sm hover:border-gray-500 hover:text-gray-900 transition-colors"
+              >
+                {travelInfoOpen ? (
+                  <ChevronUp className="w-6 h-6 stroke-[2.75]" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 stroke-[2.75]" />
+                )}
+              </button>
+            </div>
+            {!travelInfoOpen && (
+              <p className="text-sm text-gray-500">
+                {formData.customSections.filter((section) => section.type === "travelInfo")
+                  .length > 0
+                  ? "Click the arrow next to the title to update travel info."
+                  : "Click the arrow next to the title to add travel info."}
+              </p>
+            )}
+
+            {travelInfoOpen && (
+              <div className="space-y-6">
+                {formData.customSections.filter((section) => section.type === "travelInfo")
+                  .length === 0 && (
+                  <div className="text-center py-8 bg-white border-2 border-dashed border-gray-200 rounded-xl">
+                    <p className="text-gray-400 text-sm">
+                      Add a travel info section here.
+                    </p>
+                  </div>
+                )}
+
+                {formData.customSections.filter((section) => section.type === "travelInfo")
+                  .length > 0 && (
+                  <DndContext
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleTravelInfoDragEnd}
+                  >
+                    <SortableContext
+                      items={formData.customSections
+                        .filter((section) => section.type === "travelInfo")
+                        .map((section) => section.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-6">
+                        {formData.customSections
+                          .map((section, sIndex) => ({ section, sIndex }))
+                          .filter(({ section }) => section.type === "travelInfo")
+                          .map(({ section, sIndex }) => (
+                            <SortableFaqCard key={section.id} id={section.id}>
+                              {({ attributes, listeners }) => (
+                                <div className="p-5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-300">
+                                  <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                                    <div className="flex-1 flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        className="text-gray-400 hover:text-gray-600"
+                                        {...attributes}
+                                        {...listeners}
+                                      >
+                                        <GripVertical className="w-4 h-4" />
+                                      </button>
+                                      <input
+                                        type="text"
+                                        placeholder="Travel info title"
+                                        value={section.title}
+                                        onChange={(e) =>
+                                          handleCustomSectionChange(
+                                            sIndex,
+                                            "title",
+                                            e.target.value
+                                          )
+                                        }
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[var(--admin-primary-soft-strong)] outline-none"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setOpenTravelInfoItems((prev) => ({
+                                            ...prev,
+                                            [section.id]: !prev[section.id],
+                                          }))
+                                        }
+                                        className={itemChevronToggleClass}
+                                        title={
+                                          openTravelInfoItems[section.id]
+                                            ? "Collapse"
+                                            : "Expand"
+                                        }
+                                      >
+                                        {openTravelInfoItems[section.id] ? (
+                                          <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+                                        ) : (
+                                          <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+                                        )}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeCustomSection(sIndex)}
+                                        className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      >
+                                        <Trash2 className="w-5 h-5" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {openTravelInfoItems[section.id] && (
+                                    <div className="mb-20">
+                                      <RichEditor
+                                        value={section.content[0] || ""}
+                                        onChange={(value) =>
+                                          handleCustomSectionItemChange(sIndex, 0, value)
+                                        }
+                                        height="h-44"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </SortableFaqCard>
+                          ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addTravelInfoSection}
+                    className="text-sm px-4 py-2 bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] rounded-lg font-semibold hover:bg-[var(--admin-primary-soft-strong)] transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Add Travel Info
                   </button>
                 </div>
               </div>

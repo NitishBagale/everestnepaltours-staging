@@ -219,6 +219,27 @@ const hasMeaningfulSectionData = (type, data = {}) => {
 };
 
 const buildLegacySectionsFromContent = (content = {}) => {
+  const fallbackRepeatableItems =
+    Array.isArray(content.repeatableSections) && content.repeatableSections.length > 0
+      ? content.repeatableSections
+      : (() => {
+          const description =
+            typeof content.description === "string" ? content.description : "";
+          const hasDescription = hasRichTextContent(description);
+          if (!hasDescription) return [];
+          return [
+            {
+              id: randomUUID(),
+              title: content.title || "",
+              description,
+              image: content.coverImage || "",
+              imageCaption: "",
+              background: "white",
+              imagePosition: content.coverImage ? "right-50" : "left-50",
+            },
+          ];
+        })();
+
   const sectionEntries = [
     {
       type: SECTION_TYPES.PAGE_BANNER,
@@ -249,7 +270,7 @@ const buildLegacySectionsFromContent = (content = {}) => {
     {
       type: SECTION_TYPES.REPEATABLE_TEXT_IMAGE,
       data: {
-        items: content.repeatableSections || [],
+        items: fallbackRepeatableItems,
       },
     },
     {

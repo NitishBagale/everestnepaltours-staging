@@ -9,6 +9,14 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "everestnepaltours.com",
+      },
+      {
+        protocol: "https",
+        hostname: "www.everestnepaltours.com",
+      },
+      {
+        protocol: "https",
         hostname: "imgs.search.brave.com",
       },
     ],
