@@ -2,19 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy dependency files first for layer caching
-COPY package*.json ./
-
-# Install dependencies
+COPY server/package*.json ./
 RUN npm ci
 
-# Copy the full source
-COPY . .
+COPY server/ .
 
-# Expose backend port
-EXPOSE 8008
-
-# Run as non-root for security
-USER node
+EXPOSE 4000
 
 CMD ["npm", "start"]
