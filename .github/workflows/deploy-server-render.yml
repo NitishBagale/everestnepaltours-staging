@@ -59,8 +59,9 @@ jobs:
         run: npm run db:migrate
 
       - name: Sync schema (one-time override)
-        if: ${{ secrets.RUN_DB_SYNC == 'true' }}
+        if: env.RUN_DB_SYNC == 'true'
         env:
+          RUN_DB_SYNC: ${{ secrets.RUN_DB_SYNC }}
           ALLOW_DB_SYNC_IN_PROD: true
         run: npm run db:sync
 
