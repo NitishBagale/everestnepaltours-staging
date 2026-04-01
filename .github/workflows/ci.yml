@@ -24,16 +24,16 @@ jobs:
 
       - name: Build Docker image
         run: |
-        # frontend
-        docker build \
-          -t ghcr.io/${{ github.repository_owner }}/stg-everestvacation-fe:${{ env.IMAGE_TAG }} -f client/Dockerfile client
-
-        # backend
-        docker build \
-          -t ghcr.io/${{ github.repository_owner }}/stg-everestvacation-be:${{ env.IMAGE_TAG }} \
-          -f server/Dockerfile \
-          server
-      
+          # frontend
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/stg-everestvacation-fe:${{ env.IMAGE_TAG }} -f client/Dockerfile client
+  
+          # backend
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/stg-everestvacation-be:${{ env.IMAGE_TAG }} \
+            -f server/Dockerfile \
+            server
+        
       - name: Push Docker image
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/stg-everestvacation-fe:${{ env.IMAGE_TAG }}
