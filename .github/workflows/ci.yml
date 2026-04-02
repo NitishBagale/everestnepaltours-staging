@@ -65,13 +65,13 @@ jobs:
 
           cd ${{ secrets.DEPLOY_DIR }}
 
-          echo "Deploying IMAGE_TAG=${{ needs.build.outputs.image_tag }}"
-
+          echo "Deploying IMAGE_TAG=${{ github.sha }}"
+          IMAGE_TAG=${{ github.sha }}
           # Update .env with new tag
           if grep -q "^IMAGE_TAG=" .env; then
-            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.build.outputs.image_tag }}/" .env
+            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$IMAGE_TAG/" .env
           else
-            echo "IMAGE_TAG=${{ needs.build.outputs.image_tag }}" >> .env
+            echo "IMAGE_TAG=$IMAGE_TAG" >> .env
           fi
 
           # Pull new images
