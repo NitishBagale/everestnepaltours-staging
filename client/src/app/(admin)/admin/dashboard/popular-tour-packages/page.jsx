@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   Clock,
@@ -19,6 +19,7 @@ import Cookies from "js-cookie";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
 
 const Packages = () => {
+  const itemsPerPage = 50;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,7 +30,6 @@ const Packages = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
   const router = useRouter();
 
   useEffect(() => {
@@ -151,11 +151,23 @@ const Packages = () => {
     router.push(`/admin/dashboard/popular-tour-packages/update/${id}`);
   };
 
-  const filteredData = data.filter((pkg) => {
-    const item = pkg.package || pkg;
-    const title = item.title || "";
-    return title.toLowerCase().includes(searchTerm.trim().toLowerCase());
-  });
+  const filteredData = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return [...data]
+      .sort((a, b) => {
+        const aTitle = (a?.package?.title || a?.title || "").trim();
+        const bTitle = (b?.package?.title || b?.title || "").trim();
+        return aTitle.localeCompare(bTitle, undefined, {
+          sensitivity: "base",
+        });
+      })
+      .filter((pkg) => {
+        const item = pkg.package || pkg;
+        const title = item.title || "";
+        return title.toLowerCase().includes(normalizedSearch);
+      });
+  }, [data, searchTerm]);
 
   const pagedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
