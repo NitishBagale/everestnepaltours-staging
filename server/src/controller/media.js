@@ -9,6 +9,9 @@ const {
   updateMediaService,
   getMediaUsageService,
   listMediaService,
+  listCloudinaryFoldersService,
+  listCloudinaryFolderAssetsService,
+  deleteCloudinaryAssetService,
 } = require("../services/media");
 
 async function computeFileHash(file) {
@@ -32,6 +35,14 @@ async function computeFileHash(file) {
     console.warn("Failed to compute hash:", error.message);
     return null;
   }
+}
+
+function buildCloudinaryPublicId(file) {
+    const rawPublicId = file?.public_id || file?.filename || null;
+    const folder = file?.folder || "uploads";
+    if (!rawPublicId) return null;
+    if (String(rawPublicId).includes("/")) return rawPublicId;
+    return folder ? `${folder}/${rawPublicId}` : String(rawPublicId);
 }
 
 exports.createMedia = async (req, res) => {
@@ -61,7 +72,13 @@ exports.createMedia = async (req, res) => {
             size: req.file.size,
             width,
             height,
-            hash
+            hash,
+            metaData: {
+                publicId: buildCloudinaryPublicId(req.file),
+                folder: req.file.folder || "uploads",
+                resourceType: req.file.resource_type || "image",
+                secureUrl: req.file.path || null,
+            }
         });
         res.status(201).json({
             success: true,
@@ -75,9 +92,9 @@ exports.createMedia = async (req, res) => {
 
 exports.getAllMedia = async (req, res) => {
     try {
-        const { search, page, limit } = req.query;
-        if (search || page || limit) {
-            const result = await listMediaService({ search, page, limit });
+        const { search, page, limit, folder } = req.query;
+        if (search || page || limit || folder) {
+            const result = await listMediaService({ search, page, limit, folder });
             return res.status(200).json({
                 success: true,
                 ...result,
@@ -93,6 +110,36 @@ exports.getAllMedia = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
     }
+
+exports.getCloudinaryFolders = async (req, res) => {
+    try {
+        const folders = await listCloudinaryFoldersService();
+        res.status(200).json({
+            success: true,
+            data: folders,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+exports.getCloudinaryFolderAssets = async (req, res) => {
+    try {
+        const { folder, search, page, limit } = req.query;
+        const result = await listCloudinaryFolderAssetsService({
+            folder,
+            search,
+            page,
+            limit,
+        });
+        res.status(200).json({
+            success: true,
+            ...result,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
 
 exports.getMediaById = async (req, res) => {
     try {
@@ -139,6 +186,16 @@ exports.deleteMedia = async (req, res) => {
     }
 }
 
+exports.deleteCloudinaryAsset = async (req, res) => {
+    try {
+        const { publicId, resourceType } = req.body || {};
+        await deleteCloudinaryAssetService({ publicId, resourceType });
+        res.status(200).json({ success: true, message: "Image deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
 exports.bulkUploadMedia = async (req, res) => {
     try {
         const files = req.files;
@@ -159,7 +216,13 @@ exports.bulkUploadMedia = async (req, res) => {
                 size: file.size,
                 width: file.width || null,
                 height: file.height || null,
-                hash
+                hash,
+                metaData: {
+                    publicId: buildCloudinaryPublicId(file),
+                    folder: file.folder || "uploads",
+                    resourceType: file.resource_type || "image",
+                    secureUrl: file.path || null,
+                }
             });
             uploadResults.push(mediaData);
         }

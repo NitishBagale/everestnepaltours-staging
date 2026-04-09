@@ -5,6 +5,198 @@ const sharp = require("sharp");
 const PackageTour = require("../../models/packageTour");
 const axios = require("axios");
 const { Op } = require("sequelize");
+const { cloudinary } = require("../utils/cloudinary");
+
+function getCloudinaryAssetDetails(media) {
+    const metaData = media?.metaData || {};
+    const url = media?.url || metaData?.secureUrl || "";
+
+    if (metaData?.publicId) {
+        return {
+            publicId: metaData.publicId,
+            folder: metaData.folder || "",
+            resourceType: metaData.resourceType || "image",
+        };
+    }
+
+    if (!url || !url.includes("cloudinary.com")) {
+        return null;
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
+        const uploadIndex = pathParts.findIndex((part) => part === "upload");
+        if (uploadIndex === -1) return null;
+
+        const assetParts = pathParts.slice(uploadIndex + 1);
+        while (assetParts.length && !/^v\d+$/.test(assetParts[0])) {
+            assetParts.shift();
+        }
+        if (assetParts.length && /^v\d+$/.test(assetParts[0])) {
+            assetParts.shift();
+        }
+        if (!assetParts.length) return null;
+
+        const lastPart = assetParts[assetParts.length - 1];
+        assetParts[assetParts.length - 1] = lastPart.replace(/\.[^.]+$/, "");
+        const publicId = assetParts.join("/");
+        const folder = assetParts.slice(0, -1).join("/");
+        const resourceType = pathParts[2] || "image";
+
+        return { publicId, folder, resourceType };
+    } catch (error) {
+        return null;
+    }
+}
+
+function getMediaFolder(media) {
+    return getCloudinaryAssetDetails(media)?.folder || "";
+}
+
+function getFolderFromPublicId(publicId = "") {
+    const parts = String(publicId).split("/").filter(Boolean);
+    return parts.slice(0, -1).join("/");
+}
+
+function getCloudinaryResourceFolder(resource = {}) {
+    return (
+        resource.asset_folder ||
+        resource.folder ||
+        getFolderFromPublicId(resource.public_id || "")
+    );
+}
+
+function mapCloudinaryResource(resource, mediaRecord = null) {
+    return {
+        id: mediaRecord?.id || `cloudinary:${resource.public_id}`,
+        url: mediaRecord?.url || resource.secure_url,
+        originalName: mediaRecord?.originalName || resource.filename || resource.public_id.split("/").pop(),
+        mimeType: mediaRecord?.mimeType || (resource.format ? `image/${resource.format}` : "image/*"),
+        size: mediaRecord?.size || resource.bytes || 0,
+        title: mediaRecord?.title || resource.filename || resource.public_id.split("/").pop(),
+        altText: mediaRecord?.altText || "",
+        width: mediaRecord?.width || resource.width || null,
+        height: mediaRecord?.height || resource.height || null,
+        variants: mediaRecord?.variants || generateCloudinaryVariants(resource.secure_url),
+        metaData: {
+            ...(mediaRecord?.metaData || {}),
+            publicId: resource.public_id,
+            folder: getCloudinaryResourceFolder(resource),
+            resourceType: resource.resource_type || "image",
+            secureUrl: resource.secure_url,
+            source: mediaRecord ? "database" : "cloudinary",
+        },
+        createdAt: mediaRecord?.createdAt || resource.created_at,
+    };
+}
+
+async function collectCloudinaryFolders(prefix = "") {
+    const response = prefix
+        ? await cloudinary.api.sub_folders(prefix)
+        : await cloudinary.api.root_folders();
+    const folders = Array.isArray(response?.folders) ? response.folders : [];
+    let allFolders = folders.map((folder) => folder.path).filter(Boolean);
+
+    for (const folder of folders) {
+        const nested = await collectCloudinaryFolders(folder.path);
+        allFolders = [...allFolders, ...nested];
+    }
+
+    return allFolders;
+}
+
+async function listCloudinaryFolderAssetsService({ folder = "", search = "", page = 1, limit = 24 } = {}) {
+    try {
+        const normalizedFolder = String(folder || "").trim();
+        if (!normalizedFolder) {
+            return {
+                data: [],
+                pagination: {
+                    page: 1,
+                    limit: Math.min(Math.max(parseInt(limit, 10) || 24, 1), 100),
+                    total: 0,
+                    totalPages: 1,
+                },
+            };
+        }
+
+        const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
+        const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 24, 1), 100);
+
+        const [prefixedResourcesResponse, assetFolderSearchResponse, mediaRows] = await Promise.all([
+            cloudinary.api.resources({
+                type: "upload",
+                resource_type: "image",
+                prefix: `${normalizedFolder}/`,
+                max_results: 500,
+            }).catch(() => ({ resources: [] })),
+            cloudinary.search
+                .expression(`asset_folder="${normalizedFolder}" AND resource_type="image"`)
+                .max_results(500)
+                .execute()
+                .catch(() => ({ resources: [] })),
+            Media.findAll(),
+        ]);
+
+        const mediaByPublicId = new Map();
+        const mediaByUrl = new Map();
+        mediaRows.forEach((item) => {
+            const details = getCloudinaryAssetDetails(item);
+            if (details?.publicId) mediaByPublicId.set(details.publicId, item);
+            if (item?.url) mediaByUrl.set(item.url, item);
+        });
+
+        const allResources = [
+            ...(Array.isArray(prefixedResourcesResponse?.resources)
+                ? prefixedResourcesResponse.resources
+                : []),
+            ...(Array.isArray(assetFolderSearchResponse?.resources)
+                ? assetFolderSearchResponse.resources
+                : []),
+        ];
+
+        const uniqueResources = Array.from(
+            new Map(allResources.map((resource) => [resource.public_id, resource])).values()
+        );
+
+        const exactFolderResources = uniqueResources.filter(
+            (resource) => getCloudinaryResourceFolder(resource) === normalizedFolder
+        );
+
+        const mapped = exactFolderResources.map((resource) =>
+            mapCloudinaryResource(
+                resource,
+                mediaByPublicId.get(resource.public_id) || mediaByUrl.get(resource.secure_url) || null
+            )
+        );
+
+        const normalizedSearch = String(search || "").trim().toLowerCase();
+        const filtered = normalizedSearch
+            ? mapped.filter((item) =>
+                [item.title, item.originalName, item.altText]
+                    .filter(Boolean)
+                    .some((value) => String(value).toLowerCase().includes(normalizedSearch))
+            )
+            : mapped;
+
+        const total = filtered.length;
+        const offset = (parsedPage - 1) * parsedLimit;
+        const pagedRows = filtered.slice(offset, offset + parsedLimit);
+
+        return {
+            data: pagedRows,
+            pagination: {
+                page: parsedPage,
+                limit: parsedLimit,
+                total,
+                totalPages: Math.max(1, Math.ceil(total / parsedLimit)),
+            },
+        };
+    } catch (error) {
+        throw new Error(`Failed to load folder assets: ${error.message}`);
+    }
+}
 
 
 async function processImage(filePath) {
@@ -83,7 +275,14 @@ async function getCloudinaryDimensions(cloudinaryUrl) {
 
 async function createMediaService(mediaData) {
     try {
-        const { url, mimeType, width: providedWidth, height: providedHeight, hash } = mediaData;
+        const {
+            url,
+            mimeType,
+            width: providedWidth,
+            height: providedHeight,
+            hash,
+            metaData = {},
+        } = mediaData;
 
         if (hash) {
             const existing = await Media.findOne({ where: { hash } });
@@ -121,7 +320,8 @@ async function createMediaService(mediaData) {
             ...mediaData,
             variants,
             width,
-            height
+            height,
+            metaData,
         });
         
         return media;
@@ -139,11 +339,10 @@ async function getAllMediaService() {
     }
 }
 
-async function listMediaService({ search = "", page = 1, limit = 24 } = {}) {
+async function listMediaService({ search = "", page = 1, limit = 24, folder = "" } = {}) {
     try {
         const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
         const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 24, 1), 100);
-        const offset = (parsedPage - 1) * parsedLimit;
 
         const where = search
             ? {
@@ -155,20 +354,26 @@ async function listMediaService({ search = "", page = 1, limit = 24 } = {}) {
             }
             : undefined;
 
-        const result = await Media.findAndCountAll({
+        const result = await Media.findAll({
             where,
             order: [["createdAt", "DESC"]],
-            limit: parsedLimit,
-            offset,
         });
 
+        const normalizedFolder = String(folder || "").trim();
+        const filteredRows = normalizedFolder
+            ? result.filter((item) => getMediaFolder(item) === normalizedFolder)
+            : result;
+        const total = filteredRows.length;
+        const offset = (parsedPage - 1) * parsedLimit;
+        const pagedRows = filteredRows.slice(offset, offset + parsedLimit);
+
         return {
-            data: result.rows,
+            data: pagedRows,
             pagination: {
                 page: parsedPage,
                 limit: parsedLimit,
-                total: result.count,
-                totalPages: Math.ceil(result.count / parsedLimit),
+                total,
+                totalPages: Math.max(1, Math.ceil(total / parsedLimit)),
             },
         };
     } catch (error) {
@@ -197,13 +402,65 @@ async function updateMediaService(id, data) {
 }
 
 async function deleteMediaService(id) {
+    const media = await Media.findByPk(id);
+    if (!media) return null;
+
+    const cloudinaryAsset = getCloudinaryAssetDetails(media);
+    if (cloudinaryAsset?.publicId) {
+        const destroyResult = await cloudinary.uploader.destroy(
+            cloudinaryAsset.publicId,
+            {
+                resource_type: cloudinaryAsset.resourceType || "image",
+                invalidate: true,
+            }
+        );
+
+        if (destroyResult?.result && destroyResult.result !== "ok" && destroyResult.result !== "not found") {
+            throw new Error(`Cloudinary deletion failed: ${destroyResult.result}`);
+        }
+    }
+
+    await media.destroy();
+    return media;
+}
+
+async function deleteCloudinaryAssetService({ publicId, resourceType = "image" }) {
     try {
-        const media = await Media.findByPk(id);
-        if (!media) return null;
-        await media.destroy();
-        return media;
+        if (!publicId) {
+            throw new Error("Cloudinary publicId is required");
+        }
+
+        const destroyResult = await cloudinary.uploader.destroy(publicId, {
+            resource_type: resourceType || "image",
+            invalidate: true,
+        });
+
+        if (destroyResult?.result && destroyResult.result !== "ok" && destroyResult.result !== "not found") {
+            throw new Error(`Cloudinary deletion failed: ${destroyResult.result}`);
+        }
+
+        const mediaRows = await Media.findAll().catch(() => []);
+        const media = mediaRows.find((item) => {
+            const details = getCloudinaryAssetDetails(item);
+            return details?.publicId === publicId;
+        });
+
+        if (media) {
+            await media.destroy();
+        }
+
+        return { success: true };
     } catch (error) {
-        return { success: false, error: error.message };
+        throw new Error(error.message);
+    }
+}
+
+async function listCloudinaryFoldersService() {
+    try {
+        const folders = await collectCloudinaryFolders();
+        return Array.from(new Set(folders)).sort((a, b) => a.localeCompare(b));
+    } catch (error) {
+        throw new Error(`Failed to load Cloudinary folders: ${error.message}`);
     }
 }
 
@@ -226,6 +483,9 @@ module.exports = {
     getMediaByIdService,
     updateMediaService,
     deleteMediaService,
+    deleteCloudinaryAssetService,
     getMediaUsageService,
-    listMediaService
+    listMediaService,
+    listCloudinaryFoldersService,
+    listCloudinaryFolderAssetsService
 }

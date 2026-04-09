@@ -20,6 +20,8 @@ const MediaPickerModal = ({
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [page, setPage] = useState(1);
+  const [folders, setFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState("");
   const [mediaItems, setMediaItems] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -28,6 +30,7 @@ const MediaPickerModal = ({
     totalPages: 1,
   });
   const [loading, setLoading] = useState(false);
+  const [foldersLoading, setFoldersLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -45,9 +48,13 @@ const MediaPickerModal = ({
       if (!open) return;
       setLoading(true);
       try {
-        const response = await axios.get(`${BASE_URL}/media`, {
+        const endpoint = selectedFolder
+          ? `${BASE_URL}/media/folders/assets`
+          : `${BASE_URL}/media`;
+        const response = await axios.get(endpoint, {
           params: {
             search: debouncedSearch || undefined,
+            folder: selectedFolder || undefined,
             page: targetPage,
             limit: DEFAULT_LIMIT,
           },
@@ -69,18 +76,39 @@ const MediaPickerModal = ({
         setLoading(false);
       }
     },
-    [debouncedSearch, open]
+    [debouncedSearch, open, selectedFolder]
   );
+
+  const fetchFolders = useCallback(async () => {
+    if (!open) return;
+    setFoldersLoading(true);
+    try {
+      const response = await axios.get(`${BASE_URL}/media/folders`);
+      setFolders(Array.isArray(response.data?.data) ? response.data.data : []);
+    } catch (error) {
+      console.error("Failed to fetch Cloudinary folders:", error);
+      setFolders([]);
+    } finally {
+      setFoldersLoading(false);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
+    fetchFolders();
+  }, [fetchFolders, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setPage(1);
     fetchMedia({ page: 1, replace: true });
-  }, [debouncedSearch, fetchMedia, open]);
+  }, [debouncedSearch, fetchMedia, open, selectedFolder]);
 
   useEffect(() => {
     if (!open) return;
     setSearch(initialSearch);
     setDebouncedSearch(initialSearch);
+    setSelectedFolder("");
   }, [initialSearch, open]);
 
   const onDrop = useCallback(async (acceptedFiles) => {
@@ -108,16 +136,22 @@ const MediaPickerModal = ({
       );
 
       const validUploads = uploads.filter(Boolean);
-      setMediaItems((prev) => {
-        const existingIds = new Set(prev.map((item) => item.id));
-        return [...validUploads.filter((item) => !existingIds.has(item.id)), ...prev];
-      });
+      if (selectedFolder) {
+        setPage(1);
+        await fetchMedia({ page: 1, replace: true });
+      } else {
+        setMediaItems((prev) => {
+          const existingIds = new Set(prev.map((item) => item.id));
+          return [...validUploads.filter((item) => !existingIds.has(item.id)), ...prev];
+        });
+      }
+      fetchFolders();
     } catch (error) {
       console.error("Media upload failed:", error);
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [fetchFolders, fetchMedia, selectedFolder]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -140,18 +174,30 @@ const MediaPickerModal = ({
     event.stopPropagation();
 
     const confirmed = window.confirm(
-      `Delete "${item.title || item.originalName || "this media"}"? This cannot be undone.`
+      "Are you sure you want to delete this image?"
     );
     if (!confirmed) return;
 
     const token = Cookies.get("accessToken") || Cookies.get("token");
     setDeletingId(item.id);
     try {
-      await axios.delete(`${BASE_URL}/media/${item.id}`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
+      if (String(item.id).startsWith("cloudinary:")) {
+        await axios.delete(`${BASE_URL}/media/cloudinary`, {
+          data: {
+            publicId: item?.metaData?.publicId,
+            resourceType: item?.metaData?.resourceType || "image",
+          },
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        });
+      } else {
+        await axios.delete(`${BASE_URL}/media/${item.id}`, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        });
+      }
       setMediaItems((prev) => prev.filter((media) => media.id !== item.id));
       setPagination((prev) => ({
         ...prev,
@@ -204,6 +250,47 @@ const MediaPickerModal = ({
               </div>
             </div>
 
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Cloudinary Folders
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedFolder("")}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-medium transition ${
+                    selectedFolder === ""
+                      ? "border-blue-200 bg-blue-50 text-blue-700"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  All
+                </button>
+                {folders.map((folder) => (
+                  <button
+                    key={folder}
+                    type="button"
+                    onClick={() => setSelectedFolder(folder)}
+                    className={`px-3 py-1.5 rounded-full border text-xs font-medium transition ${
+                      selectedFolder === folder
+                        ? "border-blue-200 bg-blue-50 text-blue-700"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {folder}
+                  </button>
+                ))}
+                {!foldersLoading && folders.length === 0 && (
+                  <span className="text-xs text-gray-500">
+                    No folders found.
+                  </span>
+                )}
+                {foldersLoading && (
+                  <span className="text-xs text-gray-500">Loading folders...</span>
+                )}
+              </div>
+            </div>
+
             <div className="min-h-[320px] max-h-[55vh] overflow-y-auto pr-2">
               {loading && mediaItems.length === 0 ? (
                 <div className="py-16 text-center text-sm text-gray-500">
@@ -227,6 +314,7 @@ const MediaPickerModal = ({
                           variants: item.variants || {},
                           title: item.title,
                           altText: item.altText || "",
+                          metaData: item.metaData || {},
                         });
                         onOpenChange(false);
                       }}
@@ -239,6 +327,7 @@ const MediaPickerModal = ({
                             variants: item.variants || {},
                             title: item.title,
                             altText: item.altText || "",
+                            metaData: item.metaData || {},
                           });
                           onOpenChange(false);
                         }
