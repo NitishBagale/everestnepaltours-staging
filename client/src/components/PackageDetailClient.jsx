@@ -1107,11 +1107,11 @@ const TourDetailPage = ({
                       </button>
                     </div>
                     <div
-                      className="ml-8 md:ml-10 space-y-6"
+                      className="ml-4 md:ml-6 space-y-6"
                       style={{ borderLeft: "2px dotted rgb(158, 202, 131)" }}
                     >
                       {normalizedItinerary.map((item, index) => (
-                        <div key={item.id || index} className="relative pl-6 md:pl-8">
+                        <div key={item.id || index} className="relative pl-8 md:pl-10">
                           <div className="absolute left-0 top-0 -translate-x-1/2 flex items-center justify-center">
                             {index === 0 ? (
                               <span className="w-12 h-12 rounded-full bg-[#a6c97a] text-white flex items-center justify-center">
@@ -1263,6 +1263,14 @@ const TourDetailPage = ({
                         <h3 className="text-2xl font-bold text-[#35a576] mb-4">
                           {section.title}
                         </h3>
+                        {hasMeaningfulHtml(section.note) && (
+                          <div
+                            className="custom-section-note prose prose-slate max-w-none text-slate-600 text-base italic leading-relaxed mb-4 [&_ul]:list-none [&_ul]:pl-0 [&_ol]:list-none [&_ol]:pl-0 [&_li]:my-1"
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(section.note),
+                            }}
+                          />
+                        )}
                         {hasMeaningfulHtml(section.description) && (
                           <div
                             className="prose prose-slate max-w-none text-slate-700 text-lg leading-relaxed"
@@ -1279,7 +1287,7 @@ const TourDetailPage = ({
 
               if (blockKey === "faq" && tourData.faq?.length > 0) {
                 return (
-                  <div key={`ordered-faq-${blockIndex}`} className="mt-0 px-8 md:px-10">
+                  <div key={`ordered-faq-${blockIndex}`} className="mt-0">
                     <h2 className="text-3xl md:text-4xl font-bold text-[#35a576] mb-4">
                       Frequently Asked Questions
                     </h2>

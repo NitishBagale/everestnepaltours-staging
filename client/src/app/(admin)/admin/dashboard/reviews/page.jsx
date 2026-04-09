@@ -59,6 +59,42 @@ const mapReviewToForm = (review) => ({
   rating: String(review?.rating || "5"),
 });
 
+const SortableSelectedPackageItem = ({ id, title, onRemove }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-700 bg-white shadow-sm"
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <span
+          className="cursor-grab text-gray-400 shrink-0"
+          {...attributes}
+          {...listeners}
+          aria-label="Drag handle"
+        >
+          ⋮⋮
+        </span>
+        <span className="truncate">{title}</span>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-xs font-semibold text-red-500 hover:text-red-600 shrink-0"
+      >
+        Remove
+      </button>
+    </div>
+  );
+};
+
 const ReviewAdminPage = () => {
   const [reviews, setReviews] = useState([]);
   const [sortedReviews, setSortedReviews] = useState([]);
@@ -70,6 +106,7 @@ const ReviewAdminPage = () => {
   const [editReviewId, setEditReviewId] = useState(null);
   const [packageOptions, setPackageOptions] = useState([]);
   const [packageLoading, setPackageLoading] = useState(true);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
 
  
@@ -152,6 +189,9 @@ const ReviewAdminPage = () => {
     fetchPackages();
   }, [fetchPackages]);
 
+  const availablePackageOptions = packageOptions.filter(
+    (pkg) => !formData.packageIds.includes(String(pkg.id))
+  );
 
   const handleFormChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -161,11 +201,44 @@ const ReviewAdminPage = () => {
     setFormData((prev) => ({ ...prev, reviewText: content }));
   };
 
-  const handlePackageChange = (e) => {
-    const selected = Array.from(e.target.selectedOptions).map(
-      (option) => option.value
-    );
-    setFormData((prev) => ({ ...prev, packageIds: selected }));
+  const handleAddPackage = () => {
+    if (!selectedPackageId) return;
+    setFormData((prev) => {
+      if (prev.packageIds.includes(selectedPackageId)) return prev;
+      return {
+        ...prev,
+        packageIds: [...prev.packageIds, selectedPackageId],
+      };
+    });
+    setSelectedPackageId("");
+  };
+
+  const handleRemovePackage = (packageId) => {
+    setFormData((prev) => ({
+      ...prev,
+      packageIds: prev.packageIds.filter((id) => String(id) !== String(packageId)),
+    }));
+  };
+
+  const handlePackageDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setFormData((prev) => {
+      const oldIndex = prev.packageIds.findIndex(
+        (id) => String(id) === String(active.id)
+      );
+      const newIndex = prev.packageIds.findIndex(
+        (id) => String(id) === String(over.id)
+      );
+
+      if (oldIndex === -1 || newIndex === -1) return prev;
+
+      return {
+        ...prev,
+        packageIds: arrayMove(prev.packageIds, oldIndex, newIndex),
+      };
+    });
   };
 
   const handleImageSelect = (media) => {
@@ -175,6 +248,7 @@ const ReviewAdminPage = () => {
   const handleAddReview = () => {
     setEditReviewId(null);
     setFormData(initialFormData);
+    setSelectedPackageId("");
     setIsFormOpen(true);
     const scrollContainer = document.getElementById("admin-scroll-area");
     if (scrollContainer) {
@@ -185,8 +259,16 @@ const ReviewAdminPage = () => {
   };
 
   const handleEditReview = (review) => {
+    const nextFormData = mapReviewToForm(review);
+    const validPackageIds = nextFormData.packageIds.filter((id) =>
+      packageOptions.some((pkg) => String(pkg.id) === String(id))
+    );
     setEditReviewId(review?.id || review?._id || null);
-    setFormData(mapReviewToForm(review));
+    setFormData({
+      ...nextFormData,
+      packageIds: validPackageIds,
+    });
+    setSelectedPackageId("");
     setIsFormOpen(true);
     const scrollContainer = document.getElementById("admin-scroll-area");
     if (scrollContainer) {
@@ -199,6 +281,7 @@ const ReviewAdminPage = () => {
   const handleCancelEdit = () => {
     setEditReviewId(null);
     setFormData(initialFormData);
+    setSelectedPackageId("");
     setIsFormOpen(false);
   };
 
@@ -507,29 +590,78 @@ const ReviewAdminPage = () => {
                     <label className="block text-sm font-semibold mb-2">
                       Review Package
                     </label>
-                    <select
-                      multiple
-                      name="packageIds"
-                      value={formData.packageIds}
-                      onChange={handlePackageChange}
-                      className="w-full border p-2 md:p-3 rounded focus:outline-[var(--admin-primary)] text-sm min-h-[120px]"
-                      disabled={packageLoading}
-                    >
-                      {packageLoading ? (
-                        <option>Loading packages...</option>
-                      ) : packageOptions.length === 0 ? (
-                        <option>No packages found</option>
-                      ) : (
-                        packageOptions.map((pkg) => (
-                          <option key={pkg.id} value={pkg.id}>
-                            {pkg.title}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Hold Ctrl/Cmd to select multiple packages.
-                    </p>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="rounded-xl border border-gray-200 bg-white p-3">
+                        <label className="text-xs font-semibold text-gray-500">
+                          Available Packages
+                        </label>
+                        <div className="mt-2 flex gap-2">
+                          <select
+                            value={selectedPackageId}
+                            onChange={(e) => setSelectedPackageId(e.target.value)}
+                            className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary-ring)] focus:border-[var(--admin-primary-border)]"
+                            disabled={packageLoading || availablePackageOptions.length === 0}
+                          >
+                            <option value="">
+                              {packageLoading
+                                ? "Loading packages..."
+                                : availablePackageOptions.length === 0
+                                  ? "No packages available"
+                                  : "Select a package"}
+                            </option>
+                            {availablePackageOptions.map((pkg) => (
+                              <option key={pkg.id} value={pkg.id}>
+                                {pkg.title}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleAddPackage}
+                            disabled={!selectedPackageId}
+                            className="h-12 px-4 rounded-xl bg-[var(--admin-primary)] text-white text-sm font-semibold hover:bg-[var(--admin-primary-strong)] transition disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        {!packageLoading && packageOptions.length === 0 && (
+                          <p className="mt-2 text-sm text-gray-500">
+                            No packages found.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-3">
+                        <label className="text-xs font-semibold text-gray-500">
+                          Selected Packages
+                        </label>
+                        <DndContext
+                          collisionDetection={closestCenter}
+                          onDragEnd={handlePackageDragEnd}
+                        >
+                          <SortableContext
+                            items={formData.packageIds}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="mt-2 max-h-60 overflow-y-auto space-y-2">
+                              {formData.packageIds.map((id) => (
+                                <SortableSelectedPackageItem
+                                  key={id}
+                                  id={id}
+                                  title={getPackageTitleById(id)}
+                                  onRemove={() => handleRemovePackage(id)}
+                                />
+                              ))}
+                              {formData.packageIds.length === 0 && (
+                                <p className="text-sm text-gray-500">
+                                  No packages selected.
+                                </p>
+                              )}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      </div>
+                    </div>
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold mb-2">
