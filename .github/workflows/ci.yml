@@ -85,6 +85,9 @@ jobs:
 
           # Cleanup
           docker image prune -af
-
+          
+          # Restart proxy
+          cd /root/proxy && docker compose restart nginx
+          
           echo "Deployment complete"
           EOF
