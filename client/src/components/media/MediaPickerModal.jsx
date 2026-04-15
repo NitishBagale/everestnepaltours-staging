@@ -33,6 +33,7 @@ const MediaPickerModal = ({
   const [foldersLoading, setFoldersLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [brokenItemIds, setBrokenItemIds] = useState([]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,6 +69,7 @@ const MediaPickerModal = ({
           totalPages: 1,
         };
 
+        setBrokenItemIds([]);
         setMediaItems((prev) => (replace ? data : [...prev, ...data]));
         setPagination(meta);
       } catch (error) {
@@ -163,6 +165,14 @@ const MediaPickerModal = ({
 
   const thumbnailUrl = (item) =>
     item?.variants?.thumbnail || item?.variants?.small || item?.url;
+
+  const handleThumbnailError = (itemId) => {
+    setBrokenItemIds((prev) => {
+      if (prev.includes(itemId)) return prev;
+      return [...prev, itemId];
+    });
+    setMediaItems((prev) => prev.filter((item) => item.id !== itemId));
+  };
 
   const handleLoadMore = () => {
     const nextPage = page + 1;
@@ -302,7 +312,9 @@ const MediaPickerModal = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {mediaItems.map((item) => (
+                  {mediaItems
+                    .filter((item) => !brokenItemIds.includes(item.id))
+                    .map((item) => (
                     <div
                       key={item.id}
                       role="button"
@@ -339,6 +351,7 @@ const MediaPickerModal = ({
                           src={thumbnailUrl(item)}
                           alt={item.title}
                           className="w-full h-full object-contain"
+                          onError={() => handleThumbnailError(item.id)}
                         />
                       </div>
                       <div className="px-2 py-2 text-xs text-gray-600 truncate">

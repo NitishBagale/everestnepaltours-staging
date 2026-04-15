@@ -67,6 +67,14 @@ function getCloudinaryResourceFolder(resource = {}) {
     );
 }
 
+function chunkArray(items = [], size = 100) {
+    const chunks = [];
+    for (let index = 0; index < items.length; index += size) {
+        chunks.push(items.slice(index, index + size));
+    }
+    return chunks;
+}
+
 function mapCloudinaryResource(resource, mediaRecord = null) {
     return {
         id: mediaRecord?.id || `cloudinary:${resource.public_id}`,
@@ -195,6 +203,78 @@ async function listCloudinaryFolderAssetsService({ folder = "", search = "", pag
         };
     } catch (error) {
         throw new Error(`Failed to load folder assets: ${error.message}`);
+    }
+}
+
+async function pruneMissingCloudinaryMediaRows(mediaRows = []) {
+    const cloudinaryRows = mediaRows.filter((item) => {
+        const details = getCloudinaryAssetDetails(item);
+        return details?.publicId;
+    });
+
+    if (!cloudinaryRows.length) {
+        return mediaRows;
+    }
+
+    try {
+        const groupedPublicIds = new Map();
+        const rowDetailsById = new Map();
+
+        cloudinaryRows.forEach((item) => {
+            const details = getCloudinaryAssetDetails(item);
+            if (!details?.publicId) return;
+
+            const resourceType = details.resourceType || "image";
+            rowDetailsById.set(item.id, details);
+
+            if (!groupedPublicIds.has(resourceType)) {
+                groupedPublicIds.set(resourceType, new Set());
+            }
+            groupedPublicIds.get(resourceType).add(details.publicId);
+        });
+
+        const existingKeys = new Set();
+
+        for (const [resourceType, publicIdSet] of groupedPublicIds.entries()) {
+            const publicIds = Array.from(publicIdSet);
+            const batches = chunkArray(publicIds, 100);
+
+            for (const batch of batches) {
+                const response = await cloudinary.api.resources_by_ids(batch, {
+                    resource_type: resourceType,
+                    type: "upload",
+                    max_results: batch.length,
+                });
+                const resources = Array.isArray(response?.resources) ? response.resources : [];
+
+                resources.forEach((resource) => {
+                    if (resource?.public_id) {
+                        existingKeys.add(`${resourceType}:${resource.public_id}`);
+                    }
+                });
+            }
+        }
+
+        const staleIds = cloudinaryRows
+            .filter((item) => {
+                const details = rowDetailsById.get(item.id);
+                if (!details?.publicId) return false;
+                const resourceType = details.resourceType || "image";
+                return !existingKeys.has(`${resourceType}:${details.publicId}`);
+            })
+            .map((item) => item.id);
+
+        if (staleIds.length) {
+            await Media.destroy({
+                where: { id: staleIds },
+                force: true,
+            });
+        }
+
+        return mediaRows.filter((item) => !staleIds.includes(item.id));
+    } catch (error) {
+        console.warn("Failed to prune missing Cloudinary media rows:", error.message);
+        return mediaRows;
     }
 }
 
@@ -333,7 +413,7 @@ async function createMediaService(mediaData) {
 async function getAllMediaService() {
     try {
         const mediaList = await Media.findAll();
-        return mediaList;
+        return pruneMissingCloudinaryMediaRows(mediaList);
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -358,11 +438,12 @@ async function listMediaService({ search = "", page = 1, limit = 24, folder = ""
             where,
             order: [["createdAt", "DESC"]],
         });
+        const cleanedResult = await pruneMissingCloudinaryMediaRows(result);
 
         const normalizedFolder = String(folder || "").trim();
         const filteredRows = normalizedFolder
-            ? result.filter((item) => getMediaFolder(item) === normalizedFolder)
-            : result;
+            ? cleanedResult.filter((item) => getMediaFolder(item) === normalizedFolder)
+            : cleanedResult;
         const total = filteredRows.length;
         const offset = (parsedPage - 1) * parsedLimit;
         const pagedRows = filteredRows.slice(offset, offset + parsedLimit);

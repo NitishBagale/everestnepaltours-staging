@@ -35,6 +35,7 @@ import {
   SortableContext,
   useSortable,
   arrayMove,
+  rectSortingStrategy,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -197,6 +198,48 @@ const SortablePackageBlockCard = ({ id, label }) => {
         <GripVertical className="w-4 h-4" />
       </button>
       <span className="text-sm font-medium text-gray-700">{label}</span>
+    </div>
+  );
+};
+
+const getGalleryImageId = (image, index = 0) =>
+  String(image?.mediaId || image?.id || image?.url || `gallery-${index}`);
+
+const SortableGalleryImage = ({ id, image, index, onRemove }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative aspect-square rounded-lg overflow-hidden group border border-gray-200"
+    >
+      <img
+        src={image.variants?.thumbnail || image.url}
+        alt={image.altText || image.title || "Gallery"}
+        className="w-full h-full object-cover"
+      />
+      <button
+        type="button"
+        className="absolute top-1 left-1 bg-black/50 text-white p-1 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition cursor-grab active:cursor-grabbing"
+        aria-label={`Reorder gallery image ${index + 1}`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-3 h-3" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition hover:bg-red-600"
+      >
+        <X className="w-3 h-3" />
+      </button>
     </div>
   );
 };
@@ -563,6 +606,27 @@ const EditPackage = () => {
     setFormData({
       ...formData,
       imageGallary: formData.imageGallary.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleGalleryDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setFormData((prev) => {
+      const oldIndex = prev.imageGallary.findIndex(
+        (img, index) => getGalleryImageId(img, index) === active.id
+      );
+      const newIndex = prev.imageGallary.findIndex(
+        (img, index) => getGalleryImageId(img, index) === over.id
+      );
+
+      if (oldIndex === -1 || newIndex === -1) return prev;
+
+      return {
+        ...prev,
+        imageGallary: arrayMove(prev.imageGallary, oldIndex, newIndex),
+      };
     });
   };
 
@@ -2509,33 +2573,41 @@ const EditPackage = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {formData.imageGallary.map((img, index) => (
-                <div
-                  key={`new-${index}`}
-                  className="relative aspect-square rounded-lg overflow-hidden group border border-gray-200"
-                >
-                  <img
-                    src={img.variants?.thumbnail || img.url}
-                    alt="Gallery"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeGalleryImage(index)}
-                    className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition hover:bg-red-600"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleGalleryDragEnd}
+            >
+              <SortableContext
+                items={formData.imageGallary.map((img, index) =>
+                  getGalleryImageId(img, index)
+                )}
+                strategy={rectSortingStrategy}
+              >
+                <div className="grid grid-cols-3 gap-2">
+                  {formData.imageGallary.map((img, index) => (
+                    <SortableGalleryImage
+                      key={getGalleryImageId(img, index)}
+                      id={getGalleryImageId(img, index)}
+                      image={img}
+                      index={index}
+                      onRemove={removeGalleryImage}
+                    />
+                  ))}
 
-              {formData.imageGallary.length === 0 && (
-                <div className="col-span-3 py-4 sm:py-6 text-center text-gray-400 text-xs sm:text-sm italic bg-gray-50 rounded-lg">
-                  No gallery images yet
+                  {formData.imageGallary.length === 0 && (
+                    <div className="col-span-3 py-4 sm:py-6 text-center text-gray-400 text-xs sm:text-sm italic bg-gray-50 rounded-lg">
+                      No gallery images yet
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </SortableContext>
+            </DndContext>
+            {formData.imageGallary.length > 1 && (
+              <p className="mt-3 text-xs text-gray-500">
+                Drag images by the handle to change gallery order.
+              </p>
+            )}
           </div>
 
           {/* Package Details */}

@@ -62,6 +62,20 @@ const TourDetailPage = ({
     message: "",
   });
 
+  const closeGalleryLightbox = () => setSelectedImageIndex(null);
+  const goToPreviousGalleryImage = () => {
+    setSelectedImageIndex((prev) => {
+      if (prev === null) return prev;
+      return prev > 0 ? prev - 1 : galleryWithoutMain.length - 1;
+    });
+  };
+  const goToNextGalleryImage = () => {
+    setSelectedImageIndex((prev) => {
+      if (prev === null) return prev;
+      return prev < galleryWithoutMain.length - 1 ? prev + 1 : 0;
+    });
+  };
+
   const getRatingStars = (rating) => {
     const value = String(rating || "").toLowerCase();
     if (!value) return 0;
@@ -384,6 +398,32 @@ const TourDetailPage = ({
     const mainKey = getMediaUniqueKey(mainImageMedia);
     return key && key !== mainKey;
   });
+
+  const activeGalleryMedia =
+    selectedImageIndex !== null ? galleryWithoutMain[selectedImageIndex] || null : null;
+
+  useEffect(() => {
+    if (selectedImageIndex === null) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeGalleryLightbox();
+      } else if (event.key === "ArrowLeft") {
+        goToPreviousGalleryImage();
+      } else if (event.key === "ArrowRight") {
+        goToNextGalleryImage();
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedImageIndex, galleryWithoutMain.length]);
 
   const normalizeActivities = (activities) => {
     if (!Array.isArray(activities)) return [];
@@ -1666,62 +1706,110 @@ const TourDetailPage = ({
       {/* Lightbox Modal */}
       {selectedImageIndex !== null && galleryWithoutMain.length > 0 && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
-          onClick={() => setSelectedImageIndex(null)}
+          className="fixed inset-0 z-50 bg-[rgba(18,18,18,0.92)] backdrop-blur-[2px]"
+          onClick={closeGalleryLightbox}
         >
-          <div className="relative max-w-4xl max-h-full p-4 flex items-center">
-            {/* Previous Button */}
-            <button
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 transition-colors z-10"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedImageIndex((prev) =>
-                  prev > 0 ? prev - 1 : galleryWithoutMain.length - 1
-                );
-              }}
+          <div className="relative flex h-full w-full flex-col px-4 pb-5 pt-6 sm:px-6 lg:px-10">
+            <div className="mb-4 flex items-start justify-between gap-4 text-white">
+              <div className="text-2xl font-medium tracking-tight">
+                {selectedImageIndex + 1} / {galleryWithoutMain.length}
+              </div>
+              <button
+                type="button"
+                className="rounded-full p-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  closeGalleryLightbox();
+                }}
+                aria-label="Close gallery"
+              >
+                <X className="h-7 w-7" />
+              </button>
+            </div>
+
+            <div
+              className="relative flex min-h-0 flex-1 items-center justify-center"
+              onClick={(event) => event.stopPropagation()}
             >
-              <ChevronLeft className="w-8 h-8" />
+              <div className="relative flex max-h-full w-full max-w-6xl items-center justify-center">
+            <button
+                  type="button"
+                  className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white transition hover:bg-black/55"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    goToPreviousGalleryImage();
+                  }}
+                  aria-label="Previous image"
+            >
+                  <ChevronLeft className="h-10 w-10" />
             </button>
 
-            {/* Image */}
-            {(() => {
-              const currentMedia = galleryWithoutMain[selectedImageIndex];
-              const src = getMediaUrl(currentMedia, "large");
-              return (
+                {activeGalleryMedia && (
+                  <div className="relative max-h-full w-full">
                 <img
-                  src={src}
-                  srcSet={getMediaSrcSet(currentMedia)}
-                  alt={getMediaAlt(currentMedia, "Gallery")}
-                  className="max-w-full max-h-full object-contain"
-                  onClick={(e) => e.stopPropagation()}
+                      src={getMediaUrl(activeGalleryMedia, "large")}
+                      srcSet={getMediaSrcSet(activeGalleryMedia)}
+                      alt={getMediaAlt(activeGalleryMedia, "Gallery")}
+                      className="mx-auto max-h-[68vh] w-auto max-w-full object-contain shadow-2xl"
                 />
-              );
-            })()}
+                    <div className="absolute bottom-0 left-1/2 max-w-[80%] -translate-x-1/2 bg-black/55 px-5 py-2 text-center text-xl text-white/95">
+                      {String(
+                        activeGalleryMedia?.title ||
+                          activeGalleryMedia?.originalName ||
+                          getMediaAlt(activeGalleryMedia, "Gallery image")
+                      )
+                        .replace(/\.[^.]+$/, "")
+                        .replace(/[-_]+/g, " ")}
+                    </div>
+                  </div>
+                )}
 
-            {/* Next Button */}
             <button
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 transition-colors z-10"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedImageIndex((prev) =>
-                  prev < galleryWithoutMain.length - 1 ? prev + 1 : 0
-                );
-              }}
+                  type="button"
+                  className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white transition hover:bg-black/55"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    goToNextGalleryImage();
+                  }}
+                  aria-label="Next image"
             >
-              <ChevronRight className="w-8 h-8" />
+                  <ChevronRight className="h-10 w-10" />
             </button>
+              </div>
+            </div>
 
-            {/* Close Button */}
-            <button
-              className="absolute top-2 right-2 text-white hover:text-gray-300 transition-colors"
-              onClick={() => setSelectedImageIndex(null)}
+            <div
+              className="mt-5 overflow-x-auto"
+              onClick={(event) => event.stopPropagation()}
             >
-              <X className="w-8 h-8" />
-            </button>
-
-            {/* Image Counter */}
-            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-white text-sm">
-              {selectedImageIndex + 1} / {galleryWithoutMain.length}
+              <div className="mx-auto flex w-max min-w-full justify-start gap-3 px-1 sm:justify-center">
+                {galleryWithoutMain.map((media, index) => {
+                  const thumbSrc = getMediaUrl(media, "thumbnail") || getMediaUrl(media, "small");
+                  if (!thumbSrc) return null;
+                  const isActive = index === selectedImageIndex;
+                  return (
+                    <button
+                      key={getMediaUniqueKey(media) || index}
+                      type="button"
+                      className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-sm border transition sm:h-20 sm:w-28 ${
+                        isActive
+                          ? "border-white ring-2 ring-white/70"
+                          : "border-white/15 opacity-75 hover:opacity-100"
+                      }`}
+                      onClick={() => setSelectedImageIndex(index)}
+                      aria-label={`Open gallery image ${index + 1}`}
+                    >
+                      <img
+                        src={thumbSrc}
+                        srcSet={getMediaSrcSet(media)}
+                        alt={getMediaAlt(media, `Gallery ${index + 1}`)}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
