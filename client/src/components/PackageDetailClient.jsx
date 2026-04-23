@@ -1753,13 +1753,7 @@ const TourDetailPage = ({
                       className="mx-auto max-h-[68vh] w-auto max-w-full object-contain shadow-2xl"
                 />
                     <div className="absolute bottom-0 left-1/2 max-w-[80%] -translate-x-1/2 bg-black/55 px-5 py-2 text-center text-xl text-white/95">
-                      {String(
-                        activeGalleryMedia?.title ||
-                          activeGalleryMedia?.originalName ||
-                          getMediaAlt(activeGalleryMedia, "Gallery image")
-                      )
-                        .replace(/\.[^.]+$/, "")
-                        .replace(/[-_]+/g, " ")}
+                      {getMediaAlt(activeGalleryMedia, "Gallery image")}
                     </div>
                   </div>
                 )}

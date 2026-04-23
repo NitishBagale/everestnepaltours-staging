@@ -16,6 +16,37 @@ const normalizeUrl = (value) => {
   return `${base}/${value}`;
 };
 
+export const humanizeMediaName = (value = "") => {
+  const withoutExtension = String(value || "")
+    .split("/")
+    .pop()
+    .replace(/\.[^.]+$/, "");
+
+  if (!withoutExtension) return "";
+
+  const parts = withoutExtension
+    .split(/[-_\s]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length > 1) {
+    const lastPart = parts[parts.length - 1];
+    const looksGenerated =
+      /^[a-z0-9]{5,12}$/i.test(lastPart) &&
+      /[a-z]/i.test(lastPart) &&
+      /\d/.test(lastPart);
+
+    if (looksGenerated) {
+      parts.pop();
+      if (parts.length > 1 && /^[a-z0-9]$/i.test(parts[parts.length - 1])) {
+        parts.pop();
+      }
+    }
+  }
+
+  return parts.join(" ");
+};
+
 export const getMediaObject = (value) => {
   if (!value) return null;
   if (typeof value === "string") {
@@ -42,7 +73,13 @@ export const getMediaUrl = (media, preferred = "large") => {
 export const getMediaAlt = (media, fallback = "") => {
   if (!media) return fallback;
   if (typeof media === "string") return fallback;
-  return media.altText || media.title || fallback;
+  return (
+    humanizeMediaName(media.altText) ||
+    humanizeMediaName(media.title) ||
+    humanizeMediaName(media.originalName) ||
+    humanizeMediaName(media.url) ||
+    fallback
+  );
 };
 
 export const getMediaSrcSet = (media) => {

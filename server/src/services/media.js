@@ -89,6 +89,9 @@ function humanizeMediaName(value = "") {
 
         if (looksGenerated) {
             parts.pop();
+            if (parts.length > 1 && /^[a-z0-9]$/i.test(parts[parts.length - 1])) {
+                parts.pop();
+            }
         }
     }
 
