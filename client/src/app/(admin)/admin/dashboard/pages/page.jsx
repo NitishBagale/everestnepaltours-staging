@@ -1089,17 +1089,21 @@ const CmsAdminPage = () => {
 
   const handleGalleryMediaSelect = (media) => {
     if (!galleryTargetSectionId) return;
+    const selectedMedia = Array.isArray(media) ? media : [media];
 
     updateSectionDataLocal(galleryTargetSectionId, (data) => {
       const current = Array.isArray(data.galleryImages) ? data.galleryImages : [];
       const existingIds = new Set(
         current.map((img) => String(img?.mediaId || img?.url || ""))
       );
-      const key = String(media?.mediaId || media?.url || "");
-      if (existingIds.has(key)) return data;
+      const newImages = selectedMedia.filter((img) => {
+        const key = String(img?.mediaId || img?.url || "");
+        return key && !existingIds.has(key);
+      });
+      if (newImages.length === 0) return data;
       return {
         ...data,
-        galleryImages: [...current, media],
+        galleryImages: [...current, ...newImages],
       };
     });
   };
@@ -2431,6 +2435,7 @@ const CmsAdminPage = () => {
         onOpenChange={setGalleryModalOpen}
         onSelect={handleGalleryMediaSelect}
         title="Add Gallery Image"
+        multiple
       />
     </div>
   );

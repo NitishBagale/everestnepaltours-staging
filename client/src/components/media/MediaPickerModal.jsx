@@ -16,6 +16,7 @@ const MediaPickerModal = ({
   onSelect,
   title = "Select Media",
   initialSearch = "",
+  multiple = false,
 }) => {
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
@@ -34,6 +35,7 @@ const MediaPickerModal = ({
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [brokenItemIds, setBrokenItemIds] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -111,6 +113,7 @@ const MediaPickerModal = ({
     setSearch(initialSearch);
     setDebouncedSearch(initialSearch);
     setSelectedFolder("");
+    setSelectedItems([]);
   }, [initialSearch, open]);
 
   const onDrop = useCallback(async (acceptedFiles) => {
@@ -165,6 +168,42 @@ const MediaPickerModal = ({
 
   const thumbnailUrl = (item) =>
     item?.variants?.thumbnail || item?.variants?.small || item?.url;
+
+  const getMediaKey = (media) =>
+    String(media?.mediaId || media?.id || media?.url || "");
+
+  const toSelectedMedia = (item) => ({
+    mediaId: item.id,
+    url: item.url,
+    variants: item.variants || {},
+    title: item.title,
+    altText: item.altText || "",
+    metaData: item.metaData || {},
+  });
+
+  const handleSelectItem = (item) => {
+    const media = toSelectedMedia(item);
+
+    if (!multiple) {
+      onSelect(media);
+      onOpenChange(false);
+      return;
+    }
+
+    const mediaKey = getMediaKey(media);
+    setSelectedItems((prev) => {
+      if (prev.some((selected) => getMediaKey(selected) === mediaKey)) {
+        return prev.filter((selected) => getMediaKey(selected) !== mediaKey);
+      }
+      return [...prev, media];
+    });
+  };
+
+  const handleConfirmSelection = () => {
+    if (selectedItems.length === 0) return;
+    onSelect(selectedItems);
+    onOpenChange(false);
+  };
 
   const handleThumbnailError = (itemId) => {
     setBrokenItemIds((prev) => {
@@ -224,8 +263,8 @@ const MediaPickerModal = ({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[95vw] max-w-5xl max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl sm:h-[90dvh] sm:w-[95vw]">
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
             <Dialog.Title className="text-lg font-semibold text-gray-900">
               {title}
             </Dialog.Title>
@@ -234,7 +273,7 @@ const MediaPickerModal = ({
             </Dialog.Close>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -260,15 +299,15 @@ const MediaPickerModal = ({
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="shrink-0 space-y-2">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Cloudinary Folders
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="max-h-24 overflow-y-auto pr-1 sm:max-h-28">
                 <button
                   type="button"
                   onClick={() => setSelectedFolder("")}
-                  className={`px-3 py-1.5 rounded-full border text-xs font-medium transition ${
+                  className={`mb-2 mr-2 px-3 py-1.5 rounded-full border text-xs font-medium transition ${
                     selectedFolder === ""
                       ? "border-blue-200 bg-blue-50 text-blue-700"
                       : "border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -281,7 +320,7 @@ const MediaPickerModal = ({
                     key={folder}
                     type="button"
                     onClick={() => setSelectedFolder(folder)}
-                    className={`px-3 py-1.5 rounded-full border text-xs font-medium transition ${
+                    className={`mb-2 mr-2 px-3 py-1.5 rounded-full border text-xs font-medium transition ${
                       selectedFolder === folder
                         ? "border-blue-200 bg-blue-50 text-blue-700"
                         : "border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -291,17 +330,17 @@ const MediaPickerModal = ({
                   </button>
                 ))}
                 {!foldersLoading && folders.length === 0 && (
-                  <span className="text-xs text-gray-500">
+                  <span className="inline-block text-xs text-gray-500">
                     No folders found.
                   </span>
                 )}
                 {foldersLoading && (
-                  <span className="text-xs text-gray-500">Loading folders...</span>
+                  <span className="inline-block text-xs text-gray-500">Loading folders...</span>
                 )}
               </div>
             </div>
 
-            <div className="min-h-[320px] max-h-[55vh] overflow-y-auto pr-2">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-2">
               {loading && mediaItems.length === 0 ? (
                 <div className="py-16 text-center text-sm text-gray-500">
                   Loading media...
@@ -314,37 +353,28 @@ const MediaPickerModal = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {mediaItems
                     .filter((item) => !brokenItemIds.includes(item.id))
-                    .map((item) => (
+                    .map((item) => {
+                      const isSelected = selectedItems.some(
+                        (selected) => getMediaKey(selected) === getMediaKey(item)
+                      );
+                      return (
                     <div
                       key={item.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        onSelect({
-                          mediaId: item.id,
-                          url: item.url,
-                          variants: item.variants || {},
-                          title: item.title,
-                          altText: item.altText || "",
-                          metaData: item.metaData || {},
-                        });
-                        onOpenChange(false);
-                      }}
+                      aria-pressed={multiple ? isSelected : undefined}
+                      onClick={() => handleSelectItem(item)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          onSelect({
-                            mediaId: item.id,
-                            url: item.url,
-                            variants: item.variants || {},
-                            title: item.title,
-                            altText: item.altText || "",
-                            metaData: item.metaData || {},
-                          });
-                          onOpenChange(false);
+                          handleSelectItem(item);
                         }
                       }}
-                      className="group relative border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      className={`group relative overflow-hidden rounded-xl border bg-white transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200 ${
+                        isSelected
+                          ? "border-blue-500 ring-2 ring-blue-200"
+                          : "border-gray-200"
+                      } cursor-pointer`}
                     >
                       <div className="aspect-square bg-gray-50">
                         <img
@@ -358,8 +388,16 @@ const MediaPickerModal = ({
                         {item.title || item.originalName}
                       </div>
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/90 text-green-600">
+                      <div
+                        className={`absolute top-2 right-2 transition ${
+                          isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                        }`}
+                      >
+                        <span
+                          className={`inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/90 ${
+                            isSelected ? "text-blue-600" : "text-green-600"
+                          }`}
+                        >
                           <Check className="w-4 h-4" />
                         </span>
                       </div>
@@ -373,21 +411,45 @@ const MediaPickerModal = ({
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               )}
             </div>
 
-            {hasMore && (
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={handleLoadMore}
-                  disabled={loading}
-                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {loading ? "Loading..." : "Load more"}
-                </button>
+            {(hasMore || multiple) && (
+              <div className="shrink-0 border-t border-gray-100 pt-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  {multiple ? (
+                    <div className="text-sm text-gray-600">
+                      {selectedItems.length} selected
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    {hasMore && (
+                      <button
+                        type="button"
+                        onClick={handleLoadMore}
+                        disabled={loading}
+                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+                      >
+                        {loading ? "Loading..." : "Load more"}
+                      </button>
+                    )}
+                    {multiple && (
+                      <button
+                        type="button"
+                        onClick={handleConfirmSelection}
+                        disabled={selectedItems.length === 0}
+                        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                      >
+                        Add selected
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

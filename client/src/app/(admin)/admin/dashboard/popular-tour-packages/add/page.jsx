@@ -363,10 +363,17 @@ const CreatePackage = () => {
   };
 
   const handleGallerySelect = (media) => {
+    const selectedMedia = Array.isArray(media) ? media : [media];
     setFormData((prev) => {
-      const existingIds = new Set(prev.imageGallary.map((img) => img.mediaId));
-      if (existingIds.has(media.mediaId)) return prev;
-      return { ...prev, imageGallary: [...prev.imageGallary, media] };
+      const existingIds = new Set(
+        prev.imageGallary.map((img) => String(img?.mediaId || img?.id || img?.url || ""))
+      );
+      const newImages = selectedMedia.filter((img) => {
+        const key = String(img?.mediaId || img?.id || img?.url || "");
+        return key && !existingIds.has(key);
+      });
+      if (newImages.length === 0) return prev;
+      return { ...prev, imageGallary: [...prev.imageGallary, ...newImages] };
     });
   };
 
@@ -2687,6 +2694,7 @@ const CreatePackage = () => {
         onOpenChange={setGalleryModalOpen}
         onSelect={handleGallerySelect}
         title="Add Gallery Image"
+        multiple
       />
       <MediaPickerModal
         open={overviewImageModalOpen}
