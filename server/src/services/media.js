@@ -67,6 +67,64 @@ function getCloudinaryResourceFolder(resource = {}) {
     );
 }
 
+function humanizeMediaName(value = "") {
+    const withoutExtension = String(value || "")
+        .split("/")
+        .pop()
+        .replace(/\.[^.]+$/, "");
+
+    if (!withoutExtension) return "";
+
+    const parts = withoutExtension
+        .split(/[-_\s]+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    if (parts.length > 1) {
+        const lastPart = parts[parts.length - 1];
+        const looksGenerated =
+            /^[a-z0-9]{5,12}$/i.test(lastPart) &&
+            /[a-z]/i.test(lastPart) &&
+            /\d/.test(lastPart);
+
+        if (looksGenerated) {
+            parts.pop();
+        }
+    }
+
+    return parts.join(" ");
+}
+
+function getMediaAltFromSource({ altText, title, originalName, publicId, url } = {}) {
+    const explicitAlt = String(altText || "").trim();
+    if (explicitAlt) return explicitAlt;
+
+    return (
+        humanizeMediaName(title) ||
+        humanizeMediaName(originalName) ||
+        humanizeMediaName(publicId) ||
+        humanizeMediaName(url)
+    );
+}
+
+function withGeneratedAltText(media) {
+    if (!media) return media;
+    const plainMedia =
+        typeof media.toJSON === "function" ? media.toJSON() : { ...media };
+    const details = getCloudinaryAssetDetails(plainMedia);
+
+    return {
+        ...plainMedia,
+        altText: getMediaAltFromSource({
+            altText: plainMedia.altText,
+            title: plainMedia.title,
+            originalName: plainMedia.originalName,
+            publicId: details?.publicId,
+            url: plainMedia.url,
+        }),
+    };
+}
+
 function chunkArray(items = [], size = 100) {
     const chunks = [];
     for (let index = 0; index < items.length; index += size) {
@@ -76,14 +134,24 @@ function chunkArray(items = [], size = 100) {
 }
 
 function mapCloudinaryResource(resource, mediaRecord = null) {
+    const resourceName = resource.filename || resource.public_id.split("/").pop();
+    const title = mediaRecord?.title || resourceName;
+    const altText = getMediaAltFromSource({
+        altText: mediaRecord?.altText,
+        title,
+        originalName: mediaRecord?.originalName || resourceName,
+        publicId: resource.public_id,
+        url: resource.secure_url,
+    });
+
     return {
         id: mediaRecord?.id || `cloudinary:${resource.public_id}`,
         url: mediaRecord?.url || resource.secure_url,
-        originalName: mediaRecord?.originalName || resource.filename || resource.public_id.split("/").pop(),
+        originalName: mediaRecord?.originalName || resourceName,
         mimeType: mediaRecord?.mimeType || (resource.format ? `image/${resource.format}` : "image/*"),
         size: mediaRecord?.size || resource.bytes || 0,
-        title: mediaRecord?.title || resource.filename || resource.public_id.split("/").pop(),
-        altText: mediaRecord?.altText || "",
+        title,
+        altText,
         width: mediaRecord?.width || resource.width || null,
         height: mediaRecord?.height || resource.height || null,
         variants: mediaRecord?.variants || generateCloudinaryVariants(resource.secure_url),
@@ -398,6 +466,13 @@ async function createMediaService(mediaData) {
 
         const media = await Media.create({
             ...mediaData,
+            altText: getMediaAltFromSource({
+                altText: mediaData.altText,
+                title: mediaData.title,
+                originalName: mediaData.originalName,
+                publicId: metaData?.publicId,
+                url,
+            }),
             variants,
             width,
             height,
@@ -413,7 +488,8 @@ async function createMediaService(mediaData) {
 async function getAllMediaService() {
     try {
         const mediaList = await Media.findAll();
-        return pruneMissingCloudinaryMediaRows(mediaList);
+        const cleanedMediaList = await pruneMissingCloudinaryMediaRows(mediaList);
+        return cleanedMediaList.map(withGeneratedAltText);
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -446,7 +522,7 @@ async function listMediaService({ search = "", page = 1, limit = 24, folder = ""
             : cleanedResult;
         const total = filteredRows.length;
         const offset = (parsedPage - 1) * parsedLimit;
-        const pagedRows = filteredRows.slice(offset, offset + parsedLimit);
+        const pagedRows = filteredRows.slice(offset, offset + parsedLimit).map(withGeneratedAltText);
 
         return {
             data: pagedRows,

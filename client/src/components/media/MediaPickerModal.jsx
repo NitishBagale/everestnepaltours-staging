@@ -379,7 +379,7 @@ const MediaPickerModal = ({
                       <div className="aspect-square bg-gray-50">
                         <img
                           src={thumbnailUrl(item)}
-                          alt={item.title}
+                          alt={item.altText || item.title || item.originalName || "Media image"}
                           className="w-full h-full object-contain"
                           onError={() => handleThumbnailError(item.id)}
                         />
@@ -419,15 +419,17 @@ const MediaPickerModal = ({
 
             {(hasMore || multiple) && (
               <div className="shrink-0 border-t border-gray-100 pt-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  className={`flex flex-col gap-2 sm:flex-row sm:items-center ${
+                    multiple ? "sm:justify-between" : "sm:justify-center"
+                  }`}
+                >
                   {multiple ? (
                     <div className="text-sm text-gray-600">
                       {selectedItems.length} selected
                     </div>
-                  ) : (
-                    <div />
-                  )}
-                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  ) : null}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
                     {hasMore && (
                       <button
                         type="button"
