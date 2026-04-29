@@ -1,15 +1,16 @@
 import React from "react";
 import Image from "next/image";
-import { FaStar } from "react-icons/fa";
 import { getMediaUrl } from "@/lib/media";
 
 // --- Star Rating Component --xf-
 // A small helper component to generate the stars dynamically.
 const StarRating = ({ rating }) => {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 text-yellow-500" aria-label={`${Math.round(rating || 0)} star rating`}>
       {Array.from({ length: Math.round(rating || 0) }).map((_, index) => (
-        <FaStar key={index} className="text-yellow-500" />
+        <span key={index} aria-hidden="true">
+          ★
+        </span>
       ))}
     </div>
   );

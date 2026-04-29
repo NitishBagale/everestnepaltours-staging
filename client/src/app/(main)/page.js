@@ -5,6 +5,8 @@ import WhyWithUsSection from "@/components/WhyWithUsSection";
 import FeaturedPackagesSection from "@/components/FeaturedPackagesSection";
 import React from "react";
 import { getHomePageData } from "@/lib/siteApi";
+import { preconnect, preload } from "react-dom";
+import { getMediaObject, getMediaUrl, getOptimizedCloudinaryUrl } from "@/lib/media";
 
 export const metadata = {
   title: "Everest Vacation | Nepal, Bhutan & Tibet Tours",
@@ -16,6 +18,24 @@ export const metadata = {
 
 const page = async () => {
   const homeData = await getHomePageData();
+  const firstSlide = homeData.heroImages?.[0];
+  const firstSlideUrl = getMediaUrl(getMediaObject(firstSlide), "large") || firstSlide?.url || "";
+
+  preconnect("https://res.cloudinary.com");
+
+  if (firstSlideUrl) {
+    preload(
+      getOptimizedCloudinaryUrl(firstSlideUrl, {
+        width: 1600,
+        quality: "auto:good",
+      }),
+      {
+        as: "image",
+        fetchPriority: "high",
+        imageSizes: "100vw",
+      }
+    );
+  }
 
   return (
     <div>

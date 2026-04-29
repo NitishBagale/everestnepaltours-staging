@@ -1,35 +1,58 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import config, { BASE_URL } from "@/config/Config";
-import axios from "axios";
+import {
+  getMediaAlt,
+  getMediaObject,
+  getMediaUrl,
+  getOptimizedCloudinaryUrl,
+} from "@/lib/media";
 
-const Hero = () => {
-  const [images, setImages] = useState([]);
+const HERO_IMAGE_WIDTHS = [640, 960, 1280, 1600, 1920];
+
+const getHeroImageSources = (image) => {
+  const media = getMediaObject(image);
+  const originalUrl = getMediaUrl(media, "large") || getMediaUrl(media, "medium") || image?.url || "";
+  const fallbackUrl = originalUrl || "/bhutan.jpg";
+
+  if (!originalUrl) {
+    return {
+      src: fallbackUrl,
+      srcSet: "",
+    };
+  }
+
+  if (!fallbackUrl.includes("res.cloudinary.com")) {
+    return {
+      src: fallbackUrl,
+      srcSet: "",
+    };
+  }
+
+  return {
+    src: getOptimizedCloudinaryUrl(fallbackUrl, {
+      width: 1600,
+      quality: "auto:good",
+    }),
+    srcSet: HERO_IMAGE_WIDTHS.map((width) =>
+      `${getOptimizedCloudinaryUrl(fallbackUrl, {
+        width,
+        quality: "auto:good",
+      })} ${width}w`
+    ).join(", "),
+  };
+};
+
+const Hero = ({ slides = [] }) => {
+  const [images, setImages] = useState(slides);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
   useEffect(() => {
-    const fetchHeroImages = async () => {
-      try {
-        const response = await axios.get(`${BASE_URL}/settings/get`);
-        console.log(response.data);
-
-        const heroSetting = response.data?.data?.find(
-          (setting) => setting.name === "hero"
-        );
-
-        if (heroSetting?.settings?.images) {
-          setImages(heroSetting.settings.images);
-        }
-      } catch (error) {
-        console.error("Error fetching hero images:", error);
-      }
-    };
-    fetchHeroImages();
-  }, []);
+    setImages(Array.isArray(slides) ? slides : []);
+  }, [slides]);
 
   // Auto slide every 3 seconds
   useEffect(() => {
@@ -71,16 +94,31 @@ const Hero = () => {
       {/* Slides */}
       {images.map((image, index) => (
         <div
-          key={image.id}
+          key={image.id || image.url || `hero-slide-${index}`}
           className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ${
             index === currentIndex ? "opacity-100" : "opacity-0"
           }`}
         >
+          {(() => {
+            const { src, srcSet } = getHeroImageSources(image);
+            const alt = getMediaAlt(
+              getMediaObject(image),
+              image.title || image.alt || "Hero image"
+            );
+
+            return (
           <img
-            src={image.url}
-            alt={image.title || image.alt || "Hero image"}
+            src={src}
+            srcSet={srcSet || undefined}
+            sizes="100vw"
+            alt={alt}
             className="w-full h-full object-cover"
+            loading={index === 0 ? "eager" : "lazy"}
+            fetchPriority={index === 0 ? "high" : "auto"}
+            decoding={index === 0 ? "sync" : "async"}
           />
+            );
+          })()}
 
           {(image.title || image.caption) && (
             <div className="absolute inset-x-0 top-16 sm:top-20 md:top-24 text-white">
@@ -115,12 +153,15 @@ const Hero = () => {
       {/* Vertical circle indicators on right side */}
       <div className="absolute right-2 sm:right-4 md:right-5 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 sm:gap-3 z-10">
         {images.map((_, idx) => (
-          <span
+          <button
             key={idx}
+            type="button"
             className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer transition-all duration-300 ${
               currentIndex === idx ? "bg-white scale-125" : "bg-gray-400"
             }`}
             onClick={() => setCurrentIndex(idx)}
+            aria-label={`Go to hero slide ${idx + 1}`}
+            aria-pressed={currentIndex === idx}
           />
         ))}
       </div>

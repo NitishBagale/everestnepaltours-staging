@@ -98,3 +98,28 @@ export const getMediaUniqueKey = (media) => {
   if (typeof media === "string") return media;
   return media.mediaId || media.id || media.url || "";
 };
+
+const CLOUDINARY_UPLOAD_SEGMENT = "/image/upload/";
+
+export const isCloudinaryUrl = (value = "") =>
+  String(value).includes("res.cloudinary.com") &&
+  String(value).includes(CLOUDINARY_UPLOAD_SEGMENT);
+
+export const getOptimizedCloudinaryUrl = (value, options = {}) => {
+  const normalized = normalizeUrl(value || "");
+  if (!normalized || !isCloudinaryUrl(normalized)) return normalized;
+
+  const transformations = [
+    options.crop ? `c_${options.crop}` : "",
+    Number.isFinite(Number(options.width)) ? `w_${Number(options.width)}` : "",
+    Number.isFinite(Number(options.height)) ? `h_${Number(options.height)}` : "",
+    options.gravity ? `g_${options.gravity}` : "",
+    options.format || "f_auto",
+    options.quality ? `q_${options.quality}` : "q_auto",
+  ].filter(Boolean);
+
+  return normalized.replace(
+    CLOUDINARY_UPLOAD_SEGMENT,
+    `${CLOUDINARY_UPLOAD_SEGMENT}${transformations.join(",")}/`
+  );
+};

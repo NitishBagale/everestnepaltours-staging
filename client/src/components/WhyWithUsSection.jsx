@@ -29,7 +29,7 @@ const WhyWithUsSection = ({
   const lines = data.title ? data.title.split("\n").filter(Boolean) : [];
 
   return (
-    <section className="bg-[rgb(53,165,118)] text-white">
+    <section className="bg-[#1f6a4a] text-white">
       <div className="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-12 sm:py-14 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8 sm:gap-10 lg:gap-14 items-center">
           <div>
@@ -46,7 +46,7 @@ const WhyWithUsSection = ({
               </h3>
             )}
             {data.description && (
-              <p className="mt-4 text-lg text-white/90">
+              <p className="mt-4 text-lg text-white">
                 {data.description}
               </p>
             )}
@@ -59,13 +59,13 @@ const WhyWithUsSection = ({
                 return (
                   <div
                     key={`${item.title}-${index}`}
-                    className="flex items-center gap-4 rounded-2xl border border-white/30 bg-white/5 px-4 sm:px-5 py-3 sm:py-4"
+                    className="flex items-center gap-4 rounded-2xl border border-white/45 bg-white/14 px-4 sm:px-5 py-3 sm:py-4"
                     style={{ fontFamily: "var(--font-museo)" }}
                   >
-                    <span className="inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/10">
-                      <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white/80" />
+                    <span className="inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/18">
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </span>
-                    <span className="text-lg font-semibold">
+                    <span className="text-lg font-semibold text-white">
                       {item.title}
                     </span>
                   </div>
