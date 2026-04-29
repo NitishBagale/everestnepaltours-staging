@@ -21,14 +21,16 @@ const museoModerno = MuseoModerno({
 });
 
 export const metadata = {
-  title: "Everest Vacation ",
-  description: "Everest Vacation ",
+  metadataBase: new URL("https://www.everestvacations.com"),
+  title: "Everest Vacation",
+  description: "Tailor-made Nepal, Bhutan, and Tibet journeys with local expertise and trusted support.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
+        id="top"
         className={`${poppins.variable} ${geistMono.variable} ${museoModerno.variable} antialiased`}
       >
         <Navbar />

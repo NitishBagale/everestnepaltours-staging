@@ -1,19 +1,8 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
 import { FaChevronUp } from "react-icons/fa";
 
 const Footer = () => {
-  // Function to scroll the window to the top smoothly
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
-
   const supportLinks = [
     { href: "/about-us", label: "About Us" },
     { href: "/meet-the-owner", label: "Meet the Owner" },
@@ -174,20 +163,26 @@ const Footer = () => {
         </div>
 
         {/* Floating "Scroll to Top" Button */}
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 bg-[#9ccc65] hover:bg-[#8bc34a] text-white w-10 sm:w-12 h-10 sm:h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-40"
+        <a
+          href="#top"
+          className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 bg-[#51792f] hover:bg-[#456826] text-white w-10 sm:w-12 h-10 sm:h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-40"
           aria-label="Scroll to top"
         >
           <FaChevronUp className="text-[18px] sm:text-[20px]" />
-        </button>
+        </a>
       </footer>
 
       {/* Chat Widget and Trigger */}
 
-      <button className="fixed bottom-0 left-4 sm:left-8 bg-[#9ccc65] hover:bg-[#8bc34a] text-white py-2 sm:py-3 px-4 sm:px-6 rounded-t-lg shadow-lg transition-colors text-base whitespace-nowrap z-40">
+      <a
+        href="https://wa.me/9779851053024"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-0 left-4 sm:left-8 bg-[#51792f] hover:bg-[#456826] text-white py-2 sm:py-3 px-4 sm:px-6 rounded-t-lg shadow-lg transition-colors text-base whitespace-nowrap z-40"
+        aria-label="Chat with us on WhatsApp"
+      >
         Chat with us
-      </button>
+      </a>
     </>
   );
 };

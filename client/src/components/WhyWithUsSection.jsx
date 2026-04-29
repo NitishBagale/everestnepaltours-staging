@@ -1,8 +1,3 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { BASE_URL } from "@/config/Config";
 import {
   Medal,
   HandCoins,
@@ -21,29 +16,13 @@ const iconMap = {
   CalendarDays,
 };
 
-const WhyWithUsSection = () => {
-  const [data, setData] = useState({
+const WhyWithUsSection = ({
+  data = {
     title: "",
     description: "",
     items: [],
-  });
-
-  useEffect(() => {
-    const fetchWhy = async () => {
-      try {
-        const response = await axios.get(`${BASE_URL}/settings/get`);
-        const heroSetting = response.data?.data?.find(
-          (setting) => setting.name === "hero"
-        );
-        if (heroSetting?.settings?.whyWithUs) {
-          setData(heroSetting.settings.whyWithUs);
-        }
-      } catch (error) {
-        console.error("Error fetching why-with-us section:", error);
-      }
-    };
-    fetchWhy();
-  }, []);
+  },
+}) => {
 
   if (!data.title && !data.description && !data.items?.length) return null;
 

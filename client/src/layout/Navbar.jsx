@@ -157,8 +157,10 @@ export default function Navbar() {
           </div>
 
           <button
+            type="button"
             onClick={() => setIsMenuOpen(true)}
             className="md:hidden text-gray-700 p-1"
+            aria-label="Open navigation menu"
           >
             <Menu className="w-8 h-8" />
           </button>
@@ -181,9 +183,10 @@ export default function Navbar() {
                   >
                     <button
                       type="button"
-                      className="flex items-center uppercase font-semibold text-base text-[#35a576] hover:text-green-900 h-full border-b-2 border-transparent hover:border-green-600 transition-all"
+                      className="flex items-center uppercase font-semibold text-base text-[#1f6a4a] hover:text-green-900 h-full border-b-2 border-transparent hover:border-green-600 transition-all"
                       aria-haspopup="true"
                       aria-expanded="false"
+                      aria-label={`${link.label} submenu`}
                     >
                       {link.label}
                       <ChevronDown className="ml-1 w-4 h-4" />
@@ -205,7 +208,7 @@ export default function Navbar() {
                   <Link
                     key={i}
                     href={link.href}
-                    className="h-full flex items-center uppercase font-semibold text-base text-[#35a576] hover:text-green-900 border-b-2 border-transparent hover:border-green-600 transition-all"
+                    className="h-full flex items-center uppercase font-semibold text-base text-[#1f6a4a] hover:text-green-900 border-b-2 border-transparent hover:border-green-600 transition-all"
                   >
                     {link.label}
                   </Link>
@@ -215,8 +218,10 @@ export default function Navbar() {
           </div>
 
           <button
+            type="button"
             onClick={() => setIsMenuOpen(true)}
             className="text-gray-500 hover:text-green-700"
+            aria-label="Open navigation menu"
           >
             <Menu className="w-8 h-8" />
           </button>
@@ -231,8 +236,10 @@ export default function Navbar() {
         <div className="flex justify-between items-center p-5 border-b border-gray-100">
           <span className="font-bold text-lg text-green-700">Menu</span>
           <button
+            type="button"
             onClick={() => setIsMenuOpen(false)}
             className="p-1 rounded-full hover:bg-gray-100"
+            aria-label="Close navigation menu"
           >
             <X className="w-6 h-6 text-gray-600" />
           </button>
@@ -244,12 +251,15 @@ export default function Navbar() {
               {link.dropdown ? (
                 <>
                   <button
+                    type="button"
                     onClick={() =>
                       setMobileDropdown(
                         mobileDropdown === link.label ? null : link.label
                       )
                     }
                     className="flex justify-between w-full py-4 font-bold text-gray-800 uppercase hover:text-green-700 text-base"
+                    aria-expanded={mobileDropdown === link.label}
+                    aria-label={`Toggle ${link.label} submenu`}
                   >
                     {link.label}
                     <ChevronDown

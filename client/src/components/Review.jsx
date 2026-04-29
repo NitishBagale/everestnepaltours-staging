@@ -1,10 +1,6 @@
-"use client";
-
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import Image from "next/image";
 import { FaStar } from "react-icons/fa";
-import axios from "axios";
-import { BASE_URL } from "@/config/Config";
 import { getMediaUrl } from "@/lib/media";
 
 // --- Star Rating Component --xf-
@@ -20,45 +16,18 @@ const StarRating = ({ rating }) => {
 };
 
 // --- Main Review Component ---
-const Review = () => {
-  const [sectionTitle, setSectionTitle] = useState("Recent Review");
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [reviews, setReviews] = useState([]);
-
-  useEffect(() => {
-    const fetchSettingsAndReviews = async () => {
-      try {
-        const [settingsRes, reviewsRes] = await Promise.all([
-          axios.get(`${BASE_URL}/settings/get`),
-          axios.get(`${BASE_URL}/review/?limit=200`),
-        ]);
-
-        const heroSetting = settingsRes.data?.data?.find(
-          (setting) => setting.name === "hero"
-        );
-        const reviewSection = heroSetting?.settings?.reviews || {};
-        setSectionTitle(reviewSection.title || "Recent Review");
-        setSelectedIds(
-          Array.isArray(reviewSection.reviewIds)
-            ? reviewSection.reviewIds.map(String)
-            : []
-        );
-
-        setReviews(reviewsRes.data?.data || []);
-      } catch (error) {
-        console.error("Error fetching review section:", error);
-      }
-    };
-    fetchSettingsAndReviews();
-  }, []);
-
-  const selectedReviews = useMemo(() => {
+const Review = ({
+  sectionTitle = "Recent Review",
+  selectedIds = [],
+  reviews = [],
+}) => {
+  const selectedReviews = (() => {
     if (!selectedIds.length) return [];
     const map = new Map(
       reviews.map((review) => [String(review.id || review._id), review])
     );
     return selectedIds.map((id) => map.get(String(id))).filter(Boolean);
-  }, [reviews, selectedIds]);
+  })();
 
   if (!selectedReviews.length) return null;
 
@@ -67,7 +36,7 @@ const Review = () => {
       <div className="max-w-screen-2xl mx-auto">
         {/* Section Header */}
         <div className="mb-4 sm:mb-5 lg:mb-7">
-          <h2 className="flex items-center gap-2 sm:gap-3 text-3xl font-semibold text-[#3c9f87]">
+          <h2 className="flex items-center gap-2 sm:gap-3 text-3xl font-semibold text-[#256f5d]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width={20}

@@ -1,17 +1,11 @@
-"use client";
-
-import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { BASE_URL } from "@/config/Config";
+import Image from "next/image";
+import Link from "next/link";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
-import { useRouter } from "next/navigation";
 import { Clock } from "lucide-react";
 import {
-  buildReviewCountMap,
   getPackageCardAlt,
   getPackageKeys,
   getPackageReviewCount,
-  normalizePackageRecord,
 } from "@/lib/packageListing";
 
 const toSlugFallback = (value) =>
@@ -25,48 +19,16 @@ const toSlugFallback = (value) =>
         .replace(/^-+|-+$/g, "")
     : "";
 
-const FeaturedPackagesSection = () => {
-  const [featured, setFeatured] = useState({
+const FeaturedPackagesSection = ({
+  featured = {
     title: "",
     description: "",
     packageIds: [],
-  });
-  const [packages, setPackages] = useState([]);
-  const [reviewCountMap, setReviewCountMap] = useState({});
-  const router = useRouter();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [settingsRes, packagesRes] = await Promise.all([
-          axios.get(`${BASE_URL}/settings/get`),
-          axios.get(`${BASE_URL}/package-tour/`),
-        ]);
-
-        const heroSetting = settingsRes.data?.data?.find(
-          (setting) => setting.name === "hero"
-        );
-        if (heroSetting?.settings?.featuredPackages) {
-          setFeatured(heroSetting.settings.featuredPackages);
-        }
-
-        const list = packagesRes.data?.data || packagesRes.data || [];
-        setPackages(list.map(normalizePackageRecord));
-        const reviewsRes = await axios
-          .get(`${BASE_URL}/review/?limit=5000`)
-          .catch(() => null);
-        const reviews = reviewsRes
-          ? reviewsRes.data?.data || reviewsRes.data?.reviews || reviewsRes.data || []
-          : [];
-        setReviewCountMap(buildReviewCountMap(reviews));
-      } catch (error) {
-        console.error("Error fetching featured packages:", error);
-      }
-    };
-    fetchData();
-  }, []);
-
-  const selected = useMemo(() => {
+  },
+  packages = [],
+  reviewCountMap = {},
+}) => {
+  const selected = (() => {
     const ids = (featured.packageIds || [])
       .map((id) => String(id || "").trim())
       .filter(Boolean);
@@ -75,7 +37,7 @@ const FeaturedPackagesSection = () => {
       getPackageKeys(pkg).forEach((key) => map.set(key, pkg));
     });
     return ids.map((id) => map.get(id)).filter(Boolean);
-  }, [packages, featured.packageIds]);
+  })();
 
   if (!featured.title && !featured.description && selected.length === 0) {
     return null;
@@ -108,31 +70,35 @@ const FeaturedPackagesSection = () => {
                 item.sub_description || item.subDescription || "";
 
               return (
-                <div
+                <article
                   key={item.id ?? item._id ?? index}
                   className="flex flex-col bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200"
                 >
-                  <div
-                    className="relative h-56 w-full overflow-hidden cursor-pointer"
-                    onClick={() => slug && router.push(`/${slug}`)}
+                  <Link
+                    href={slug ? `/${slug}` : "/"}
+                    className="relative block h-56 w-full overflow-hidden"
+                    aria-label={`View details for ${item.title || "featured package"}`}
                   >
-                    <img
+                    <Image
                       src={imageSrc}
                       alt={imageAlt}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      quality={76}
+                      className="object-cover transition-transform duration-500 hover:scale-105"
                     />
-                  </div>
+                  </Link>
                   <div className="pt-4 px-4 pb-5">
                     <h3 className="text-lg font-semibold text-gray-800 mb-2 leading-tight">
                       {item.title || "Featured Package"}
                     </h3>
                     {description ? (
                       <p
-                        className="text-base text-emerald-500 leading-relaxed"
+                        className="text-base text-emerald-700 leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: description }}
                       />
                     ) : (
-                      <p className="text-base text-emerald-500 leading-relaxed">
+                      <p className="text-base text-emerald-700 leading-relaxed">
                         Explore this featured package.
                       </p>
                     )}
@@ -147,15 +113,15 @@ const FeaturedPackagesSection = () => {
                           {item.tourType || item.type || "Private Tour"}
                         </span>
                       </div>
-                      <button
-                        onClick={() => slug && router.push(`/${slug}`)}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
+                      <Link
+                        href={slug ? `/${slug}` : "/"}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
                       >
                         View Details
-                      </button>
+                      </Link>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
