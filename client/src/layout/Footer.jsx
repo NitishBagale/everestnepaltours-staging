@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { FaChevronUp } from "react-icons/fa";
 
 const Footer = () => {
   const supportLinks = [
@@ -19,7 +18,7 @@ const Footer = () => {
 
   return (
     <>
-      <footer className="bg-[#35a576] text-white px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 relative">
+      <footer className="bg-[#1f6a4a] text-white px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 relative">
         <div className="container mx-auto">
           {/* Main content grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 text-base">
@@ -165,10 +164,10 @@ const Footer = () => {
         {/* Floating "Scroll to Top" Button */}
         <a
           href="#top"
-          className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 bg-[#51792f] hover:bg-[#456826] text-white w-10 sm:w-12 h-10 sm:h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-40"
+          className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 bg-[#51792f] hover:bg-[#456826] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-40"
           aria-label="Scroll to top"
         >
-          <FaChevronUp className="text-[18px] sm:text-[20px]" />
+          <span aria-hidden="true" className="text-[20px] leading-none">↑</span>
         </a>
       </footer>
 
@@ -178,7 +177,7 @@ const Footer = () => {
         href="https://wa.me/9779851053024"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-0 left-4 sm:left-8 bg-[#51792f] hover:bg-[#456826] text-white py-2 sm:py-3 px-4 sm:px-6 rounded-t-lg shadow-lg transition-colors text-base whitespace-nowrap z-40"
+        className="fixed bottom-0 left-4 sm:left-8 bg-[#51792f] hover:bg-[#456826] text-white py-3 px-5 rounded-t-lg shadow-lg transition-colors text-base whitespace-nowrap z-40 min-h-11"
         aria-label="Chat with us on WhatsApp"
       >
         Chat with us

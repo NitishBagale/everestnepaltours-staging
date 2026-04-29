@@ -8,7 +8,7 @@ import {
   getOptimizedCloudinaryUrl,
 } from "@/lib/media";
 
-const HERO_IMAGE_WIDTHS = [640, 960, 1280, 1600, 1920];
+const HERO_IMAGE_WIDTHS = [480, 768, 960, 1280, 1536];
 
 const getHeroImageSources = (image) => {
   const media = getMediaObject(image);
@@ -31,13 +31,13 @@ const getHeroImageSources = (image) => {
 
   return {
     src: getOptimizedCloudinaryUrl(fallbackUrl, {
-      width: 1600,
-      quality: "auto:good",
+      width: 1280,
+      quality: "auto:eco",
     }),
     srcSet: HERO_IMAGE_WIDTHS.map((width) =>
       `${getOptimizedCloudinaryUrl(fallbackUrl, {
         width,
-        quality: "auto:good",
+        quality: "auto:eco",
       })} ${width}w`
     ).join(", "),
   };
@@ -156,13 +156,17 @@ const Hero = ({ slides = [] }) => {
           <button
             key={idx}
             type="button"
-            className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer transition-all duration-300 ${
-              currentIndex === idx ? "bg-white scale-125" : "bg-gray-400"
-            }`}
+            className="flex h-11 w-11 items-center justify-center -my-3"
             onClick={() => setCurrentIndex(idx)}
             aria-label={`Go to hero slide ${idx + 1}`}
-            aria-pressed={currentIndex === idx}
-          />
+          >
+            <span
+              className={`block w-3 h-3 sm:w-4 sm:h-4 rounded-full transition-all duration-300 ${
+                currentIndex === idx ? "bg-white scale-125" : "bg-gray-400"
+              }`}
+              aria-hidden="true"
+            />
+          </button>
         ))}
       </div>
     </div>
