@@ -8,7 +8,7 @@ import {
   getOptimizedCloudinaryUrl,
 } from "@/lib/media";
 
-const HERO_IMAGE_WIDTHS = [480, 640, 768, 960, 1200];
+const HERO_IMAGE_WIDTHS = [360, 480, 640, 768, 960, 1200];
 
 const getHeroImageSources = (image) => {
   const media = getMediaObject(image);
@@ -31,27 +31,23 @@ const getHeroImageSources = (image) => {
 
   return {
     src: getOptimizedCloudinaryUrl(fallbackUrl, {
-      width: 1200,
-      quality: "auto:eco",
+      width: 960,
+      quality: "auto:low",
     }),
     srcSet: HERO_IMAGE_WIDTHS.map((width) =>
       `${getOptimizedCloudinaryUrl(fallbackUrl, {
         width,
-        quality: "auto:eco",
+        quality: "auto:low",
       })} ${width}w`
     ).join(", "),
   };
 };
 
 const Hero = ({ slides = [] }) => {
-  const [images, setImages] = useState(slides);
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-
-  useEffect(() => {
-    setImages(Array.isArray(slides) ? slides : []);
-  }, [slides]);
+  const images = Array.isArray(slides) ? slides : [];
 
   // Auto slide every 3 seconds
   useEffect(() => {
@@ -61,7 +57,7 @@ const Hero = ({ slides = [] }) => {
       setCurrentIndex((prevIndex) =>
         prevIndex === images.length - 1 ? 0 : prevIndex + 1
       );
-    }, 3000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [images.length]);
 

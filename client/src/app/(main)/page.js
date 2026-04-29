@@ -26,8 +26,8 @@ const page = async () => {
   if (firstSlideUrl) {
     preload(
       getOptimizedCloudinaryUrl(firstSlideUrl, {
-        width: 1200,
-        quality: "auto:eco",
+        width: 960,
+        quality: "auto:low",
       }),
       {
         as: "image",
