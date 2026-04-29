@@ -1,5 +1,9 @@
 import { BASE_URL } from "@/config/Config";
-import { buildReviewCountMap, normalizePackageRecord } from "@/lib/packageListing";
+import {
+  buildReviewCountMap,
+  getPackageKeys,
+  normalizePackageRecord,
+} from "@/lib/packageListing";
 
 const SITE_REVALIDATE_SECONDS = 300;
 
@@ -149,13 +153,27 @@ export async function getHomePageData() {
     selectedPackages.map((pkg) => fetchReviewsByPackageTourId(pkg.id))
   );
 
+  let finalPackages = selectedPackages;
+  if (featuredIds.length > 0 && finalPackages.length === 0) {
+    const fallbackPayload = await fetchJson("/package-tour/", []);
+    const fallbackPackages = Array.isArray(fallbackPayload?.data)
+      ? fallbackPayload.data
+      : Array.isArray(fallbackPayload)
+        ? fallbackPayload
+        : [];
+    const normalizedFallback = fallbackPackages.map(normalizePackageRecord);
+    finalPackages = normalizedFallback.filter((pkg) =>
+      featuredIds.some((id) => getPackageKeys(pkg).includes(id))
+    );
+  }
+
   return {
     heroImages: Array.isArray(homeSettings.images) ? homeSettings.images : [],
     welcome: homeSettings.welcome || {},
     whyWithUs: homeSettings.whyWithUs || {},
     featuredPackages: homeSettings.featuredPackages || {},
     reviewsSection: homeSettings.reviews || {},
-    packages: selectedPackages,
+    packages: finalPackages,
     reviews: selectedReviews,
     reviewCountMap: buildReviewCountMap(packageReviewGroups.flat()),
   };
