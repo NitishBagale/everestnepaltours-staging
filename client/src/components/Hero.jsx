@@ -8,7 +8,7 @@ import {
   getOptimizedCloudinaryUrl,
 } from "@/lib/media";
 
-const HERO_IMAGE_WIDTHS = [480, 768, 960, 1280, 1536];
+const HERO_IMAGE_WIDTHS = [480, 640, 768, 960, 1200];
 
 const getHeroImageSources = (image) => {
   const media = getMediaObject(image);
@@ -31,7 +31,7 @@ const getHeroImageSources = (image) => {
 
   return {
     src: getOptimizedCloudinaryUrl(fallbackUrl, {
-      width: 1280,
+      width: 1200,
       quality: "auto:eco",
     }),
     srcSet: HERO_IMAGE_WIDTHS.map((width) =>
@@ -45,7 +45,6 @@ const getHeroImageSources = (image) => {
 
 const Hero = ({ slides = [] }) => {
   const [images, setImages] = useState(slides);
-
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -85,50 +84,45 @@ const Hero = ({ slides = [] }) => {
     }
   };
 
+  const activeImage = images[currentIndex];
+  const activeMedia = getMediaObject(activeImage);
+  const activeAlt = getMediaAlt(
+    activeMedia,
+    activeImage?.title || activeImage?.alt || "Hero image"
+  );
+  const { src, srcSet } = getHeroImageSources(activeImage || {});
+
   return (
     <div
-      className="font-sans relative w-full h-[80vh] min-h-[550px] overflow-hidden"
+      className="font-sans relative w-full h-[68vh] min-h-[420px] sm:h-[80vh] sm:min-h-[550px] overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Slides */}
-      {images.map((image, index) => (
+      {activeImage && (
         <div
-          key={image.id || image.url || `hero-slide-${index}`}
-          className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ${
-            index === currentIndex ? "opacity-100" : "opacity-0"
-          }`}
+          key={activeImage.id || activeImage.url || `hero-slide-${currentIndex}`}
+          className="absolute top-0 left-0 w-full h-full transition-opacity duration-700 opacity-100"
         >
-          {(() => {
-            const { src, srcSet } = getHeroImageSources(image);
-            const alt = getMediaAlt(
-              getMediaObject(image),
-              image.title || image.alt || "Hero image"
-            );
-
-            return (
           <img
             src={src}
             srcSet={srcSet || undefined}
             sizes="100vw"
-            alt={alt}
+            alt={activeAlt}
             className="w-full h-full object-cover"
-            loading={index === 0 ? "eager" : "lazy"}
-            fetchPriority={index === 0 ? "high" : "auto"}
-            decoding={index === 0 ? "sync" : "async"}
+            loading="eager"
+            fetchPriority="high"
+            decoding="sync"
           />
-            );
-          })()}
 
-          {(image.title || image.caption) && (
+          {(activeImage.title || activeImage.caption) && (
             <div className="absolute inset-x-0 top-16 sm:top-20 md:top-24 text-white">
               <div className="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 max-w-[75%]">
-              {image.title && (
+              {activeImage.title && (
                 <h2 className="font-bold">
-                  {image.title.split(",").map((part, i) => (
+                  {activeImage.title.split(",").map((part, i) => (
                     <span
                       key={i}
-                      className="block text-[121px] text-white font-bold leading-[1] pb-[30px]"
+                      className="block text-[62px] sm:text-[88px] lg:text-[121px] text-white font-bold leading-[1] pb-[18px] sm:pb-[24px] lg:pb-[30px]"
                       style={{
                         fontFamily: '"MuseoModerno", sans-serif',
                         textShadow: "1px 1px #333",
@@ -139,16 +133,16 @@ const Hero = ({ slides = [] }) => {
                   ))}
                 </h2>
               )}
-              {image.caption && (
+              {activeImage.caption && (
                 <p className="mt-4 text-base sm:text-lg md:text-xl lg:text-2xl font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
-                  {image.caption}
+                  {activeImage.caption}
                 </p>
               )}
               </div>
             </div>
           )}
         </div>
-      ))}
+      )}
 
       {/* Vertical circle indicators on right side */}
       <div className="absolute right-2 sm:right-4 md:right-5 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 sm:gap-3 z-10">
