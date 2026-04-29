@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getNavigationData } from "@/lib/siteApi";
-import MobileNavbar from "@/layout/MobileNavbar";
 
 const ChevronIcon = ({ className = "w-4 h-4" }) => (
   <svg
@@ -18,11 +17,43 @@ const ChevronIcon = ({ className = "w-4 h-4" }) => (
   </svg>
 );
 
+const MenuIcon = ({ className = "w-8 h-8" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </svg>
+);
+
+const XIcon = ({ className = "w-6 h-6" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
 export default async function Navbar() {
   const navLinks = await getNavigationData();
 
   return (
     <>
+      <input id="site-menu-toggle" type="checkbox" className="peer/site-menu sr-only" />
+
       <div className="bg-white border-b border-gray-100 relative z-50">
         <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12 py-3 flex justify-between items-center gap-4">
           <Link href="/" className="shrink-0 cursor-pointer">
@@ -58,9 +89,6 @@ export default async function Navbar() {
             </a>
           </div>
 
-          <div className="md:hidden">
-            <MobileNavbar navLinks={navLinks} />
-          </div>
         </div>
       </div>
 
@@ -98,11 +126,69 @@ export default async function Navbar() {
             )}
           </div>
 
-          <div className="hidden md:flex items-center">
-            <MobileNavbar navLinks={navLinks} />
-          </div>
+          <label
+            htmlFor="site-menu-toggle"
+            className="text-gray-700 p-2 min-h-11 min-w-11 flex items-center justify-center cursor-pointer"
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon />
+          </label>
+
         </div>
       </nav>
+
+      <label
+        htmlFor="site-menu-toggle"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-60 cursor-pointer opacity-0 pointer-events-none transition-opacity peer-checked/site-menu:opacity-100 peer-checked/site-menu:pointer-events-auto"
+        aria-hidden="true"
+      />
+
+      <aside className="fixed inset-y-0 right-0 w-[85%] sm:w-[320px] bg-white z-70 shadow-2xl translate-x-full transition-transform duration-300 ease-out peer-checked/site-menu:translate-x-0">
+        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+          <span className="font-bold text-lg text-green-700">Menu</span>
+          <label
+            htmlFor="site-menu-toggle"
+            className="p-2 min-h-11 min-w-11 rounded-full hover:bg-gray-100 flex items-center justify-center cursor-pointer"
+            aria-label="Close navigation menu"
+          >
+            <XIcon />
+          </label>
+        </div>
+
+        <div className="p-4 overflow-y-auto h-full pb-20">
+          {navLinks.map((link) => (
+            <div key={link.href} className="border-b border-gray-50">
+              {link.dropdown ? (
+                <details>
+                  <summary className="list-none flex justify-between w-full py-4 font-bold text-gray-800 uppercase hover:text-green-700 text-base min-h-11 items-center cursor-pointer">
+                    <span>{link.label}</span>
+                    <ChevronIcon className="w-5 h-5 text-gray-500" />
+                  </summary>
+
+                  <div className="pl-4 pb-4 space-y-1 bg-gray-50 rounded-lg mb-2 pt-2">
+                    {link.dropdown.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        className="block py-3 text-base font-medium text-gray-700 hover:text-green-700"
+                      >
+                        {sub.label}
+                      </Link>
+                    ))}
+                  </div>
+                </details>
+              ) : (
+                <Link
+                  href={link.href}
+                  className="block py-4 font-bold text-gray-800 uppercase hover:text-green-700 text-base min-h-11"
+                >
+                  {link.label}
+                </Link>
+              )}
+            </div>
+          ))}
+        </div>
+      </aside>
     </>
   );
 }
