@@ -5,6 +5,7 @@ const { isAuthorized } = require("../middleware/isAuthorized");
 const {
   addReview,
   getReviews,
+  getReviewById,
   getReviewByPackageTourId,
   getAverageRating,
   updateReview,
@@ -18,6 +19,7 @@ reviewRouter.post("/", addReview);
 reviewRouter.get("/", getReviews);
 reviewRouter.get("/package-tour/:packageTourId", getReviewByPackageTourId);
 reviewRouter.get("/average-rating", getAverageRating);
+reviewRouter.get("/:id", getReviewById);
 reviewRouter.post(
   "/reorder",
   isAuthenticated,

@@ -50,7 +50,11 @@ export const buildReviewCountMap = (reviews = []) => {
   const countMap = {};
 
   (Array.isArray(reviews) ? reviews : []).forEach((review) => {
-    const packageIds = Array.isArray(review?.packageIds) ? review.packageIds : [];
+    const packageIds = Array.isArray(review?.packageIds)
+      ? review.packageIds
+      : review?.packageTourId != null
+        ? [review.packageTourId]
+        : [];
     packageIds.forEach((id) => {
       const key = String(id);
       countMap[key] = (countMap[key] || 0) + 1;

@@ -38,6 +38,13 @@ const getReviewsService = async (query) => {
   };
 };
 
+const getReviewByIdService = async (id) => {
+  try {
+    return await Review.findByPk(id);
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
 
 // Get Average Rating
 const getAverageRatingService = async () => {
@@ -98,6 +105,7 @@ const reorderReviewsService = async (orderUpdates) => {
 module.exports = {
   addReviewService,
   getReviewsService,
+  getReviewByIdService,
   getReviewByPackageTourIdService,
   getAverageRatingService,
   updateReviewService,

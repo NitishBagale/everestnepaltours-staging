@@ -19,6 +19,33 @@ async function fetchJson(path, fallback) {
   }
 }
 
+const unwrapData = (payload) => {
+  if (payload && typeof payload === "object" && "success" in payload) {
+    return payload.success ? payload.data : null;
+  }
+  return payload;
+};
+
+async function fetchPackageById(id) {
+  if (!id) return null;
+  const payload = await fetchJson(`/package-tour/${id}`, null);
+  const data = unwrapData(payload);
+  return data ? normalizePackageRecord(data) : null;
+}
+
+async function fetchReviewById(id) {
+  if (!id) return null;
+  const payload = await fetchJson(`/review/${id}`, null);
+  return unwrapData(payload);
+}
+
+async function fetchReviewsByPackageTourId(id) {
+  if (!id) return [];
+  const payload = await fetchJson(`/review/package-tour/${id}`, []);
+  const data = unwrapData(payload);
+  return Array.isArray(data) ? data : [];
+}
+
 const createSlug = (text = "") =>
   String(text || "")
     .toLowerCase()
@@ -94,29 +121,33 @@ export async function getNavigationData() {
 }
 
 export async function getHomePageData() {
-  const [settingsPayload, packagesPayload, reviewsPayload] = await Promise.all([
-    fetchJson("/settings/get", {}),
-    fetchJson("/package-tour/", []),
-    fetchJson("/review/?limit=5000", []),
-  ]);
+  const settingsPayload = await fetchJson("/settings/get", {});
 
   const settings = Array.isArray(settingsPayload?.data) ? settingsPayload.data : [];
   const homeSettings =
     settings.find((setting) => setting?.name === "hero")?.settings || {};
 
-  const packageList = Array.isArray(packagesPayload?.data)
-    ? packagesPayload.data
-    : Array.isArray(packagesPayload)
-      ? packagesPayload
-      : [];
+  const featuredIds = Array.isArray(homeSettings.featuredPackages?.packageIds)
+    ? homeSettings.featuredPackages.packageIds.map((id) => String(id || "").trim()).filter(Boolean)
+    : [];
+  const reviewIds = Array.isArray(homeSettings.reviews?.reviewIds)
+    ? homeSettings.reviews.reviewIds.map((id) => String(id || "").trim()).filter(Boolean)
+    : [];
 
-  const reviews = Array.isArray(reviewsPayload?.data)
-    ? reviewsPayload.data
-    : Array.isArray(reviewsPayload?.reviews)
-      ? reviewsPayload.reviews
-      : Array.isArray(reviewsPayload)
-        ? reviewsPayload
-        : [];
+  const [packages, reviews] = await Promise.all([
+    Promise.all(featuredIds.map((id) => fetchPackageById(id))),
+    Promise.all(reviewIds.map((id) => fetchReviewById(id))),
+  ]);
+  const selectedPackages = packages.filter(
+    (pkg) => pkg && (pkg.id || pkg._id || pkg.slug || pkg.title)
+  );
+  const selectedReviews = reviews.filter(
+    (review) => review && (review.id || review._id)
+  );
+
+  const packageReviewGroups = await Promise.all(
+    selectedPackages.map((pkg) => fetchReviewsByPackageTourId(pkg.id))
+  );
 
   return {
     heroImages: Array.isArray(homeSettings.images) ? homeSettings.images : [],
@@ -124,8 +155,8 @@ export async function getHomePageData() {
     whyWithUs: homeSettings.whyWithUs || {},
     featuredPackages: homeSettings.featuredPackages || {},
     reviewsSection: homeSettings.reviews || {},
-    packages: packageList.map(normalizePackageRecord),
-    reviews,
-    reviewCountMap: buildReviewCountMap(reviews),
+    packages: selectedPackages,
+    reviews: selectedReviews,
+    reviewCountMap: buildReviewCountMap(packageReviewGroups.flat()),
   };
 }
