@@ -3,7 +3,6 @@ const { getReviewByPackageTourIdService } = require("../services/review");
 const {
   addReviewService,
   getReviewsService,
-  getReviewByIdService,
   getAverageRatingService,
   updateReviewService,
   deleteReviewService,
@@ -26,16 +25,6 @@ const addReview = async (req, res) => {
 const getReviews = async (req, res) => {
   try {
     const result = await getReviewsService(req.query);
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-const getReviewById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await getReviewByIdService(id);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -102,7 +91,6 @@ const reorderReviews = async (req, res) => {
 module.exports = {
   addReview,
   getReviews,
-  getReviewById,
   getReviewByPackageTourId,
   getAverageRating,
   updateReview,
