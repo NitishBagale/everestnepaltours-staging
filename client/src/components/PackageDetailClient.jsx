@@ -561,7 +561,7 @@ const TourDetailPage = ({
             </button>
             <a
               href="/customize-trip"
-              className="bg-[#9fc77d] hover:bg-[#8eb66c] text-white font-semibold px-6 py-3 rounded-md transition-colors"
+              className="bg-[#35a576] hover:bg-[#2f9369] text-white font-semibold px-6 py-3 rounded-md transition-colors"
             >
               Customize/Book
             </a>
@@ -593,7 +593,7 @@ const TourDetailPage = ({
                     </span>
                     {tourData.duration || "—"}
                   </span>
-                  <span className="text-emerald-600">,</span>
+                  <span className="text-[#35a576]">,</span>
                   <span className="mx-2 capitalize whitespace-nowrap">
                     {tourData.trip_type_level || tourData.tour_type || "Private Tour"}
                   </span>
@@ -601,18 +601,18 @@ const TourDetailPage = ({
               </h1>
 
               {tourData.cost && (
-                <div className="bg-white border-2 border-green-200 rounded-lg p-4 text-center min-w-[180px]">
+                <div className="bg-white border-2 border-[#35a576]/30 rounded-lg p-4 text-center min-w-[180px]">
                   <p className="text-sm font-semibold text-slate-700 mb-1">
                     Starting Price
                   </p>
-                  <p className="text-3xl font-bold text-green-600 mb-1">
+                  <p className="text-3xl font-bold text-[#35a576] mb-1">
                     US ${tourData.cost}
                   </p>
                   <p className="text-xs italic text-slate-500 mb-3">
                     based on per person
                   </p>
                   <button
-                    className="inline-block bg-green-400 hover:bg-green-500 text-white font-semibold px-6 py-2 rounded transition-colors duration-200"
+                    className="inline-block bg-[#35a576] hover:bg-[#2f9369] text-white font-semibold px-6 py-2 rounded transition-colors duration-200"
                     onClick={() => (window.location.href = "/booking")}
                   >
                     Book Now
@@ -825,7 +825,7 @@ const TourDetailPage = ({
                       key={index}
                       className="flex items-start gap-4 text-slate-700 text-lg"
                     >
-                      <span className="mt-1.5 text-emerald-600 text-2xl leading-none">
+                      <span className="mt-1.5 text-[#35a576] text-2xl leading-none">
                         ›
                       </span>
                       <span className="wrap-break-word break-all">
@@ -847,7 +847,7 @@ const TourDetailPage = ({
 
           {/* Full-width Gallery */}
           {galleryWithoutMain.length > 0 && (
-              <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#86c167] py-12">
+              <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#35a576] py-12">
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12 mb-8">
                   <h3 className="text-2xl md:text-3xl font-bold text-white">
                     Photo/Visual Gallery
@@ -942,25 +942,25 @@ const TourDetailPage = ({
                           <div className="flex flex-wrap items-center gap-5 text-sm mt-2">
                             {item.driveTime && (
                               <div className="flex items-center gap-2 text-slate-600">
-                                <Clock className="w-4 h-4 text-green-600 shrink-0" />
+                                <Clock className="w-4 h-4 text-[#35a576] shrink-0" />
                                 <span>{item.driveTime}</span>
                               </div>
                             )}
                             {item.accommodation && (
                               <div className="flex items-center gap-2 text-slate-600">
-                                <Hotel className="w-4 h-4 text-green-600 shrink-0" />
+                                <Hotel className="w-4 h-4 text-[#35a576] shrink-0" />
                                 <span>{item.accommodation}</span>
                               </div>
                             )}
                             {item.meal && (
                               <div className="flex items-center gap-2 text-slate-600">
-                                <Utensils className="w-4 h-4 text-green-600 shrink-0" />
+                                <Utensils className="w-4 h-4 text-[#35a576] shrink-0" />
                                 <span>{item.meal}</span>
                               </div>
                             )}
                             {item.elevation && (
                               <div className="flex items-center gap-2 text-slate-600">
-                                <Mountain className="w-4 h-4 text-green-600 shrink-0" />
+                                <Mountain className="w-4 h-4 text-[#35a576] shrink-0" />
                                 <span>Elevation: {item.elevation}</span>
                               </div>
                             )}
@@ -1182,25 +1182,25 @@ const TourDetailPage = ({
                                 <div className="flex flex-wrap items-center gap-5 text-sm mt-2">
                                   {item.driveTime && (
                                     <div className="flex items-center gap-2 text-slate-600">
-                                      <Clock className="w-4 h-4 text-green-600 shrink-0" />
+                                      <Clock className="w-4 h-4 text-[#35a576] shrink-0" />
                                       <span>{item.driveTime}</span>
                                     </div>
                                   )}
                                   {item.accommodation && (
                                     <div className="flex items-center gap-2 text-slate-600">
-                                      <Hotel className="w-4 h-4 text-green-600 shrink-0" />
+                                      <Hotel className="w-4 h-4 text-[#35a576] shrink-0" />
                                       <span>{item.accommodation}</span>
                                     </div>
                                   )}
                                   {item.meal && (
                                     <div className="flex items-center gap-2 text-slate-600">
-                                      <Utensils className="w-4 h-4 text-green-600 shrink-0" />
+                                      <Utensils className="w-4 h-4 text-[#35a576] shrink-0" />
                                       <span>{item.meal}</span>
                                     </div>
                                   )}
                                   {item.elevation && (
                                     <div className="flex items-center gap-2 text-slate-600">
-                                      <Mountain className="w-4 h-4 text-green-600 shrink-0" />
+                                      <Mountain className="w-4 h-4 text-[#35a576] shrink-0" />
                                       <span>Elevation: {item.elevation}</span>
                                     </div>
                                   )}
@@ -1368,7 +1368,7 @@ const TourDetailPage = ({
                               onClick={() => setActiveTravelInfoIndex(index)}
                               className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
                                 isActive
-                                  ? "bg-[#a9c98c] text-white"
+                                  ? "bg-[#35a576] text-white"
                                   : "text-gray-600 hover:bg-gray-100"
                               }`}
                             >
@@ -1518,7 +1518,7 @@ const TourDetailPage = ({
                       onClick={() => setActiveTravelInfoIndex(index)}
                       className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
                         isActive
-                          ? "bg-[#a9c98c] text-white"
+                          ? "bg-[#35a576] text-white"
                           : "text-gray-600 hover:bg-gray-100"
                       }`}
                     >
@@ -1531,7 +1531,7 @@ const TourDetailPage = ({
                 {travelInfoItems[
                   Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)
                 ]?.title && (
-                  <h3 className="text-2xl font-semibold text-green-600 mb-4">
+                  <h3 className="text-2xl font-semibold text-[#35a576] mb-4">
                     {
                       travelInfoItems[
                         Math.min(activeTravelInfoIndex, travelInfoItems.length - 1)

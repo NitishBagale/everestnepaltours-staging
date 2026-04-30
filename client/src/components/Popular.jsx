@@ -105,7 +105,10 @@ const Popular = ({
     <section className="font-sans bg-white py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
       <div className="container mx-auto max-w-7xl">
         <div className="mb-8 text-left">
-          <h2 className="text-2xl font-bold uppercase tracking-wider text-gray-800">
+          <h2
+            className="text-2xl font-bold uppercase tracking-wider text-gray-800"
+            style={{ fontFamily: '"MuseoModerno", sans-serif' }}
+          >
             {heading}
           </h2>
           {/* <hr className="mt-2 w-16 border-2 border-[#3c9f87]" /> */}
@@ -144,7 +147,7 @@ const Popular = ({
                     </h3>
 
                     <div className="mb-4">
-                      <p className="text-base text-emerald-600 inline leading-relaxed">
+                      <p className="text-base text-[#35a576] inline leading-relaxed">
                         {item.sub_description || item.subDescription
                           ? item.sub_description || item.subDescription
                           : "Experience the best of this destination."}
@@ -156,7 +159,7 @@ const Popular = ({
 
                     <div className="mt-auto flex items-center justify-between pt-2">
                       <div className="flex items-center gap-1 text-gray-600 text-base">
-                        <Clock className="w-4 h-4 text-emerald-600" />
+                        <Clock className="w-4 h-4 text-[#35a576]" />
                         <span>
                           {item.duration || "5 Days"},{" "}
                           {item.tourType || item.type || "Private Tour"}
@@ -165,7 +168,7 @@ const Popular = ({
 
                       <button
                         onClick={() => slug && router.push(`/${slug}`)}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white text-base font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
+                        className="bg-[#35a576] hover:bg-[#2f9369] text-white text-base font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
                       >
                         View Details
                       </button>

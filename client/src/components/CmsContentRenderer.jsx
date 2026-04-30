@@ -54,7 +54,7 @@ const getCleanHtml = (html) => removeEmptyParagraphs(sanitizeHtml(html || ""));
 const hasMeaningfulHtml = (html) => stripHtml(getCleanHtml(html)).length > 0;
 
 const listStyleClasses =
-  "[&_ul]:list-none [&_ul]:pl-0 [&_ul]:space-y-2 [&_ol]:list-none [&_ol]:pl-0 [&_ol]:space-y-2 [&_ol]:ml-3 [&_li]:relative [&_li]:pl-7 [&_li]:text-[1.125rem] [&_li]:font-medium [&_li]:text-gray-700 [&_li]:leading-relaxed [&_li]:before:content-['›'] [&_li]:before:text-[1.9rem] [&_li]:before:font-semibold [&_li]:before:text-emerald-600 [&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-0 [&_li]:before:leading-none";
+  "[&_ul]:list-none [&_ul]:pl-0 [&_ul]:space-y-2 [&_ol]:list-none [&_ol]:pl-0 [&_ol]:space-y-2 [&_ol]:ml-3 [&_li]:relative [&_li]:pl-7 [&_li]:text-[1.125rem] [&_li]:font-medium [&_li]:text-gray-700 [&_li]:leading-relaxed [&_li]:before:content-['›'] [&_li]:before:text-[1.9rem] [&_li]:before:font-semibold [&_li]:before:text-[#35a576] [&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-0 [&_li]:before:leading-none";
 
 const legacySections = (content = {}) => [
   { type: "pageBanner", is_enabled: !!content.pageBannerImage, data: { pageBannerImage: content.pageBannerImage || null }, sort_order: 1 },
@@ -148,7 +148,7 @@ const CmsContentRenderer = ({
         {backLink && (
           <Link
             href={backLink}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="px-6 py-2 bg-[#35a576] text-white rounded-lg hover:bg-[#2f9369] transition-colors"
           >
             {backLabel}
           </Link>
@@ -371,7 +371,7 @@ const CmsContentRenderer = ({
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
-                        <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
+                        <figcaption className="mt-3 inline-block border-l-4 border-[#35a576] pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
                           {item.imageCaption}
                         </figcaption>
                       )}
@@ -381,7 +381,7 @@ const CmsContentRenderer = ({
 
                 <div>
                   {item.title && (
-                    <h3 className="text-3xl font-semibold text-green-600 mb-4" style={{ fontFamily: '"MuseoModerno", sans-serif' }}>
+                    <h3 className="text-3xl font-semibold text-[#35a576] mb-4" style={{ fontFamily: '"MuseoModerno", sans-serif' }}>
                       {item.title}
                     </h3>
                   )}
@@ -403,7 +403,7 @@ const CmsContentRenderer = ({
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
-                        <figcaption className="mt-3 inline-block border-l-4 border-green-500 pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
+                        <figcaption className="mt-3 inline-block border-l-4 border-[#35a576] pl-3 pr-4 py-2 text-sm italic text-gray-600 bg-gray-100">
                           {item.imageCaption}
                         </figcaption>
                       )}
@@ -424,7 +424,7 @@ const CmsContentRenderer = ({
       <div className={containerClassName}>
         {backLink && (
           <div className="mb-6">
-            <Link href={backLink} className="inline-flex items-center text-green-600 hover:text-green-800 transition-colors">
+            <Link href={backLink} className="inline-flex items-center text-[#35a576] hover:text-[#2f9369] transition-colors">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
@@ -438,7 +438,7 @@ const CmsContentRenderer = ({
             <span
               className="tracking-wide uppercase"
               style={{
-                color: "#9eca83",
+                color: "#35a576",
                 fontSize: "120%",
                 fontFamily: '"MuseoModerno", sans-serif',
                 display: "block",
@@ -528,7 +528,7 @@ const CmsContentRenderer = ({
             if (!founder) return null;
             return (
               <section key={section.id || `team-${index}`} className="mb-12">
-                <h2 className="text-2xl font-semibold text-green-600 mb-6">
+                <h2 className="text-2xl font-semibold text-[#35a576] mb-6">
                   {data.teamSectionTitle || "Our Team"}
                 </h2>
                 <div className="flex flex-col lg:flex-row gap-8">
@@ -542,7 +542,7 @@ const CmsContentRenderer = ({
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-green-700 mb-4">
+                    <h3 className="text-xl font-semibold text-[#35a576] mb-4">
                       {data.founderTitle || `Short Biography of ${founder.name || "Founder"}`}
                     </h3>
                     <div
@@ -552,7 +552,7 @@ const CmsContentRenderer = ({
                     <div className="mt-4">
                       <Link
                         href={data.founderCtaLink || "/meet-the-owner"}
-                        className="inline-flex items-center px-4 py-2 rounded-md bg-[#9cc37f] text-white font-medium hover:bg-[#89b56b] transition-colors"
+                        className="inline-flex items-center px-4 py-2 rounded-md bg-[#35a576] text-white font-medium hover:bg-[#2f9369] transition-colors"
                       >
                         {data.founderCtaLabel || "Meet the Owner"}
                       </Link>
@@ -579,14 +579,14 @@ const CmsContentRenderer = ({
                       {data.packagesSectionTitle}
                     </h2>
                     {data.packagesSectionSubtitle && (
-                      <span className="mt-2 tracking-wide uppercase" style={{ color: "#9eca83", fontSize: "120%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
+                      <span className="mt-2 tracking-wide uppercase" style={{ color: "#35a576", fontSize: "120%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
                         {data.packagesSectionSubtitle}
                       </span>
                     )}
                   </div>
                 )}
                 {!data.packagesSectionTitle && data.packagesSectionSubtitle && (
-                  <span className="tracking-wide uppercase" style={{ color: "#9eca83", fontSize: "150%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
+                  <span className="tracking-wide uppercase" style={{ color: "#35a576", fontSize: "150%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
                     {data.packagesSectionSubtitle}
                   </span>
                 )}
@@ -630,18 +630,18 @@ const CmsContentRenderer = ({
                               {item.title || "Featured Package"}
                             </h3>
                             {descriptionText ? (
-                              <p className="text-base text-emerald-500 leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(descriptionText) }} />
+                              <p className="text-base text-[#35a576] leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(descriptionText) }} />
                             ) : (
-                              <p className="text-base text-emerald-500 leading-relaxed">Explore this featured package.</p>
+                              <p className="text-base text-[#35a576] leading-relaxed">Explore this featured package.</p>
                             )}
                             <div className="mt-2 text-sm text-gray-400">({reviewCount} reviews)</div>
                             <div className="mt-4 flex items-center justify-between">
                               <div className="flex items-center gap-1 text-gray-600 text-sm">
-                                <Clock className="w-4 h-4 text-emerald-600" />
+                                <Clock className="w-4 h-4 text-[#35a576]" />
                                 <span>{item.duration || "5 Days"}, {item.tourType || item.type || "Private Tour"}</span>
                               </div>
                               {slug && (
-                                <Link href={`/${slug}`} className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200">
+                                <Link href={`/${slug}`} className="bg-[#35a576] hover:bg-[#2f9369] text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200">
                                   View Details
                                 </Link>
                               )}
@@ -668,7 +668,7 @@ const CmsContentRenderer = ({
             const galleryImages = section.data?.galleryImages || [];
             if (!Array.isArray(galleryImages) || galleryImages.length === 0) return null;
             return (
-              <div key={section.id || `gallery-${index}`} className="mt-12 relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#86c167] py-12">
+              <div key={section.id || `gallery-${index}`} className="mt-12 relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#35a576] py-12">
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12">
                   <Gallery galleryImages={galleryImages} title="Photo/Visual Gallery" embedded />
                 </div>
@@ -701,7 +701,7 @@ const CmsContentRenderer = ({
                             });
                           }}
                           className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
-                            isActive ? "bg-[#a9c98c] text-white" : "text-gray-600 hover:bg-gray-100"
+                            isActive ? "bg-[#35a576] text-white" : "text-gray-600 hover:bg-gray-100"
                           }`}
                         >
                           {item.title || `Information ${itemIndex + 1}`}
@@ -711,7 +711,7 @@ const CmsContentRenderer = ({
                   </div>
                   <div className="p-6 md:p-8">
                     {activeItem?.title && (
-                      <h3 className="text-2xl font-semibold text-green-600 mb-4">{activeItem.title}</h3>
+                      <h3 className="text-2xl font-semibold text-[#35a576] mb-4">{activeItem.title}</h3>
                     )}
                     {hasMeaningfulHtml(activeItem?.description) && (
                       <div
@@ -741,7 +741,7 @@ const CmsContentRenderer = ({
                     >
                       <summary className="flex items-center justify-between p-4 cursor-pointer font-semibold text-gray-800 hover:bg-gray-50">
                         <span className="text-base pr-4">{faqItem.question}</span>
-                        <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-[#35a576] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </summary>
@@ -789,7 +789,7 @@ const CmsContentRenderer = ({
                         <div className="flex items-center text-xs text-gray-500">
                           <span className="mr-1">🕒</span> {tour.duration || "Duration"}, {tour.difficulty || "Tour"}
                         </div>
-                        <button className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-1 px-3 rounded-sm">
+                        <button className="bg-[#35a576] hover:bg-[#2f9369] text-white text-xs font-bold py-1 px-3 rounded-sm">
                           View Details
                         </button>
                       </div>

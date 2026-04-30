@@ -94,11 +94,11 @@ const FeaturedPackagesSection = ({
                     </h3>
                     {description ? (
                       <p
-                        className="text-base text-emerald-700 leading-relaxed"
+                        className="text-base text-[#35a576] leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: description }}
                       />
                     ) : (
-                      <p className="text-base text-emerald-700 leading-relaxed">
+                      <p className="text-base text-[#35a576] leading-relaxed">
                         Explore this featured package.
                       </p>
                     )}
@@ -107,7 +107,7 @@ const FeaturedPackagesSection = ({
                     </div>
                     <div className="mt-4 flex items-center justify-between">
                       <div className="flex items-center gap-1 text-gray-600 text-sm">
-                        <Clock className="w-4 h-4 text-emerald-600" />
+                        <Clock className="w-4 h-4 text-[#35a576]" />
                         <span>
                           {item.duration || "5 Days"},{" "}
                           {item.tourType || item.type || "Private Tour"}
@@ -115,7 +115,7 @@ const FeaturedPackagesSection = ({
                       </div>
                       <Link
                         href={slug ? `/${slug}` : "/"}
-                        className="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
+                        className="bg-[#35a576] hover:bg-[#2f9369] text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
                       >
                         View Details
                       </Link>

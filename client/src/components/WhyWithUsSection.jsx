@@ -16,6 +16,25 @@ const iconMap = {
   CalendarDays,
 };
 
+const formatTitleLines = (title = "") => {
+  const cleaned = String(title).trim();
+  if (!cleaned) return [];
+
+  const normalized = cleaned.replace(/\s+/g, " ").toLowerCase();
+  if (normalized === "what makes us your preferred choice?") {
+    return ["What", "makes us", "your", "preferred", "choice?"];
+  }
+
+  const existingLines = cleaned
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (existingLines.length > 1) return existingLines;
+
+  return cleaned.split(/\s+/);
+};
+
 const WhyWithUsSection = ({
   data = {
     title: "",
@@ -26,17 +45,17 @@ const WhyWithUsSection = ({
 
   if (!data.title && !data.description && !data.items?.length) return null;
 
-  const lines = data.title ? data.title.split("\n").filter(Boolean) : [];
+  const lines = formatTitleLines(data.title);
 
   return (
-    <section className="bg-[#1f6a4a] text-white">
+    <section className="bg-[#35a576] text-white">
       <div className="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-12 sm:py-14 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8 sm:gap-10 lg:gap-14 items-center">
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8 sm:gap-10 lg:gap-12 items-center">
+          <div className="flex justify-center lg:justify-end">
             {lines.length > 0 && (
               <h3
-                className="text-2xl font-bold leading-tight"
-                style={{ fontFamily: "var(--font-museo)" }}
+                className="max-w-[220px] text-right text-[40px] font-[200] leading-[1.15] text-white sm:max-w-[240px] lg:max-w-[250px]"
+                style={{ fontFamily: '"MuseoModerno", sans-serif' }}
               >
                 {lines.map((line, idx) => (
                   <span key={idx} className="block">

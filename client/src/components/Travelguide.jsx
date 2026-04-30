@@ -228,8 +228,8 @@ const Travelguide = () => {
                   onClick={() => setActiveTopic(key)}
                   className={`w-full px-3 sm:px-4 py-3 sm:py-4 rounded-lg text-xs sm:text-sm font-bold leading-tight transition-all duration-200 ${
                     activeTopic === key
-                      ? "bg-green-600 text-white shadow-md"
-                      : "bg-white text-gray-700 border border-gray-200 hover:border-green-300 hover:bg-gray-100"
+                      ? "bg-[#35a576] text-white shadow-md"
+                      : "bg-white text-gray-700 border border-gray-200 hover:border-[#35a576] hover:bg-gray-100"
                   }`}
                 >
                   {label}
@@ -240,7 +240,7 @@ const Travelguide = () => {
 
           {/* Right Content - Responsive */}
           <main className="md:col-span-2 lg:col-span-3 p-4 sm:p-6 lg:p-8">
-            <h2 className="text-green-700 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal mb-4 sm:mb-6 leading-tight">
+            <h2 className="text-[#35a576] text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal mb-4 sm:mb-6 leading-tight">
               {activeContent.title}
             </h2>
             <div className="prose prose-sm sm:prose md:prose-lg lg:prose-xl max-w-none text-gray-700 text-sm sm:text-base md:text-lg leading-relaxed space-y-4">
