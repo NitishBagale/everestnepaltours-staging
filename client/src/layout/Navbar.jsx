@@ -89,6 +89,14 @@ export default async function Navbar() {
             </a>
           </div>
 
+          <label
+            htmlFor="site-menu-toggle"
+            className="text-gray-700 p-2 min-h-11 min-w-11 flex items-center justify-center cursor-pointer md:hidden"
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon />
+          </label>
+
         </div>
       </div>
 
@@ -128,7 +136,7 @@ export default async function Navbar() {
 
           <label
             htmlFor="site-menu-toggle"
-            className="text-gray-700 p-2 min-h-11 min-w-11 flex items-center justify-center cursor-pointer"
+            className="hidden text-gray-700 p-2 min-h-11 min-w-11 items-center justify-center cursor-pointer md:flex"
             aria-label="Open navigation menu"
           >
             <MenuIcon />
