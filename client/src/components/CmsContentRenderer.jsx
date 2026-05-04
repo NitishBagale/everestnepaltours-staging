@@ -525,6 +525,7 @@ const CmsContentRenderer = ({
               .map((id) => teamLookup.get(id))
               .filter(Boolean);
             const founder = selectedTeam[0] || null;
+            const otherMembers = selectedTeam.slice(1);
             if (!founder) return null;
             return (
               <section key={section.id || `team-${index}`} className="mb-12">
@@ -559,6 +560,46 @@ const CmsContentRenderer = ({
                     </div>
                   </div>
                 </div>
+
+                {otherMembers.length > 0 && (
+                  <div className="mt-10">
+                    <h3 className="text-xl font-semibold text-[#35a576] mb-5">
+                      Meet the Team
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                      {otherMembers.map((member) => (
+                        <article
+                          key={member.id || member.name}
+                          className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                        >
+                          <img
+                            src={member.imageUrl || "/placeholder-team.jpg"}
+                            alt={member.name || "Team member"}
+                            className="w-full h-64 object-cover"
+                          />
+                          <div className="p-4">
+                            <h4 className="text-lg font-semibold text-gray-900">
+                              {member.name}
+                            </h4>
+                            {member.designation && (
+                              <p className="mt-1 text-sm text-gray-500">
+                                {member.designation}
+                              </p>
+                            )}
+                            <div className="mt-4">
+                              <Link
+                                href={`/team/${encodeURIComponent(member.name || "")}`}
+                                className="inline-flex items-center text-[#35a576] font-medium hover:text-[#2f9369]"
+                              >
+                                View profile
+                              </Link>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             );
           }
