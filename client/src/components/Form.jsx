@@ -1,7 +1,10 @@
 "use client";
-import React, { useState } from "react";
 
-const Form = () => {
+import React, { useState } from "react";
+import axios from "axios";
+import { BASE_URL } from "@/config/Config";
+
+const Form = ({ packageName = "" }) => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -13,9 +16,9 @@ const Form = () => {
     details: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [status, setStatus] = useState("idle");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
-  // Mock options for dropdown
   const accommodations = [
     "Prefer Hotel Category",
     "3 Star",
@@ -27,23 +30,39 @@ const Form = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (status !== "idle") {
+      setStatus("idle");
+      setFeedbackMessage("");
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSuccessMessage("");
+    setStatus("idle");
+    setFeedbackMessage("");
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const message = [
+        packageName ? `Package: ${packageName}` : "",
+        `Travelers: ${formData.travelers}`,
+        `Country of passport: ${formData.country}`,
+        `Travel date: ${formData.travelDate}`,
+        `Accommodation: ${formData.accommodation}`,
+        formData.details ? `Trip details: ${formData.details}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
 
-      console.log("Form Submitted:", formData);
-      setSuccessMessage(
-        "Thank you! Your inquiry has been submitted successfully. We'll get back to you soon."
-      );
+      await axios.post(`${BASE_URL}/enquiry/create`, {
+        name: formData.fullName,
+        email: formData.email,
+        contact: formData.phone,
+        message,
+      });
 
-      // Reset form
+      setStatus("success");
+      setFeedbackMessage("Thank you. Your enquiry has been sent successfully.");
       setFormData({
         fullName: "",
         email: "",
@@ -54,15 +73,12 @@ const Form = () => {
         accommodation: "",
         details: "",
       });
-
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(""), 5000);
     } catch (error) {
-      console.error("Submission failed:", error);
-      setSuccessMessage(
-        "Sorry, there was an error submitting your form. Please try again."
+      setStatus("error");
+      setFeedbackMessage(
+        error.response?.data?.message ||
+          "Sorry, there was an error submitting your enquiry. Please try again."
       );
-      setTimeout(() => setSuccessMessage(""), 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +108,6 @@ const Form = () => {
           fields
         </p>
 
-        {/* Full Name, Email, Phone */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1">
@@ -140,7 +155,6 @@ const Form = () => {
           </div>
         </div>
 
-        {/* Travelers, Country, Date, Accommodation */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1">
@@ -181,7 +195,6 @@ const Form = () => {
               name="travelDate"
               value={formData.travelDate}
               onChange={handleChange}
-              placeholder="Tentative Travel Date"
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 outline-none"
               required
             />
@@ -198,8 +211,8 @@ const Form = () => {
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 outline-none bg-white"
               required
             >
-              {accommodations.map((option, index) => (
-                <option key={index} value={option}>
+              {accommodations.map((option) => (
+                <option key={option} value={option}>
                   {option}
                 </option>
               ))}
@@ -207,7 +220,6 @@ const Form = () => {
           </div>
         </div>
 
-        {/* Trip details */}
         <div className="mb-6">
           <label className="block text-sm font-semibold text-gray-800 mb-1">
             Trip details if you want to share
@@ -216,13 +228,11 @@ const Form = () => {
             name="details"
             value={formData.details}
             onChange={handleChange}
-            placeholder=""
             rows="5"
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 outline-none resize-none"
-          ></textarea>
+          />
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={isSubmitting}
@@ -235,18 +245,17 @@ const Form = () => {
           {isSubmitting ? "SUBMITTING..." : "SUBMIT"}
         </button>
 
-        {/* Success/Error Message */}
-        {successMessage && (
+        {feedbackMessage && (
           <div
             className={`mt-4 p-3 rounded-md ${
-              successMessage.includes("error")
+              status === "error"
                 ? "bg-red-100 text-red-700 border border-red-400"
                 : "bg-green-100 text-green-700 border border-green-400"
             }`}
             role="alert"
             aria-live="polite"
           >
-            {successMessage}
+            {feedbackMessage}
           </div>
         )}
       </form>

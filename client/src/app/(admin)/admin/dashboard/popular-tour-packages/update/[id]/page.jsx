@@ -307,7 +307,6 @@ const EditPackage = () => {
     tags: [],
     faq: [],
     faq_section_title: "",
-    showBookingForm: false,
     packageSectionOrder: BASE_PACKAGE_BLOCK_IDS,
     customSections: [],
     meta_title: "",
@@ -511,7 +510,6 @@ const EditPackage = () => {
           answer: item.answer || "",
         })),
         faq_section_title: packageData.faq_section_title || "",
-        showBookingForm: packageData.showBookingForm || false,
         customSections: (packageData.customSections || []).map((section, index) => {
           const content = Array.isArray(section.content)
             ? section.content
@@ -1109,7 +1107,6 @@ const EditPackage = () => {
           tags: formData.tags,
           faq: cleanedFaq,
           faq_section_title: formData.faq_section_title,
-          showBookingForm: formData.showBookingForm,
           packageSectionOrder: normalizePackageSectionOrder(
             formData.packageSectionOrder,
             cleanedCustomSections
@@ -2797,31 +2794,6 @@ const EditPackage = () => {
               </div>
             </div>
 
-            {/* Show Booking Form Toggle */}
-            <div className="pt-3 border-t border-gray-200">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="showBookingForm"
-                  checked={formData.showBookingForm}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      showBookingForm: e.target.checked,
-                    })
-                  }
-                  className="w-4 h-4 text-[var(--admin-primary)] bg-gray-100 border-gray-300 rounded focus:ring-[var(--admin-primary-ring)]"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Show Booking Form
-                  </span>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Display "Ask to Expert" booking form on this package page
-                  </p>
-                </div>
-              </label>
-            </div>
           </div>
 
           {/* Tags & SEO */}

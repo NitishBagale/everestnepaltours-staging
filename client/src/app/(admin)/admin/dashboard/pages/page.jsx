@@ -50,7 +50,6 @@ const MODULE_TYPES = [
     hint: "Tabbed information block",
   },
   { type: "faq", label: "FAQ", hint: "Questions and answers" },
-  { type: "bookingForm", label: "Booking Form", hint: "Show booking form" },
 ];
 
 const MODULE_LABELS = MODULE_TYPES.reduce((acc, item) => {
@@ -163,12 +162,6 @@ const normalizeSectionData = (section) => {
             answer: item?.answer || "",
           }))
         : [],
-    };
-  }
-
-  if (type === "bookingForm") {
-    return {
-      showBookingForm: !!data.showBookingForm,
     };
   }
 
@@ -554,6 +547,48 @@ const SortableSelectedItem = ({ id, title, onRemove }) => {
       </div>
       <button type="button" onClick={onRemove} className="text-xs font-semibold text-red-500">
         Remove
+      </button>
+    </div>
+  );
+};
+
+const getGalleryImageId = (image, index = 0) =>
+  String(image?.mediaId || image?.id || image?.url || `gallery-${index}`);
+
+const SortableGalleryImage = ({ id, image, index, onRemove }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm"
+    >
+      <img
+        src={image.variants?.thumbnail || image.url || image}
+        alt={`Gallery ${index + 1}`}
+        className="w-full h-full object-contain bg-gray-50"
+      />
+      <button
+        type="button"
+        className="absolute top-1 left-1 bg-black/60 text-white p-1 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-grab active:cursor-grabbing"
+        aria-label={`Reorder gallery image ${index + 1}`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-3 h-3" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all hover:bg-red-500"
+      >
+        <X className="w-3 h-3" />
       </button>
     </div>
   );
@@ -1752,6 +1787,24 @@ const CmsAdminPage = () => {
 
     if (section.type === "gallery") {
       const images = Array.isArray(data.galleryImages) ? data.galleryImages : [];
+      const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = images.findIndex(
+          (image, index) => getGalleryImageId(image, index) === active.id
+        );
+        const newIndex = images.findIndex(
+          (image, index) => getGalleryImageId(image, index) === over.id
+        );
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        updateSectionDataLocal(section.id, (prev) => ({
+          ...prev,
+          galleryImages: arrayMove(images, oldIndex, newIndex),
+        }));
+      };
+
       return (
         <div>
           <label className={labelClass}>Photo Gallery Images</label>
@@ -1770,29 +1823,29 @@ const CmsAdminPage = () => {
           </button>
 
           {images.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {images.map((image, index) => (
-                <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
-                  <img
-                    src={image.variants?.thumbnail || image.url || image}
-                    alt={`Gallery ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateSectionDataLocal(section.id, (prev) => ({
-                        ...prev,
-                        galleryImages: (prev.galleryImages || []).filter((_, i) => i !== index),
-                      }))
-                    }
-                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext
+                items={images.map((image, index) => getGalleryImageId(image, index))}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {images.map((image, index) => (
+                    <SortableGalleryImage
+                      key={getGalleryImageId(image, index)}
+                      id={getGalleryImageId(image, index)}
+                      image={image}
+                      index={index}
+                      onRemove={(targetIndex) =>
+                        updateSectionDataLocal(section.id, (prev) => ({
+                          ...prev,
+                          galleryImages: (prev.galleryImages || []).filter((_, i) => i !== targetIndex),
+                        }))
+                      }
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       );
@@ -1970,33 +2023,6 @@ const CmsAdminPage = () => {
               <Plus size={18} />
               Add FAQ
             </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (section.type === "bookingForm") {
-      return (
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800">Show Booking Form</h3>
-              <p className="text-xs text-gray-500">Display booking form on this page</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!data.showBookingForm}
-                onChange={(e) =>
-                  updateSectionDataLocal(section.id, (prev) => ({
-                    ...prev,
-                    showBookingForm: e.target.checked,
-                  }))
-                }
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600" />
-            </label>
           </div>
         </div>
       );

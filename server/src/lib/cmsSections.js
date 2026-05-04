@@ -9,7 +9,6 @@ const SECTION_TYPES = {
   GALLERY: "gallery",
   RELATED_INFORMATION: "relatedInformation",
   FAQ: "faq",
-  BOOKING_FORM: "bookingForm",
 };
 
 const VALID_SECTION_TYPES = Object.values(SECTION_TYPES);
@@ -98,7 +97,6 @@ const defaultSectionDataByType = {
     faqSectionTitle: "",
     items: [],
   }),
-  [SECTION_TYPES.BOOKING_FORM]: () => ({ showBookingForm: false }),
 };
 
 const getDefaultSectionData = (type) => {
@@ -155,11 +153,6 @@ const normalizeSectionData = (type, rawData = {}) => {
         items: normalizeFaqItems(data.items),
       };
 
-    case SECTION_TYPES.BOOKING_FORM:
-      return {
-        showBookingForm: normalizeBoolean(data.showBookingForm),
-      };
-
     default:
       return {};
   }
@@ -209,9 +202,6 @@ const hasMeaningfulSectionData = (type, data = {}) => {
 
     case SECTION_TYPES.FAQ:
       return !!data.faqSectionTitle || (data.items || []).length > 0;
-
-    case SECTION_TYPES.BOOKING_FORM:
-      return !!data.showBookingForm;
 
     default:
       return false;
@@ -296,12 +286,6 @@ const buildLegacySectionsFromContent = (content = {}) => {
       data: {
         faqSectionTitle: content.faqSectionTitle || "",
         items: content.faq || [],
-      },
-    },
-    {
-      type: SECTION_TYPES.BOOKING_FORM,
-      data: {
-        showBookingForm: !!content.showBookingForm,
       },
     },
   ];

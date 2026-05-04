@@ -2450,16 +2450,6 @@ function buildCmsSectionPayloads({
     sortOrder += 1;
   }
 
-  if (hasBookingForm) {
-    sections.push({
-      importKey: `wp:${post.ID}:cms:bookingForm`,
-      type: "bookingForm",
-      sort_order: sortOrder,
-      is_enabled: true,
-      data: { showBookingForm: true },
-    });
-  }
-
   return sections;
 }
 

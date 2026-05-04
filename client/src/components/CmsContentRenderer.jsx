@@ -5,7 +5,6 @@ import DOMPurify from "isomorphic-dompurify";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import Gallery from "@/components/Gallery";
-import Form from "@/components/Form";
 import { BASE_URL } from "@/config/Config";
 import { getMediaAlt, getMediaObject, getMediaUrl } from "@/lib/media";
 import {
@@ -37,8 +36,18 @@ const sanitizeHtml = (html) =>
       "a",
       "img",
       "blockquote",
+      "table",
+      "thead",
+      "tbody",
+      "tfoot",
+      "tr",
+      "td",
+      "th",
+      "colgroup",
+      "col",
+      "caption",
     ],
-    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "class"],
+    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "class", "style", "colspan", "rowspan", "scope", "width", "height", "cellpadding", "cellspacing", "border"],
   });
 
 const removeEmptyParagraphs = (html = "") =>
@@ -122,12 +131,6 @@ const legacySections = (content = {}) => [
     data: { faqSectionTitle: content.faqSectionTitle || "Frequently Asked Questions", items: content.faq || [] },
     sort_order: 8,
   },
-  {
-    type: "bookingForm",
-    is_enabled: !!content.showBookingForm,
-    data: { showBookingForm: !!content.showBookingForm },
-    sort_order: 9,
-  },
 ];
 
 const CmsContentRenderer = ({
@@ -138,7 +141,6 @@ const CmsContentRenderer = ({
   headingClassName = "d-color mb-4 wow fadeInUp",
   headingStyle = { fontSize: "calc(1.375rem + 1.5vw)", fontWeight: 600 },
   containerClassName = "max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12 py-8 font-sans text-gray-700",
-  forceBookingForm = false,
   children,
 }) => {
   if (error || !pageData) {
@@ -311,12 +313,6 @@ const CmsContentRenderer = ({
     })
     .filter(Boolean);
 
-  const showBookingForm =
-    forceBookingForm ||
-    enabledSections.some(
-      (section) => section.type === "bookingForm" && section.data?.showBookingForm
-    );
-
   const renderRepeatableItems = (items = [], sectionKey = "") => {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
@@ -367,7 +363,7 @@ const CmsContentRenderer = ({
                       <img
                         src={imageUrl}
                         alt={imageAlt}
-                        className="w-full h-64 object-cover rounded-lg"
+                        className="w-full h-auto max-h-[32rem] object-contain rounded-lg"
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
@@ -399,7 +395,7 @@ const CmsContentRenderer = ({
                       <img
                         src={imageUrl}
                         alt={imageAlt}
-                        className="w-full h-64 object-cover rounded-lg"
+                        className="w-full h-auto max-h-[32rem] object-contain rounded-lg"
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
@@ -843,12 +839,6 @@ const CmsContentRenderer = ({
         )}
 
         {children}
-
-        {showBookingForm && (
-          <div className="mt-12">
-            <Form />
-          </div>
-        )}
       </div>
     </>
   );

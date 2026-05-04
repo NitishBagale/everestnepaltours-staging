@@ -62,7 +62,6 @@ const CmsContentPage = ({
   headingStyle,
   titleFallback = "Page",
   withMeta = true,
-  forceBookingForm = false,
   children,
 }) => {
   const [pageData, setPageData] = useState(null);
@@ -170,7 +169,6 @@ const CmsContentPage = ({
         backLabel={backLabel}
         headingClassName={headingClassName}
         headingStyle={headingStyle}
-        forceBookingForm={forceBookingForm}
       >
         {children}
       </CmsContentRenderer>

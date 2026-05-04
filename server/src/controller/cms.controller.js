@@ -21,6 +21,9 @@ const slugify = (value) => {
 
 const serializeSection = (section) => {
   const data = section?.toJSON ? section.toJSON() : section;
+  if (!VALID_SECTION_TYPES.includes(data.type)) {
+    return null;
+  }
   return {
     id: data.id,
     page_id: data.page_id,
@@ -37,6 +40,7 @@ const mapSectionsByPageId = (sections = []) => {
   const grouped = new Map();
   sections.forEach((section) => {
     const serialized = serializeSection(section);
+    if (!serialized) return;
     const pageId = serialized.page_id;
     if (!grouped.has(pageId)) grouped.set(pageId, []);
     grouped.get(pageId).push(serialized);
@@ -145,7 +149,7 @@ exports.getCMSBySection = async (req, res) => {
       success: true,
       data: {
         ...(cmsContent.toJSON ? cmsContent.toJSON() : cmsContent),
-        sections: sections.map(serializeSection),
+        sections: sections.map(serializeSection).filter(Boolean),
       },
     });
   } catch (error) {
@@ -323,7 +327,7 @@ exports.getCMSPageSections = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: sections.map(serializeSection),
+      data: sections.map(serializeSection).filter(Boolean),
     });
   } catch (error) {
     res.status(error.status || 500).json({
@@ -341,7 +345,7 @@ exports.migrateLegacyCMSPageSections = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: sections.map(serializeSection),
+      data: sections.map(serializeSection).filter(Boolean),
       message: "Legacy blocks migrated to page sections.",
     });
   } catch (error) {

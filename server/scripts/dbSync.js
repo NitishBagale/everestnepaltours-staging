@@ -5,13 +5,7 @@ const { postgres } = require("../config/db/postgres/connectPostgres");
 const { NODE_ENV } = require("../config/env");
 
 const modelFiles = [
-  "../models/booking.model",
-  "../models/contactForm",
-  "../models/contentBlock",
-  "../models/otp.model",
-  "../models/enquiry.model",
   "../models/setting.model",
-  "../models/askExpertMessage",
   "../models/blog.model",
   "../models/review",
   "../models/admin/admin.model",

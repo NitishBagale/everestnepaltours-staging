@@ -22,7 +22,6 @@ import {
   Utensils,
   Mountain,
   Flag,
-  Car,
 } from "lucide-react";
 import { BASE_URL } from "@/config/Config";
 import Faqs from "@/components/Faqs";
@@ -53,15 +52,6 @@ const TourDetailPage = ({
   const [activeTravelInfoIndex, setActiveTravelInfoIndex] = useState(0);
   const [packageReviews, setPackageReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [askExpertStatus, setAskExpertStatus] = useState("idle");
-  const [askExpertMessage, setAskExpertMessage] = useState("");
-  const [askExpertError, setAskExpertError] = useState("");
-  const [askExpertForm, setAskExpertForm] = useState({
-    name: "",
-    email: "",
-    message: "",
-  });
-
   const closeGalleryLightbox = () => setSelectedImageIndex(null);
   const goToPreviousGalleryImage = () => {
     setSelectedImageIndex((prev) => {
@@ -339,6 +329,16 @@ const TourDetailPage = ({
         "h5",
         "h6",
         "img",
+        "table",
+        "thead",
+        "tbody",
+        "tfoot",
+        "tr",
+        "td",
+        "th",
+        "colgroup",
+        "col",
+        "caption",
       ],
       ALLOWED_ATTR: [
         "href",
@@ -351,6 +351,14 @@ const TourDetailPage = ({
         "style",
         "data-list",
         "data-indent",
+        "colspan",
+        "rowspan",
+        "scope",
+        "width",
+        "height",
+        "cellpadding",
+        "cellspacing",
+        "border",
       ],
     });
   const removeEmptyParagraphs = (html = "") =>
@@ -485,45 +493,6 @@ const TourDetailPage = ({
       tourData?.difficulty
   );
 
-  const handleAskExpertChange = (event) => {
-    const { name, value } = event.target;
-    setAskExpertForm((prev) => ({ ...prev, [name]: value }));
-    if (askExpertStatus !== "idle") {
-      setAskExpertStatus("idle");
-      setAskExpertMessage("");
-      setAskExpertError("");
-    }
-  };
-
-  const handleAskExpertSubmit = async (event) => {
-    event.preventDefault();
-    if (!tourRecord?.id) {
-      setAskExpertError("Package information is missing.");
-      return;
-    }
-
-    setAskExpertStatus("loading");
-    setAskExpertError("");
-    setAskExpertMessage("");
-
-    try {
-      await axios.post(`${BASE_URL}/package-tour/${tourRecord.id}/ask-expert`, {
-        name: askExpertForm.name,
-        email: askExpertForm.email,
-        message: askExpertForm.message,
-      });
-      setAskExpertStatus("success");
-      setAskExpertMessage("Thanks! Our expert will reach out shortly.");
-      setAskExpertForm({ name: "", email: "", message: "" });
-    } catch (error) {
-      setAskExpertStatus("error");
-      setAskExpertError(
-        error.response?.data?.message ||
-          "Something went wrong. Please try again."
-      );
-    }
-  };
-
   if (loading)
     return (
       <div className="h-screen flex items-center justify-center">
@@ -560,10 +529,10 @@ const TourDetailPage = ({
               Ask to Expert
             </button>
             <a
-              href="/customize-trip"
+              href="/contact-form"
               className="bg-[#35a576] hover:bg-[#2f9369] text-white font-semibold px-6 py-3 rounded-md transition-colors"
             >
-              Customize/Book
+              Contact Us
             </a>
           </div>
         </div>
@@ -613,9 +582,9 @@ const TourDetailPage = ({
                   </p>
                   <button
                     className="inline-block bg-[#35a576] hover:bg-[#2f9369] text-white font-semibold px-6 py-2 rounded transition-colors duration-200"
-                    onClick={() => (window.location.href = "/booking")}
+                    onClick={() => scrollToSection("enquiry-form")}
                   >
-                    Book Now
+                    Ask to Expert
                   </button>
                 </div>
               )}
@@ -1691,17 +1660,12 @@ const TourDetailPage = ({
             </div>
           </div>
         )}
-
-      
       </div>
-        {/* Booking Form */}
-        {tourData.showBookingForm && (
-          <div className="bg-[#fff]" id="enquiry-form">
-            <div id="booking-form">
-            <Form />
-            </div>
+        <div className="bg-[#fff]" id="enquiry-form">
+          <div id="booking-form">
+            <Form packageName={tourData.title || ""} />
           </div>
-        )}
+        </div>
 
       {/* Lightbox Modal */}
       {selectedImageIndex !== null && galleryWithoutMain.length > 0 && (

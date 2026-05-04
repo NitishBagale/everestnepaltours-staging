@@ -11,7 +11,6 @@ const http = require("http");
 const os = require("os");
 require("dotenv").config();
 const { PORT } = require("../config/env");
-const scheduleOtpCleanup = require("../src/jobs/node-cron.js");
 /**
  * Get port from environment and store in Express.
  */
@@ -39,7 +38,6 @@ app.set("port", port);
 
 const server = http.createServer(app);
 createInitialAdmin();
-scheduleOtpCleanup();
 
 /**
  * Listen on provided port, on all network interfaces.

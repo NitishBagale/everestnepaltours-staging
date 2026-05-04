@@ -2,8 +2,11 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Quill from "quill";
 import MediaPickerModal from "@/components/media/MediaPickerModal";
 import "@/styles/quill.snow.css";
+import "quill-table-up/index.css";
+import "quill-table-up/table-creator.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -24,6 +27,18 @@ const RichEditor = ({
   const [codeView, setCodeView] = useState(false);
   const [codeValue, setCodeValue] = useState(value || "");
   const lastExternalValueRef = useRef(value || "");
+  const [tableSupport, setTableSupport] = useState(null);
+  const [tableSupportReady, setTableSupportReady] = useState(false);
+
+  const getSafeEditor = useCallback(() => {
+    const editorRef = quillRef.current;
+    if (!editorRef || typeof editorRef.getEditor !== "function") return null;
+    try {
+      return editorRef.getEditor();
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     const nextValue = value || "";
@@ -34,29 +49,56 @@ const RichEditor = ({
   }, [value]);
 
   useEffect(() => {
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return undefined;
+    let active = true;
 
-    const stopEditorShortcutPropagation = (event) => {
-      if (!(event.ctrlKey || event.metaKey)) return;
-      const key = String(event.key || "").toLowerCase();
-      if (["b", "z", "y"].includes(key)) {
-        event.stopPropagation();
+    const loadTableModule = async () => {
+      try {
+        const module = await import("quill-table-up");
+        const TableUp = module.default;
+        if (TableUp?.moduleName) {
+          Quill.register({ [`modules/${TableUp.moduleName}`]: TableUp }, true);
+        }
+        if (active) {
+          setTableSupport({
+            TableUp,
+            defaultCustomSelect: module.defaultCustomSelect,
+            blotName: module.blotName,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load table editor module:", error);
       }
     };
 
-    quill.root.addEventListener("keydown", stopEditorShortcutPropagation, true);
+    loadTableModule().finally(() => {
+      if (active) {
+        setTableSupportReady(true);
+      }
+    });
+
     return () => {
-      quill.root.removeEventListener(
-        "keydown",
-        stopEditorShortcutPropagation,
-        true
-      );
+      active = false;
     };
   }, []);
 
+  useEffect(() => {
+    const quill = getSafeEditor();
+    if (!quill) return undefined;
+    const handlePaste = () => {
+      quill.history.cutoff();
+      requestAnimationFrame(() => {
+        quill.history.cutoff();
+      });
+    };
+
+    quill.root.addEventListener("paste", handlePaste, true);
+    return () => {
+      quill.root.removeEventListener("paste", handlePaste, true);
+    };
+  }, [getSafeEditor]);
+
   const handleSelectMedia = (media) => {
-    const quill = quillRef.current?.getEditor();
+    const quill = getSafeEditor();
     if (!quill) return;
     const range = quill.getSelection();
     const index = range?.index ?? quill.getLength();
@@ -74,6 +116,48 @@ const RichEditor = ({
     setCodeView(true);
   }, [codeView, codeValue, onChange, value]);
 
+  const handleUndo = useCallback(() => {
+    const quill = getSafeEditor();
+    quill?.history.undo();
+  }, [getSafeEditor]);
+
+  const handleRedo = useCallback(() => {
+    const quill = getSafeEditor();
+    quill?.history.redo();
+  }, [getSafeEditor]);
+
+  const handleLink = useCallback(() => {
+    const quill = getSafeEditor();
+    if (!quill) return;
+
+    const range = quill.getSelection(true);
+    if (!range) return;
+
+    const currentFormat = quill.getFormat(range);
+    const existingLink =
+      typeof currentFormat.link === "string" ? currentFormat.link : "";
+    const nextLink = window.prompt(
+      "Enter URL",
+      existingLink || "https://"
+    );
+
+    if (nextLink === null) return;
+
+    const trimmed = nextLink.trim();
+    if (!trimmed) {
+      quill.format("link", false);
+      return;
+    }
+
+    if (range.length === 0) {
+      quill.insertText(range.index, trimmed, "link", trimmed);
+      quill.setSelection(range.index + trimmed.length, 0);
+      return;
+    }
+
+    quill.format("link", trimmed);
+  }, [getSafeEditor]);
+
   const modules = useMemo(
     () => ({
       toolbar: {
@@ -83,21 +167,36 @@ const RichEditor = ({
           [{ list: "ordered" }, { list: "bullet" }],
           [{ align: [] }],
           ["link", "image"],
-          ["clean"],
+          ...(tableSupport?.TableUp
+            ? [[{ [tableSupport.TableUp.toolName]: [] }]]
+            : []),
+          ["clean", "undo", "redo"],
           ["code-view"],
         ],
         handlers: {
           image: () => setMediaOpen(true),
+          link: handleLink,
+          undo: handleUndo,
+          redo: handleRedo,
           "code-view": handleToggleCodeView,
         },
       },
+      ...(tableSupport?.TableUp
+        ? {
+            [tableSupport.TableUp.moduleName]: {
+              customSelect: tableSupport.defaultCustomSelect,
+              pasteStyleSheet: true,
+              pasteDefaultTagStyle: true,
+            },
+          }
+        : {}),
       history: {
-        delay: 300,
+        delay: 0,
         maxStack: 200,
         userOnly: true,
       },
     }),
-    [handleToggleCodeView]
+    [handleLink, handleRedo, handleToggleCodeView, handleUndo, tableSupport]
   );
 
   const formats = [
@@ -111,7 +210,35 @@ const RichEditor = ({
     "align",
     "link",
     "image",
+    "table",
+    ...(tableSupport?.blotName
+      ? [
+          tableSupport.blotName.tableWrapper,
+          tableSupport.blotName.tableMain,
+          tableSupport.blotName.tableColgroup,
+          tableSupport.blotName.tableCol,
+          tableSupport.blotName.tableHead,
+          tableSupport.blotName.tableBody,
+          tableSupport.blotName.tableFoot,
+          tableSupport.blotName.tableRow,
+          tableSupport.blotName.tableCell,
+          tableSupport.blotName.tableCellInner,
+          tableSupport.blotName.tableCaption,
+        ]
+      : []),
   ];
+
+  if (!tableSupportReady) {
+    return (
+      <div
+        className={`prose-editor border rounded-xl overflow-visible mb-10 ${className} ${
+          codeView ? "code-view-active" : ""
+        }`}
+      >
+        <div className="h-48 bg-gray-100 animate-pulse rounded-lg border border-gray-200" />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -122,11 +249,29 @@ const RichEditor = ({
       onKeyUp={(event) => event.stopPropagation()}
       onKeyPress={(event) => event.stopPropagation()}
     >
+      <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
+        <button
+          type="button"
+          onClick={handleUndo}
+          className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          onClick={handleRedo}
+          className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+        >
+          Redo
+        </button>
+      </div>
       <ReactQuill
         ref={quillRef}
         theme="snow"
         value={value}
-        onChange={onChange}
+        onChange={(nextValue) => {
+          onChange(nextValue);
+        }}
         modules={modules}
         formats={formats}
         placeholder={placeholder}

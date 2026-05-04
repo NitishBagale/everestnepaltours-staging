@@ -9,7 +9,6 @@ const searchCache = new Map();
 const indexRouter = require("./src/routes/index");
 const adminRouter = require("./src/routes/admin.route");
 const fileRouter = require("./src/routes/file.route");
-const bookingRouter = require("./src/routes/booking.route");
 const enquiryRouter = require("./src/routes/enquiry.route");
 const settingRouter = require("./src/routes/setting.route");
 const {
@@ -62,7 +61,6 @@ app.use("/", indexRouter);
 app.use("/traveller", travellerRouter);
 app.use("/admin", adminRouter);
 app.use("/file", fileRouter);
-app.use("/booking", bookingRouter);
 app.use("/enquiry", enquiryRouter);
 app.use("/settings", settingRouter);
 app.use("/cms", cmsrouter);

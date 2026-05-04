@@ -297,7 +297,6 @@ const CreatePackage = () => {
     tags: [],
     faq: [],
     faq_section_title: "",
-    showBookingForm: false,
     packageSectionOrder: BASE_PACKAGE_BLOCK_IDS,
     customSections: [],
     meta_title: "",
@@ -857,7 +856,6 @@ const CreatePackage = () => {
           tags: finalTags,
           faq: cleanedFaq,
           faq_section_title: formData.faq_section_title,
-          showBookingForm: formData.showBookingForm,
           customSections: cleanedCustomSections,
           packageSectionOrder: normalizePackageSectionOrder(
             formData.packageSectionOrder,
@@ -2567,33 +2565,6 @@ const CreatePackage = () => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-gray-200">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    name="showBookingForm"
-                    checked={formData.showBookingForm}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        showBookingForm: e.target.checked,
-                      })
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--admin-primary-ring)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--admin-primary)]"></div>
-                </div>
-                <div className="flex-1">
-                  <span className="text-sm font-bold text-gray-700 block group-hover:text-[var(--admin-primary)] transition-colors">
-                    Show Booking Form
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Display "Ask to Expert" booking form on public page
-                  </span>
-                </div>
-              </label>
-            </div>
           </div>
 
           {/* Tags & SEO */}

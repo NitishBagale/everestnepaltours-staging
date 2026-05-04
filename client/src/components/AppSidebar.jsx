@@ -2,13 +2,10 @@
 
 import {
   LayoutDashboard,
-  Ticket,
   Car,
-  Settings,
   FileText,
   UserCircle,
   Menu,
-  HelpCircle,
   Star,
 } from "lucide-react";
 import Link from "next/link";
@@ -44,12 +41,6 @@ const menuItems = [
     title: "Users",
     url: "/users",
     icon: UserCircle,
-    roles: ["admin"],
-  },
-  {
-    title: "Bookings",
-    url: "/bookings",
-    icon: Ticket,
     roles: ["admin"],
   },
   {

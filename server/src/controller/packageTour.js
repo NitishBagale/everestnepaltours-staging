@@ -10,7 +10,6 @@ const {
   getPackageTourByTagsService,
 } = require("../services/packageTour");
 const sendMail = require("../utils/sendMail");
-const AskExpertMessage = require("../../models/askExpertMessage");
 const { ADMIN_MAIL } = require("../../config/env");
 
 exports.uploadPackageTourImages = async (req, res, next) => {
@@ -242,17 +241,6 @@ exports.askExpert = async (req, res) => {
         <p>${message}</p>
       `,
     });
-
-    try {
-      await AskExpertMessage.create({
-        packageTourId,
-        name,
-        email,
-        message,
-      });
-    } catch (dbError) {
-      console.warn("AskExpertMessage storage failed:", dbError.message);
-    }
 
     res.status(200).json({
       success: true,

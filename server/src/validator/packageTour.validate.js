@@ -131,7 +131,6 @@ const PackageTour = Joi.object({
     meta_description: Joi.string().min(3).max(500).optional(),
     slug: Joi.string().optional(),
     showFaqs: Joi.boolean().optional(),
-    showBookingForm: Joi.boolean().optional(),
     customSections: Joi.array()
       .items(
         Joi.object({
