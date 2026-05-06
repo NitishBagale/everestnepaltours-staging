@@ -259,7 +259,7 @@ async function sendEnquiryNotification({ name, email, contact, message }) {
 
 async function sendContactFormNotification({ fullName, email, subject, message }) {
   const htmlContent = pug.renderFile(
-    path.join(__dirname, "../../../views/contactFormEmail.jade"),
+    path.join(__dirname, "./template/../../../views/contactFormEmail.jade"),
     {
       fullName,
       email,
