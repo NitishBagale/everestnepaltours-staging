@@ -1,16 +1,25 @@
-const { SMTP_EMAIL, SMTP_PASSWORD } = require("../../config/env");
+const {
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_SECURE,
+  SMTP_EMAIL,
+  SMTP_PASSWORD,
+} = require("../../config/env");
 const nodemailer = require("nodemailer");
 
+const smtpPort = Number(SMTP_PORT || 587);
+const smtpSecure = String(SMTP_SECURE).toLowerCase() === "true";
+
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,          // Use 587 for STARTTLS instead of 465
-  secure: false,      // STARTTLS requires secure=false
+  host: SMTP_HOST || "smtp.gmail.com",
+  port: smtpPort,
+  secure: smtpSecure,
   auth: {
     user: SMTP_EMAIL,
-    pass: SMTP_PASSWORD, // Use App Password if 2FA enabled
+    pass: SMTP_PASSWORD,
   },
   tls: {
-    // do not fail on invalid certs (optional, safe if using port 587)
+    // Allow deployment-specific certificates when SMTP uses STARTTLS.
     rejectUnauthorized: false,
   },
   logger: true,
