@@ -17,6 +17,10 @@ const poppins = Poppins({
 export const metadata = {
   title: "Everest Vacation Admin",
   description: "Everest Vacation Admin Panel",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({ children }) {

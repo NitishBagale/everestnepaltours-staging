@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
+import { buildSeoMetadata } from "@/lib/seo";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const DEFAULT_TITLE = "Travel Information | Everest Vacation";
@@ -62,21 +63,13 @@ export const generateMetadata = async () => {
     DEFAULT_IMAGE;
 
   return {
-    title: cmsTitle,
-    description: cmsDescription,
-    keywords: cmsKeywords,
-    openGraph: {
+    ...buildSeoMetadata({
       title: cmsTitle,
       description: cmsDescription,
-      type: "website",
-      images: bannerImage ? [{ url: bannerImage }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: cmsTitle,
-      description: cmsDescription,
-      images: bannerImage ? [bannerImage] : undefined,
-    },
+      keywords: cmsKeywords,
+      path: "/travel-information",
+      image: bannerImage,
+    }),
   };
 };
 

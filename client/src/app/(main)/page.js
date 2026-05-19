@@ -7,14 +7,16 @@ import React from "react";
 import { getHomePageData } from "@/lib/siteApi";
 import { preconnect, preload } from "react-dom";
 import { getMediaObject, getMediaUrl, getOptimizedCloudinaryUrl } from "@/lib/media";
+import { buildSeoMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Everest Vacation | Nepal, Bhutan & Tibet Tours",
+export const metadata = buildSeoMetadata({
+  title: "Nepal, Bhutan & Tibet Tours",
   description:
     "Discover curated tours across Nepal, Bhutan, and Tibet with expert planning, authentic experiences, and trusted guides.",
   keywords:
     "Everest Vacation, Nepal tours, Bhutan tours, Tibet tours, trekking, cultural tours",
-};
+  path: "/",
+});
 
 const page = async () => {
   const homeData = await getHomePageData();

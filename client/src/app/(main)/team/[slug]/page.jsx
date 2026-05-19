@@ -1,5 +1,6 @@
 import React from "react";
 import { BASE_URL } from "@/config/Config";
+import { buildSeoMetadata } from "@/lib/seo";
 
 const DEFAULT_TITLE = "Team Member";
 const DEFAULT_DESCRIPTION =
@@ -27,23 +28,14 @@ export const generateMetadata = async ({ params } = {}) => {
   const member = await fetchTeamMemberBySlug(slug);
 
   if (!member) {
-    return {
+    return buildSeoMetadata({
       title: DEFAULT_TITLE,
       description: DEFAULT_DESCRIPTION,
       keywords: DEFAULT_KEYWORDS,
-      openGraph: {
-        title: DEFAULT_TITLE,
-        description: DEFAULT_DESCRIPTION,
-        type: "profile",
-        images: DEFAULT_IMAGE ? [{ url: DEFAULT_IMAGE }] : undefined,
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: DEFAULT_TITLE,
-        description: DEFAULT_DESCRIPTION,
-        images: DEFAULT_IMAGE ? [DEFAULT_IMAGE] : undefined,
-      },
-    };
+      path: `/team/${slug}`,
+      image: DEFAULT_IMAGE,
+      type: "profile",
+    });
   }
 
   const title = member.meta_title || `${member.name} | Team Member`;
@@ -54,23 +46,14 @@ export const generateMetadata = async ({ params } = {}) => {
   const keywords = member.meta_keywords || DEFAULT_KEYWORDS;
   const image = member.imageUrl || DEFAULT_IMAGE;
 
-  return {
+  return buildSeoMetadata({
     title,
     description,
     keywords,
-    openGraph: {
-      title,
-      description,
-      type: "profile",
-      images: image ? [{ url: image }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: image ? [image] : undefined,
-    },
-  };
+    path: `/team/${slug}`,
+    image,
+    type: "profile",
+  });
 };
 
 const TeamMemberDetailPage = async ({ params } = {}) => {

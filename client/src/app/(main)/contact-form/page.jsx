@@ -1,5 +1,6 @@
 import ContactFormClient from "./ContactFormClient";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
+import { buildSeoMetadata } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const DEFAULT_TITLE = "Contact Us | Everest Vacation";
@@ -35,23 +36,13 @@ export const generateMetadata = async () => {
   const bannerImage =
     getMediaUrl(getMediaObject(bannerMedia), "large") || DEFAULT_IMAGE;
 
-  return {
+  return buildSeoMetadata({
     title: cmsTitle,
     description: cmsDescription,
     keywords: cmsKeywords,
-    openGraph: {
-      title: cmsTitle,
-      description: cmsDescription,
-      type: "website",
-      images: bannerImage ? [{ url: bannerImage }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: cmsTitle,
-      description: cmsDescription,
-      images: bannerImage ? [bannerImage] : undefined,
-    },
-  };
+    path: "/contact-form",
+    image: bannerImage,
+  });
 };
 
 const ContactPage = async () => {

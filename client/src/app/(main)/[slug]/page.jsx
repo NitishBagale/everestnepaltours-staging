@@ -3,6 +3,7 @@ import { BASE_URL } from "@/config/Config";
 import { getMediaObject, getMediaUrl } from "@/lib/media";
 import CmsContentRenderer from "@/components/CmsContentRenderer";
 import PackageDetailClient from "@/components/PackageDetailClient";
+import { buildSeoMetadata, stripHtml } from "@/lib/seo";
 
 const slugify = (value) =>
   value
@@ -15,9 +16,6 @@ const slugify = (value) =>
         .replace(/-+/g, "-")
         .replace(/^-+|-+$/g, "")
     : "";
-
-const stripHtml = (value) =>
-  typeof value === "string" ? value.replace(/<[^>]+>/g, "") : "";
 
 const normalizeSlug = (value) => slugify(String(value || ""));
 
@@ -122,25 +120,23 @@ export const generateMetadata = async ({ params }) => {
     const mainImageMedia = getMediaObject(tourData.mainImage || tourData.image);
     const ogImage = getMediaUrl(mainImageMedia, "large");
 
-    return {
+    return buildSeoMetadata({
       title: metaTitle,
       description: metaDescription,
       keywords: metaKeywords,
-      openGraph: {
-        title: metaTitle,
-        description: metaDescription,
-        type: "website",
-        images: ogImage ? [ogImage] : undefined,
-      },
-    };
+      path: `/${slug}`,
+      image: ogImage,
+    });
   }
 
   const pageData = await getCmsBySlug(slug);
   if (!pageData) {
-    return {
+    return buildSeoMetadata({
       title: "Page Not Found",
       description: "The requested page could not be found.",
-    };
+      path: `/${slug}`,
+      noIndex: true,
+    });
   }
 
   const metaTitle =
@@ -159,17 +155,13 @@ export const generateMetadata = async ({ params }) => {
   const metaKeywords = pageData.meta_keywords || "";
   const ogImage = getCmsOgImage(pageData);
 
-  return {
+  return buildSeoMetadata({
     title: metaTitle,
     description: metaDescription,
     keywords: metaKeywords || undefined,
-    openGraph: {
-      title: metaTitle,
-      description: metaDescription,
-      type: "website",
-      images: ogImage ? [ogImage] : undefined,
-    },
-  };
+    path: `/${slug}`,
+    image: ogImage,
+  });
 };
 
 const CmsPage = async ({ params }) => {

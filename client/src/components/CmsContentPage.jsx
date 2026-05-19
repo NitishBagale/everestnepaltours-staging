@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import Head from "next/head";
 import { BASE_URL } from "@/config/Config";
 import CmsContentRenderer from "@/components/CmsContentRenderer";
 
@@ -17,9 +16,6 @@ const slugify = (value) =>
         .replace(/-+/g, "-")
         .replace(/^-+|-+$/g, "")
     : "";
-
-const stripHtml = (value) =>
-  typeof value === "string" ? value.replace(/<[^>]+>/g, "") : "";
 
 const normalizeCmsData = (payload) => {
   if (!payload) return null;
@@ -60,27 +56,11 @@ const CmsContentPage = ({
   backLabel,
   headingClassName,
   headingStyle,
-  titleFallback = "Page",
-  withMeta = true,
   children,
 }) => {
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const meta = useMemo(() => {
-    if (!withMeta || !pageData) return null;
-    const content = pageData.content || {};
-    const metaTitle =
-      pageData.meta_title || content.title || pageData.section || titleFallback;
-    const metaDescription =
-      pageData.meta_description ||
-      stripHtml(content.description).slice(0, 160) ||
-      "Travel information and helpful details.";
-    const metaKeywords = pageData.meta_keywords || "";
-
-    return { metaTitle, metaDescription, metaKeywords };
-  }, [pageData, titleFallback, withMeta]);
 
   useEffect(() => {
     let active = true;
@@ -146,22 +126,6 @@ const CmsContentPage = ({
 
   return (
     <>
-      {meta && (
-        <Head>
-          <title>{meta.metaTitle}</title>
-          {meta.metaDescription && (
-            <meta name="description" content={meta.metaDescription} />
-          )}
-          {meta.metaKeywords && (
-            <meta name="keywords" content={meta.metaKeywords} />
-          )}
-          <meta property="og:title" content={meta.metaTitle} />
-          {meta.metaDescription && (
-            <meta property="og:description" content={meta.metaDescription} />
-          )}
-          <meta property="og:type" content="website" />
-        </Head>
-      )}
       <CmsContentRenderer
         pageData={pageData}
         error={error}

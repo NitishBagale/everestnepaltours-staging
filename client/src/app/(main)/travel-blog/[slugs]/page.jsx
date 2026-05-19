@@ -1,4 +1,5 @@
 import BlogDetailClient from "./BlogDetailClient";
+import { buildSeoMetadata } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const DEFAULT_TITLE = "Travel Blog | Everest Vacation";
@@ -49,23 +50,14 @@ export const generateMetadata = async ({ params } = {}) => {
   const { blog } = await fetchBlogBySlug(slugs);
 
   if (!blog) {
-    return {
+    return buildSeoMetadata({
       title: DEFAULT_TITLE,
       description: DEFAULT_DESCRIPTION,
       keywords: DEFAULT_KEYWORDS,
-      openGraph: {
-        title: DEFAULT_TITLE,
-        description: DEFAULT_DESCRIPTION,
-        type: "article",
-        images: DEFAULT_IMAGE ? [{ url: DEFAULT_IMAGE }] : undefined,
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: DEFAULT_TITLE,
-        description: DEFAULT_DESCRIPTION,
-        images: DEFAULT_IMAGE ? [DEFAULT_IMAGE] : undefined,
-      },
-    };
+      path: `/travel-blog/${slugs}`,
+      image: DEFAULT_IMAGE,
+      type: "article",
+    });
   }
 
   const title = blog.meta_title || blog.mainTitle || DEFAULT_TITLE;
@@ -77,23 +69,14 @@ export const generateMetadata = async ({ params } = {}) => {
   const keywords = blog.meta_keywords || DEFAULT_KEYWORDS;
   const image = blog.coverImage || DEFAULT_IMAGE;
 
-  return {
+  return buildSeoMetadata({
     title,
     description,
     keywords,
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      images: image ? [{ url: image }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: image ? [image] : undefined,
-    },
-  };
+    path: `/travel-blog/${slugs}`,
+    image,
+    type: "article",
+  });
 };
 
 const BlogPage = async ({ params } = {}) => {

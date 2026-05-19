@@ -1,4 +1,5 @@
 import TravelInfoDetailClient from "./TravelInfoDetailClient";
+import { buildSeoMetadata } from "@/lib/seo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const DEFAULT_TITLE = "Travel Information | Everest Vacation";
@@ -42,23 +43,14 @@ export const generateMetadata = async ({ params } = {}) => {
   const { item } = await fetchTravelInfoBySlug(slug);
 
   if (!item) {
-    return {
+    return buildSeoMetadata({
       title: DEFAULT_TITLE,
       description: DEFAULT_DESCRIPTION,
       keywords: DEFAULT_KEYWORDS,
-      openGraph: {
-        title: DEFAULT_TITLE,
-        description: DEFAULT_DESCRIPTION,
-        type: "article",
-        images: DEFAULT_IMAGE ? [{ url: DEFAULT_IMAGE }] : undefined,
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: DEFAULT_TITLE,
-        description: DEFAULT_DESCRIPTION,
-        images: DEFAULT_IMAGE ? [DEFAULT_IMAGE] : undefined,
-      },
-    };
+      path: `/travel-information/${slug}`,
+      image: DEFAULT_IMAGE,
+      type: "article",
+    });
   }
 
   const title = item.meta_title || item.title || DEFAULT_TITLE;
@@ -68,23 +60,14 @@ export const generateMetadata = async ({ params } = {}) => {
     DEFAULT_DESCRIPTION;
   const keywords = item.meta_keywords || DEFAULT_KEYWORDS;
 
-  return {
+  return buildSeoMetadata({
     title,
     description,
     keywords,
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      images: DEFAULT_IMAGE ? [{ url: DEFAULT_IMAGE }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: DEFAULT_IMAGE ? [DEFAULT_IMAGE] : undefined,
-    },
-  };
+    path: `/travel-information/${slug}`,
+    image: DEFAULT_IMAGE,
+    type: "article",
+  });
 };
 
 const TravelInformationDetailPage = async ({ params } = {}) => {

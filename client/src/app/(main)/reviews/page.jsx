@@ -1,5 +1,6 @@
 import ReviewsClient from "./ReviewsClient";
 import { BASE_URL } from "@/config/Config";
+import { buildSeoMetadata } from "@/lib/seo";
 
 const DEFAULT_METADATA = {
   title: "Reviews | Everest Vacation",
@@ -35,21 +36,12 @@ export const generateMetadata = async () => {
     DEFAULT_METADATA.description;
   const keywords = cms?.meta_keywords || DEFAULT_METADATA.keywords;
 
-  return {
+  return buildSeoMetadata({
     title,
     description,
     keywords,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
-  };
+    path: "/reviews",
+  });
 };
 
 const ReviewsPage = async () => {
