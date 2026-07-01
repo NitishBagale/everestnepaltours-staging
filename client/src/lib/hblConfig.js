@@ -7,7 +7,7 @@ export const HBL_BACKEND_PATH = "/api/hbl/backend";
 export const HBL_PAYMENT_ENDPOINT =
   "https://core.paco.2c2p.com/api/1.0/Payment/prePaymentUi";
 
-export const HBL_PUBLIC_SITE_URL = "https://everestnepaltours.com";
+export const HBL_PUBLIC_SITE_URL = "https://staging.everestnepaltours.com";
 
 export const HBL_CONFIG = {
   merchantId: "9103335451",
