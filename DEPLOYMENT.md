@@ -15,16 +15,6 @@
 Environment variables (Vercel):
 - `NEXT_PUBLIC_API_URL` (public API base URL)
 - `NEXT_API_BASED_URL` (legacy/admin usage if still referenced)
-- `NEXT_PUBLIC_SITE_URL` (public site origin for HBL callback URLs)
-- `HBL_MERCHANT_ID`
-- `HBL_API_KEY`
-- `HBL_CURRENCY`
-- `HBL_THREE_D_SECURE`
-- `HBL_ENCRYPTION_KEY_ID`
-- `HBL_MERCHANT_SIGNING_PRIVATE_KEY`
-- `HBL_MERCHANT_DECRYPTION_PRIVATE_KEY`
-- `HBL_PACO_ENCRYPTION_PUBLIC_KEY`
-- `HBL_PACO_SIGNING_PUBLIC_KEY`
 
 ## Render (Backend)
 - Service type: Web Service

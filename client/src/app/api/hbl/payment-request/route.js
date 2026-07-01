@@ -2,19 +2,15 @@ import { NextResponse } from "next/server";
 import {
   HBL_BACKEND_PATH,
   HBL_CANCEL_PATH,
+  HBL_CONFIG,
   HBL_FAIL_PATH,
+  HBL_PUBLIC_SITE_URL,
   HBL_SUCCESS_PATH,
 } from "@/lib/hblConfig";
 import { createHblPaymentPageUrl } from "@/lib/hblJose";
 
 export const runtime = "nodejs";
 
-const DEFAULT_PUBLIC_SITE_URL = "https://everestnepaltours.com";
-const HBL_MERCHANT_ID = process.env.HBL_MERCHANT_ID || "9103335451";
-const HBL_API_KEY =
-  process.env.HBL_API_KEY || "741653d4d7f1451c9e82a1ec32a6670a";
-const HBL_CURRENCY = process.env.HBL_CURRENCY || "USD";
-const HBL_THREE_D_SECURE = process.env.HBL_THREE_D_SECURE || "Y";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 const parsePublicOrigin = (raw) => {
@@ -50,11 +46,10 @@ const absoluteUrl = (request, target, params = {}) => {
     ? request.nextUrl.origin
     : parsePublicOrigin(request.nextUrl.origin);
   const base =
-    parsePublicOrigin(process.env.SITE_URL) ||
-    parsePublicOrigin(process.env.NEXT_PUBLIC_SITE_URL) ||
+    parsePublicOrigin(HBL_PUBLIC_SITE_URL) ||
     parsePublicOrigin(forwardedOrigin) ||
     requestOrigin ||
-    DEFAULT_PUBLIC_SITE_URL;
+    HBL_PUBLIC_SITE_URL;
   const url = new URL(target, base);
 
   for (const [key, value] of Object.entries(params)) {
@@ -109,11 +104,11 @@ export async function POST(request) {
 
   try {
     const paymentPageUrl = await createHblPaymentPageUrl({
-      merchantId: HBL_MERCHANT_ID,
-      apiKey: HBL_API_KEY,
-      currency: HBL_CURRENCY,
+      merchantId: HBL_CONFIG.merchantId,
+      apiKey: HBL_CONFIG.apiKey,
+      currency: HBL_CONFIG.currency,
       amount: amountText,
-      threeDSecure: HBL_THREE_D_SECURE,
+      threeDSecure: HBL_CONFIG.threeDSecure,
       successUrl,
       failUrl,
       cancelUrl,
