@@ -1,5 +1,8 @@
+import { Suspense } from "react";
 import OnlineBookingClient from "./OnlineBookingClient";
 import { buildSeoMetadata } from "@/lib/seo";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = buildSeoMetadata({
   title: "Online Booking | Everest Vacation",
@@ -9,5 +12,9 @@ export const metadata = buildSeoMetadata({
 });
 
 export default function OnlineBookingPage() {
-  return <OnlineBookingClient />;
+  return (
+    <Suspense fallback={null}>
+      <OnlineBookingClient />
+    </Suspense>
+  );
 }

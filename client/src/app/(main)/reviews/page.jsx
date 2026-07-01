@@ -2,6 +2,8 @@ import ReviewsClient from "./ReviewsClient";
 import { BASE_URL } from "@/config/Config";
 import { buildSeoMetadata } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 const DEFAULT_METADATA = {
   title: "Reviews | Everest Vacation",
   description:
