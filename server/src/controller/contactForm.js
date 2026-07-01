@@ -25,6 +25,8 @@ exports.createContactForm = async (req,res) =>{
             email: formData.email,
             subject: formData.subject,
             message: formData.message,
+            sourcePage: req.get("referer"),
+            ip: req.ip,
         });
 
         res.status(201).json({

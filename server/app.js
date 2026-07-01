@@ -21,6 +21,7 @@ const packageTourRouter = require("./src/routes/packageTour");
 const reviewRouter = require("./src/routes/review");
 const contactFormRouter = require("./src/routes/contactForm");
 const travellerRouter = require("./src/routes/traveller");
+const onlineBookingRouter = require("./src/routes/onlineBooking.route");
 const teamRouter = require("./src/routes/team");
 const mediaRouter = require("./src/routes/media");
 const seoRouter = require("./src/routes/seo");
@@ -28,24 +29,44 @@ const travelInfoRouter = require("./src/routes/travelInfo.route");
 
 const app = express();
 require("./models/travelInfo.model");
+require("./models/onlineBooking");
 testPostgresConnection();
 
 app.set("views", path.join(__dirname, "/src/views"));
 app.set("view engine", "jade");
-const corsOrigins = process.env.CORS_ORIGIN
+const configuredCorsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
       .map((origin) => origin.trim())
       .filter(Boolean)
-  : true;
+  : [];
+
+const localOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+
+const corsOriginDelegate = (origin, callback) => {
+  if (!origin) {
+    callback(null, true);
+    return;
+  }
+
+  if (
+    configuredCorsOrigins.includes(origin) ||
+    localOriginPattern.test(origin)
+  ) {
+    callback(null, true);
+    return;
+  }
+
+  callback(new Error(`CORS blocked for origin: ${origin}`));
+};
 
 app.use(
   cors({
-    origin: corsOrigins,
+    origin: corsOriginDelegate,
     credentials: false,
   })
 );
 
-console.log("CORS origins:", corsOrigins);
+console.log("CORS origins:", configuredCorsOrigins, "+ localhost/127.0.0.1");
 
 app.use(logger("dev"));
 app.use(express.json({ limit: "50mb" }));
@@ -69,6 +90,7 @@ app.use("/category", categoryRouter);
 app.use("/package-tour", packageTourRouter);
 app.use("/review", reviewRouter);
 app.use("/contact-form", contactFormRouter);
+app.use("/online-booking", onlineBookingRouter);
 app.use("/team", teamRouter);
 app.use("/media", mediaRouter);
 app.use("/seo", seoRouter);

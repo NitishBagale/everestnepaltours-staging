@@ -9,8 +9,7 @@ const {
   getPackageTourByCategoryIdService,
   getPackageTourByTagsService,
 } = require("../services/packageTour");
-const sendMail = require("../utils/sendMail");
-const { ADMIN_MAIL } = require("../../config/env");
+const { sendAskExpertNotification } = require("../lib/mail/send.mail");
 
 exports.uploadPackageTourImages = async (req, res, next) => {
   try {
@@ -204,7 +203,7 @@ exports.getAllPackageTourByTags = async(req,res)=>{
 exports.askExpert = async (req, res) => {
   try {
     const packageTourId = req.params.id;
-    const { name, email, message } = req.body || {};
+    const { name, email, message, phone, country } = req.body || {};
 
     const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
     if (!name || !email || !message) {
@@ -228,18 +227,21 @@ exports.askExpert = async (req, res) => {
 
     const packageTour = await getPackageTourByIdService(packageTourId);
     const packageTitle = packageTour?.package?.title || "Package Tour";
+    const packageSlug = packageTour?.package?.slug;
+    const origin = req.get("origin") || "https://everestnepaltours.com";
+    const sourcePage =
+      req.get("referer") ||
+      (packageSlug ? `${origin}/trips/${packageSlug}` : origin);
 
-    await sendMail({
-      from: `"Everest Vacation" <${ADMIN_MAIL}>`,
-      to: ADMIN_MAIL,
-      subject: `Ask an Expert: ${packageTitle}`,
-      html: `
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Package:</strong> ${packageTitle}</p>
-        <p><strong>Message:</strong></p>
-        <p>${message}</p>
-      `,
+    await sendAskExpertNotification({
+      fullName: name,
+      email,
+      phone,
+      country,
+      packageName: packageTitle,
+      message,
+      sourcePage,
+      ip: req.ip,
     });
 
     res.status(200).json({

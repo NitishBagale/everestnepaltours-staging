@@ -7,6 +7,7 @@ import {
   UserCircle,
   Menu,
   Star,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -68,6 +69,12 @@ const menuItems = [
     url: "/reviews",
     icon: Star,
     roles: ["admin", "editor"],
+  },
+  {
+    title: "Online Bookings",
+    url: "/online-bookings",
+    icon: CreditCard,
+    roles: ["admin", "editor", "superadmin"],
   },
   {
     title: "Pages",

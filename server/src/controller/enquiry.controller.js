@@ -8,6 +8,8 @@ exports.createEnquiry = async (req, res, next) => {
       email: enquiryData.email,
       contact: enquiryData.contact,
       message: enquiryData.message,
+      sourcePage: req.get("referer"),
+      ip: req.ip,
     });
     res.status(200).json({
       success: true,
