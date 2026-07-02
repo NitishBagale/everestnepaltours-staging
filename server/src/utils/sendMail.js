@@ -1,31 +1,22 @@
-const {
-  SMTP_HOST,
-  SMTP_PORT,
-  SMTP_SECURE,
-  SMTP_EMAIL,
-  SMTP_PASSWORD,
-} = require("../../config/env");
+const { SMTP_CONFIG } = require("../../config/env");
 const nodemailer = require("nodemailer");
-
-const smtpPort = Number(SMTP_PORT || 587);
-const smtpSecure = String(SMTP_SECURE).toLowerCase() === "true";
 let transporter;
 
 function getTransporter() {
-  if (!SMTP_HOST || !SMTP_EMAIL || !SMTP_PASSWORD) {
+  if (!SMTP_CONFIG.password) {
     throw new Error(
-      "SMTP is not configured correctly. Set SMTP_HOST, SMTP_EMAIL, and SMTP_PASSWORD in server/.env."
+      "SMTP is not configured correctly. Set SMTP_PASSWORD in the runtime environment or expose it from server/config/env.js."
     );
   }
 
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: smtpPort,
-      secure: smtpSecure,
+      host: SMTP_CONFIG.host,
+      port: SMTP_CONFIG.port,
+      secure: SMTP_CONFIG.secure,
       auth: {
-        user: SMTP_EMAIL,
-        pass: SMTP_PASSWORD,
+        user: SMTP_CONFIG.email,
+        pass: SMTP_CONFIG.password,
       },
       tls: {
         // Allow deployment-specific certificates when SMTP uses STARTTLS.

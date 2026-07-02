@@ -25,6 +25,12 @@ services:
         sync: false
       - key: ADMIN_MAIL
         sync: false
+      - key: SMTP_HOST
+        value: mail.privateemail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: false
       - key: SMTP_EMAIL
         sync: false
       - key: SMTP_PASSWORD
