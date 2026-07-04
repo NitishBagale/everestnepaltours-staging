@@ -4,8 +4,8 @@ const dotenv = require("dotenv");
 
 const DEFAULT_SMTP_CONFIG = {
   host: "mail.privateemail.com",
-  port: "25",
-  secure: "false",
+  port: "465",
+  secure: "true",
   email: "info@everestvacations.com",
   user: "info@everestvacations.com",
   password: "Khagi$%81-pe",
