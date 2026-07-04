@@ -25,7 +25,7 @@ function formatFromAddress(name, email) {
 function getTransporter() {
   if (!SMTP_HOST || !SMTP_EMAIL || !SMTP_PASSWORD) {
     throw new Error(
-      "SMTP is not configured correctly. Set SMTP_HOST, SMTP_EMAIL, and SMTP_PASSWORD in server/.env."
+      "SMTP is not configured correctly. Set DEFAULT_SMTP_CONFIG in server/config/env.js."
     );
   }
 
@@ -64,7 +64,7 @@ async function sendMail(mailInfo) {
       throw {
         status: 400,
         message:
-          "SMTP authentication failed. Verify SMTP_USER or SMTP_EMAIL and SMTP_PASSWORD in server/.env.",
+          "SMTP authentication failed. Verify DEFAULT_SMTP_CONFIG in server/config/env.js.",
       };
     }
 
