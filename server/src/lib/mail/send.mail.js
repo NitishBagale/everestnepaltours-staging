@@ -108,14 +108,15 @@ function formatMailbox(name, email, fallbackName = "Website visitor") {
 
 function buildVisitorReplyHeaders(name, email) {
   const mailbox = formatMailbox(name, email);
+  const brandedFrom = formatMailbox(name, SUPPORT_EMAIL, "Website visitor");
+
   if (!mailbox) {
-    return {};
+    return brandedFrom ? { from: brandedFrom } : {};
   }
 
   return {
-    from: mailbox,
+    from: brandedFrom,
     replyTo: mailbox,
-    sender: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
   };
 }
 
