@@ -593,7 +593,7 @@ function SelectField({ name, value, onChange, options, autoComplete }) {
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
-        className="w-full appearance-none rounded-2xl border border-[#bfd0e7] bg-[linear-gradient(180deg,#ffffff,#f7fbff)] px-5 py-4 pr-14 text-lg text-[#384a6a] shadow-[0_8px_24px_-20px_rgba(56,74,106,0.45)] outline-none transition focus:border-[#70b6a7] focus:ring-4 focus:ring-[#70b6a7]/12"
+        className="w-full appearance-none rounded-2xl border border-[#bfd0e7] bg-white px-5 py-3 pr-16 text-base leading-tight text-[#384a6a] outline-none transition focus:border-[#70b6a7] focus:ring-2 focus:ring-[#70b6a7]/15 md:min-h-[58px] md:text-lg"
       >
         {options.map((option, index) => (
           <option key={option} value={index === 0 ? "" : option}>
@@ -601,10 +601,10 @@ function SelectField({ name, value, onChange, options, autoComplete }) {
           </option>
         ))}
       </select>
-      <span className="pointer-events-none absolute inset-y-0 right-5 flex items-center text-[#384a6a]">
+      <span className="pointer-events-none absolute inset-y-0 right-5 flex items-center border-l border-[#d7e2f1] pl-4 text-[#384a6a]">
         <svg
-          width="18"
-          height="18"
+          width="16"
+          height="16"
           viewBox="0 0 20 20"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
