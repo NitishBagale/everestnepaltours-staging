@@ -2,11 +2,11 @@ const pug = require("pug");
 const path = require("path");
 const fs = require("fs");
 const sendMail = require("../../utils/sendMail");
-const { ADMIN_MAIL } = require("../../../config/env");
+const { ADMIN_MAIL, MAIL_FROM_EMAIL } = require("../../../config/env");
 
 const BRAND_NAME = "Everest Vacation Pvt. Ltd.";
 const SITE_URL = "https://everestnepaltours.com";
-const SUPPORT_EMAIL = "info@everestnepaltours.com";
+const SUPPORT_EMAIL = MAIL_FROM_EMAIL || "info@everestvacations.com";
 const SUPPORT_PHONE = "+977-985 105 3024";
 const LOGO_URL =
   "https://everestnepaltours.com/wp-content/uploads/2023/11/everest-vacation-logo1-e1706090032268.png";
@@ -501,14 +501,14 @@ async function sendEnquiryNotification({
 
     await Promise.all([
       sendMail({
-        from: '"Everest Vacation" <info@everest-vacation.com>',
+        from: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
         to: email,
         subject: "We received your inquiry",
         html: customerHtml,
       }),
       ADMIN_MAIL
         ? sendMail({
-            from: '"Everest Vacation" <info@everest-vacation.com>',
+            from: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
             to: ADMIN_MAIL,
             subject: `New Inquiry from ${name}`,
             html: adminHtml,
@@ -589,7 +589,7 @@ async function sendContactFormNotification({
 
     await Promise.all([
       sendMail({
-        from: '"Everest Vacation" <info@everest-vacation.com>',
+        from: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
         to: email,
         subject: "We received your message",
         html: customerHtml,
@@ -679,7 +679,7 @@ async function sendAskExpertNotification({
   try {
     await Promise.all([
       sendMail({
-        from: '"Everest Vacation" <info@everest-vacation.com>',
+        from: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
         to: email,
         subject: `We received your request about ${packageName}`,
         html: customerHtml,
@@ -795,7 +795,7 @@ async function sendCustomizeTripNotification({
   try {
     await Promise.all([
       sendMail({
-        from: '"Everest Vacation" <info@everest-vacation.com>',
+        from: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
         to: email,
         subject: `We received your customize trip request${tripName ? ` for ${tripName}` : ""}`,
         html: customerHtml,
@@ -885,7 +885,7 @@ async function sendOnlineBookingPaymentNotifications(booking) {
 
   const jobs = [
     sendMail({
-      from: '"Everest Vacation" <info@everest-vacation.com>',
+      from: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
       to: email,
       subject: `Payment received for booking ${bookingRef}`,
       html: customerHtml,
