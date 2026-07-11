@@ -27,6 +27,8 @@ const initialFormState = {
   captchaResult: "",
 };
 
+const BANK_SERVICE_CHARGE_RATE = 0.04;
+
 export default function OnlineBookingClient() {
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState(initialFormState);
@@ -51,6 +53,16 @@ export default function OnlineBookingClient() {
     }
     return null;
   }, [searchParams]);
+
+  const parsedDepositAmount = Number(formData.depositAmount || 0);
+  const hasValidDepositAmount =
+    Number.isFinite(parsedDepositAmount) && parsedDepositAmount > 0;
+  const bankServiceCharge = hasValidDepositAmount
+    ? parsedDepositAmount * BANK_SERVICE_CHARGE_RATE
+    : 0;
+  const totalPayableAmount = hasValidDepositAmount
+    ? parsedDepositAmount + bankServiceCharge
+    : 0;
 
   React.useEffect(() => {
     setCaptcha(makeCaptcha());
@@ -105,7 +117,7 @@ export default function OnlineBookingClient() {
       }
 
       const paymentPageURL = await requestHblPaymentPage({
-        amount: formData.depositAmount,
+        amount: totalPayableAmount.toFixed(2),
         bookingRef,
       });
 
@@ -274,6 +286,24 @@ export default function OnlineBookingClient() {
               </div>
 
               <div className="flex flex-wrap gap-3">
+                <div className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                  <p className="font-semibold">
+                    A 4% bank service charge will be added to the online payment.
+                  </p>
+                  {hasValidDepositAmount ? (
+                    <p className="mt-2 text-slate-700">
+                      Deposit Amount: <span className="font-semibold">${parsedDepositAmount.toFixed(2)}</span>
+                      {" · "}
+                      Bank Service Charge: <span className="font-semibold">${bankServiceCharge.toFixed(2)}</span>
+                      {" · "}
+                      Total Payable: <span className="font-semibold">${totalPayableAmount.toFixed(2)}</span>
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-slate-700">
+                      Enter the deposit amount above to see the final payable total.
+                    </p>
+                  )}
+                </div>
                 <button
                   type="submit"
                   disabled={isSubmitting}
