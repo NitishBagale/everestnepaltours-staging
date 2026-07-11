@@ -562,8 +562,8 @@ async function sendContactFormNotification({
     });
 
     const adminHtml = renderAdminNotificationEmail({
-      emailTitle: "New Contact Form — Admin Notification",
-      headerTitle: "New contact form message received.",
+      emailTitle: "Contact Form — Admin Notification",
+      headerTitle: "Contact form message received.",
       headerSubtitle: `Submitted ${formatTimeAgo()} · Response required within 24 hours`,
       urgencyText:
         "A visitor has submitted a contact request. Please review the message and follow up promptly.",
