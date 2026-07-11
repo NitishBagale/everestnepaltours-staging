@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState } from "react";
 import axios from "axios";
-import { useSearchParams } from "next/navigation";
 import { BASE_URL } from "@/config/Config";
 
 const destinationOptions = [
@@ -71,11 +70,7 @@ const initialFormData = {
   customizeDetails: "",
 };
 
-const CustomizeTripClient = () => {
-  const searchParams = useSearchParams();
-  const tripName = searchParams.get("trip") || "";
-  const tripSlug = searchParams.get("slug") || "";
-
+const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });

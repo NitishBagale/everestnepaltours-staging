@@ -11,8 +11,15 @@ export const metadata = buildSeoMetadata({
   image: `${seoSite.url}/lhasa.jpg`,
 });
 
-const CustomizeTripPage = () => {
-  return <CustomizeTripClient />;
+const CustomizeTripPage = async ({ searchParams }) => {
+  const resolvedSearchParams = await searchParams;
+
+  return (
+    <CustomizeTripClient
+      tripName={resolvedSearchParams?.trip || ""}
+      tripSlug={resolvedSearchParams?.slug || ""}
+    />
+  );
 };
 
 export default CustomizeTripPage;
