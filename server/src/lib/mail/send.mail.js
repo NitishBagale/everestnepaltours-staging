@@ -67,6 +67,58 @@ function sanitizePhoneLink(phone) {
   return normalized ? `tel:${normalized}` : `mailto:${SUPPORT_EMAIL}`;
 }
 
+function normalizeIpAddress(ip) {
+  const value = String(ip || "").trim();
+  if (!value) {
+    return "Unavailable";
+  }
+
+  if (value === "::1") {
+    return "127.0.0.1";
+  }
+
+  return value.replace(/^::ffff:/, "");
+}
+
+function buildIpLookupUrl(ip) {
+  const normalizedIp = normalizeIpAddress(ip);
+  if (
+    !normalizedIp ||
+    normalizedIp === "Unavailable" ||
+    normalizedIp.toLowerCase() === "unknown"
+  ) {
+    return SITE_URL;
+  }
+
+  return `http://whatismyipaddress.com/ip/${encodeURIComponent(normalizedIp)}`;
+}
+
+function formatMailbox(name, email, fallbackName = "Website visitor") {
+  const trimmedEmail = String(email || "").trim();
+  if (!trimmedEmail) {
+    return "";
+  }
+
+  const trimmedName = String(name || fallbackName)
+    .trim()
+    .replace(/"/g, "");
+
+  return `"${trimmedName}" <${trimmedEmail}>`;
+}
+
+function buildVisitorReplyHeaders(name, email) {
+  const mailbox = formatMailbox(name, email);
+  if (!mailbox) {
+    return {};
+  }
+
+  return {
+    from: mailbox,
+    replyTo: mailbox,
+    sender: `"Everest Vacation" <${SUPPORT_EMAIL}>`,
+  };
+}
+
 function fillTemplate(template, values) {
   return template.replace(/{{([A-Z0-9_]+)}}/g, (_, key) =>
     Object.prototype.hasOwnProperty.call(values, key) ? values[key] : ""
@@ -115,6 +167,9 @@ function renderVisitorConfirmationEmail(config) {
 }
 
 function renderAdminNotificationEmail(config) {
+  const normalizedIp = normalizeIpAddress(config.ip);
+  const ipLookupUrl = buildIpLookupUrl(config.ip);
+
   return fillTemplate(adminTemplate, {
     EMAIL_TITLE: escapeHtml(config.emailTitle),
     LOGO_URL: escapeHtml(LOGO_URL),
@@ -141,7 +196,8 @@ function renderAdminNotificationEmail(config) {
     ACTION_PHONE_LINK: escapeHtml(sanitizePhoneLink(config.phone)),
     SUBMISSION_SOURCE: escapeHtml(config.submissionSource || "website form"),
     SOURCE_PAGE: escapeHtml(config.sourcePage || SITE_URL),
-    IP: escapeHtml(config.ip || "Unavailable"),
+    IP: escapeHtml(normalizedIp),
+    IP_LOOKUP_URL: escapeHtml(ipLookupUrl),
     FOOTER_TEXT: escapeHtml(
       config.footerText || "This notification was generated automatically from your website."
     ),
@@ -539,9 +595,9 @@ async function sendContactFormNotification({
       }),
       ADMIN_MAIL
         ? sendMail({
-            from: '"Everest Vacation" <info@everest-vacation.com>',
+            ...buildVisitorReplyHeaders(fullName, email),
             to: ADMIN_MAIL,
-            subject: `New Contact Form: ${subject}`,
+            subject: normalizeValue(subject, "New contact form submission"),
             html: adminHtml,
           })
         : Promise.resolve(),
@@ -629,7 +685,7 @@ async function sendAskExpertNotification({
       }),
       ADMIN_MAIL
         ? sendMail({
-            from: '"Everest Vacation" <info@everest-vacation.com>',
+            ...buildVisitorReplyHeaders(fullName, email),
             to: ADMIN_MAIL,
             subject: `Ask an Expert: ${packageName}`,
             html: adminHtml,
@@ -638,6 +694,122 @@ async function sendAskExpertNotification({
     ]);
   } catch (error) {
     console.error("Error sending ask expert email:", error);
+    throw new Error("Error sending email: " + error.message);
+  }
+}
+
+async function sendCustomizeTripNotification({
+  tripName,
+  tripSlug,
+  travelerType,
+  travelDateType,
+  destinations,
+  tripDuration,
+  hotelCategory,
+  budgetRange,
+  fullName,
+  email,
+  phone,
+  passportCountry,
+  customizeDetails,
+  sourcePage,
+  ip,
+}) {
+  const destinationList = Array.isArray(destinations) && destinations.length
+    ? destinations.join(", ")
+    : "Not provided";
+  const normalizedTripName = normalizeValue(tripName, "Custom trip request");
+  const adminNotes = [
+    `Traveling as: ${normalizeValue(travelerType)}`,
+    `Travel date status: ${normalizeValue(travelDateType)}`,
+    `Interested destinations: ${destinationList}`,
+    `Estimated trip duration: ${normalizeValue(tripDuration)}`,
+    `Hotel category: ${normalizeValue(hotelCategory)}`,
+    `Budget range: ${normalizeValue(budgetRange)}`,
+    `Passport country issued: ${normalizeValue(passportCountry)}`,
+    tripSlug ? `Trip slug: ${tripSlug}` : "",
+    "",
+    "Customize details:",
+    normalizeMultiline(customizeDetails),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const customerHtml = renderVisitorConfirmationEmail({
+    emailTitle: "Customize Trip Confirmation — Everest Vacation",
+    headerTitle: "Your custom trip request is in good hands.",
+    headerSubtitle: "Our travel team will review your request and contact you within 24 hours.",
+    ribbonText: "Request received on",
+    dateText: formatDate(),
+    fullName,
+    introText:
+      "Thank you for sharing your customize trip request with Everest Vacation Private Limited. Our team will review your travel preferences and send you a personalized response shortly.",
+    detailsTitle: "Your request summary",
+    details: [
+      { label: "Trip", value: normalizedTripName },
+      { label: "Traveling as", value: travelerType },
+      { label: "Destinations", value: destinationList },
+      { label: "Hotel category", value: hotelCategory },
+    ],
+    stepsTitle: "What happens next?",
+    steps: [
+      "Our consultant reviews your travel style, budget, and destination interests.",
+      "We prepare a recommended plan or booking guidance based on your request.",
+      "You will receive a personalized reply by email, usually within 24 hours.",
+    ],
+    supportText:
+      "If you want to add anything else, reply to this email and include your trip preferences.",
+    ctaHref: `mailto:${SUPPORT_EMAIL}`,
+    ctaText: "Contact our team",
+    footerText:
+      "You received this email because you submitted a customize trip request on everestnepaltours.com.",
+  });
+
+  const adminHtml = renderAdminNotificationEmail({
+    emailTitle: "New Customize Trip Request — Admin Notification",
+    headerTitle: "New customize trip request received.",
+    headerSubtitle: `Submitted ${formatTimeAgo()} · Response required within 24 hours`,
+    urgencyText:
+      "A visitor has submitted a customize trip request. Please review the preferences and follow up promptly.",
+    fullName,
+    email,
+    phone,
+    contactField4Label: "Passport country",
+    contactField4Value: passportCountry,
+    detailsSectionLabel: "Trip details",
+    detailsTitle: "Request summary",
+    details: [
+      { label: "Trip", value: normalizedTripName },
+      { label: "Traveling as", value: travelerType },
+      { label: "Submitted date", value: formatDate() },
+    ],
+    notesLabel: "Customize details",
+    notes: adminNotes,
+    actionEmail: email,
+    sourcePage,
+    ip,
+    submissionSource: "customize trip form",
+  });
+
+  try {
+    await Promise.all([
+      sendMail({
+        from: '"Everest Vacation" <info@everest-vacation.com>',
+        to: email,
+        subject: `We received your customize trip request${tripName ? ` for ${tripName}` : ""}`,
+        html: customerHtml,
+      }),
+      ADMIN_MAIL
+        ? sendMail({
+            ...buildVisitorReplyHeaders(fullName, email),
+            to: ADMIN_MAIL,
+            subject: `Customize Trip Request${tripName ? `: ${tripName}` : ""}`,
+            html: adminHtml,
+          })
+        : Promise.resolve(),
+    ]);
+  } catch (error) {
+    console.error("Error sending customize trip email:", error);
     throw new Error("Error sending email: " + error.message);
   }
 }
@@ -722,7 +894,7 @@ async function sendOnlineBookingPaymentNotifications(booking) {
   if (ADMIN_MAIL) {
     jobs.push(
       sendMail({
-        from: '"Everest Vacation" <info@everest-vacation.com>',
+        ...buildVisitorReplyHeaders(fullName, email),
         to: ADMIN_MAIL,
         subject: `Paid online booking ${bookingRef}`,
         html: adminHtml,
@@ -749,5 +921,6 @@ module.exports = {
   sendEnquiryNotification,
   sendContactFormNotification,
   sendAskExpertNotification,
+  sendCustomizeTripNotification,
   sendOnlineBookingPaymentNotifications,
 };

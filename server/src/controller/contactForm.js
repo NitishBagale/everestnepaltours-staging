@@ -1,5 +1,15 @@
 const { sendContactFormNotification } = require("../lib/mail/send.mail");
 
+function getRequestIp(req) {
+    const forwardedFor = req.headers["x-forwarded-for"];
+
+    if (typeof forwardedFor === "string" && forwardedFor.trim()) {
+        return forwardedFor.split(",")[0].trim();
+    }
+
+    return req.ip;
+}
+
 exports.uploadQR = async (req, res, next) => {
     try {
         let images = req.files.map((file) => file.path);
@@ -26,7 +36,7 @@ exports.createContactForm = async (req,res) =>{
             subject: formData.subject,
             message: formData.message,
             sourcePage: req.get("referer"),
-            ip: req.ip,
+            ip: getRequestIp(req),
         });
 
         res.status(201).json({

@@ -54,7 +54,7 @@ async function sendMail(mailInfo) {
   const defaultFrom = formatFromAddress(MAIL_FROM_NAME, MAIL_FROM_EMAIL || SMTP_EMAIL);
   const normalizedMailInfo = {
     ...mailInfo,
-    from: defaultFrom,
+    from: mailInfo.from || defaultFrom,
   };
 
   try {

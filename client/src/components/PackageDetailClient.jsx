@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import DOMPurify from "isomorphic-dompurify";
 import {
@@ -504,6 +505,10 @@ const TourDetailPage = ({
       <div className="h-screen flex items-center justify-center">Not Found</div>
     );
 
+  const customizeTripHref = `/customize-trip?trip=${encodeURIComponent(
+    tourData.title || "Package Tour"
+  )}&slug=${encodeURIComponent(slugFromUrl)}`;
+
   return (
     <div className="min-h-screen bg-white font-sans text-slate-800 overflow-x-hidden">
       <div
@@ -528,12 +533,12 @@ const TourDetailPage = ({
             >
               Ask to Expert
             </button>
-            <a
-              href="/contact-form"
+            <Link
+              href={customizeTripHref}
               className="bg-[#35a576] hover:bg-[#2f9369] text-white font-semibold px-6 py-3 rounded-md transition-colors"
             >
-              Contact Us
-            </a>
+              Customize / Book
+            </Link>
           </div>
         </div>
       </div>
