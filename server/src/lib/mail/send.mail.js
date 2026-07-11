@@ -703,7 +703,10 @@ async function sendCustomizeTripNotification({
   tripName,
   tripSlug,
   travelerType,
+  adults,
+  children,
   travelDateType,
+  travelDate,
   destinations,
   tripDuration,
   hotelCategory,
@@ -720,9 +723,17 @@ async function sendCustomizeTripNotification({
     ? destinations.join(", ")
     : "Not provided";
   const normalizedTripName = normalizeValue(tripName, "Custom trip request");
+  const travelerSummary =
+    travelerType === "Family" || travelerType === "Group"
+      ? `${normalizeValue(travelerType)} · Adults: ${normalizeValue(adults, "1")} · Children: ${normalizeValue(children, "0")}`
+      : normalizeValue(travelerType);
+  const normalizedTravelDate = travelDate
+    ? formatDate(travelDate)
+    : "Not provided";
   const adminNotes = [
-    `Traveling as: ${normalizeValue(travelerType)}`,
+    `Traveling as: ${travelerSummary}`,
     `Travel date status: ${normalizeValue(travelDateType)}`,
+    `Travel date: ${normalizedTravelDate}`,
     `Interested destinations: ${destinationList}`,
     `Estimated trip duration: ${normalizeValue(tripDuration)}`,
     `Hotel category: ${normalizeValue(hotelCategory)}`,
@@ -748,7 +759,7 @@ async function sendCustomizeTripNotification({
     detailsTitle: "Your request summary",
     details: [
       { label: "Trip", value: normalizedTripName },
-      { label: "Traveling as", value: travelerType },
+      { label: "Traveling as", value: travelerSummary },
       { label: "Destinations", value: destinationList },
       { label: "Hotel category", value: hotelCategory },
     ],
@@ -781,7 +792,7 @@ async function sendCustomizeTripNotification({
     detailsTitle: "Request summary",
     details: [
       { label: "Trip", value: normalizedTripName },
-      { label: "Traveling as", value: travelerType },
+      { label: "Traveling as", value: travelerSummary },
       { label: "Submitted date", value: formatDate() },
     ],
     notesLabel: "Customize details",

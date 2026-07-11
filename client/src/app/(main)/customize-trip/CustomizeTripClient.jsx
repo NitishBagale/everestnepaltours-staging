@@ -23,42 +23,96 @@ const hotelOptions = [
   "3 Star",
   "4 Star",
   "5 Star",
-  "Boutique Hotel",
-  "Luxury / High-end",
+  "Luxury Hotel/Resort",
 ];
 
 const passportCountries = [
   "Select Country of Passport Issued",
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Argentina",
+  "Armenia",
   "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahrain",
   "Bangladesh",
+  "Belgium",
   "Bhutan",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Cambodia",
   "Canada",
+  "Chile",
   "China",
+  "Croatia",
+  "Cyprus",
+  "Czech Republic",
+  "Denmark",
+  "Egypt",
+  "Estonia",
+  "Finland",
   "France",
   "Germany",
+  "Greece",
+  "Hong Kong",
+  "Hungary",
+  "Indonesia",
   "India",
+  "Ireland",
+  "Israel",
   "Italy",
   "Japan",
+  "Kazakhstan",
+  "Kenya",
+  "Kuwait",
+  "Laos",
+  "Latvia",
+  "Lithuania",
   "Malaysia",
+  "Maldives",
+  "Mexico",
+  "Monaco",
+  "Mongolia",
+  "Morocco",
+  "Myanmar",
   "Nepal",
   "Netherlands",
   "New Zealand",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Saudi Arabia",
   "Singapore",
   "South Korea",
+  "South Africa",
   "Spain",
   "Sri Lanka",
+  "Sweden",
   "Switzerland",
+  "Taiwan",
   "Thailand",
+  "Turkey",
   "United Arab Emirates",
   "United Kingdom",
   "United States",
   "Vietnam",
-  "Other",
 ];
 
 const initialFormData = {
   travelerType: "",
+  adults: 1,
+  children: 0,
   travelDateType: "",
+  travelDate: "",
   destinations: [],
   tripDuration: "",
   hotelCategory: "",
@@ -107,9 +161,37 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
     }
   };
 
+  const handleTravelerCountChange = (field, direction) => {
+    setFormData((prev) => {
+      const currentValue = Number(prev[field] || 0);
+      const nextValue =
+        direction === "increment"
+          ? currentValue + 1
+          : Math.max(field === "adults" ? 1 : 0, currentValue - 1);
+
+      return {
+        ...prev,
+        [field]: nextValue,
+      };
+    });
+  };
+
   const validateForm = () => {
     if (!formData.travelerType) return "Please select how you will be traveling.";
+    if (
+      (formData.travelerType === "Family" || formData.travelerType === "Group") &&
+      Number(formData.adults) < 1
+    ) {
+      return "Please enter at least one adult.";
+    }
     if (!formData.travelDateType) return "Please select when you will be traveling.";
+    if (
+      (formData.travelDateType === "I have my exact travel dates" ||
+        formData.travelDateType === "I have approximate dates") &&
+      !formData.travelDate
+    ) {
+      return "Please select your travel date.";
+    }
     if (!formData.destinations.length) return "Please select at least one destination.";
     if (!formData.tripDuration.trim()) return "Please enter estimated trip duration.";
     if (!formData.hotelCategory) return "Please select hotel category.";
@@ -142,7 +224,10 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
         tripName,
         tripSlug,
         travelerType: formData.travelerType,
+        adults: formData.adults,
+        children: formData.children,
         travelDateType: formData.travelDateType,
+        travelDate: formData.travelDate,
         destinations: formData.destinations,
         tripDuration: formData.tripDuration,
         hotelCategory: formData.hotelCategory,
@@ -210,26 +295,48 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
               <h2 className="text-3xl font-medium leading-tight text-[#45a996] md:text-5xl">
                 1. How will you be Traveling?
               </h2>
-              <p className="mt-5 text-base text-slate-700 md:text-lg">
-                Please select one <span className="text-red-500">(*)</span>
-              </p>
-              <div className="mt-6 space-y-4">
-                {["Couple", "Solo Traveler", "Family", "Group"].map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center gap-3 text-xl text-slate-700 md:text-2xl"
-                  >
-                    <input
-                      type="radio"
-                      name="travelerType"
-                      value={option}
-                      checked={formData.travelerType === option}
-                      onChange={handleChange}
-                      className="h-5 w-5 accent-[#45a996]"
+              <div className="mt-5 grid gap-8 lg:grid-cols-[1fr_minmax(280px,440px)] lg:items-start">
+                <div>
+                  <p className="text-base text-slate-700 md:text-lg">
+                    Please select one <span className="text-red-500">(*)</span>
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    {["Couple", "Solo Traveler", "Family", "Group"].map((option) => (
+                      <label
+                        key={option}
+                        className="flex items-center gap-3 text-xl text-slate-700 md:text-2xl"
+                      >
+                        <input
+                          type="radio"
+                          name="travelerType"
+                          value={option}
+                          checked={formData.travelerType === option}
+                          onChange={handleChange}
+                          className="h-5 w-5 accent-[#45a996]"
+                        />
+                        <span>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {formData.travelerType === "Family" || formData.travelerType === "Group" ? (
+                  <div className="space-y-8">
+                    <CounterField
+                      label="Number of Adults"
+                      value={formData.adults}
+                      onDecrement={() => handleTravelerCountChange("adults", "decrement")}
+                      onIncrement={() => handleTravelerCountChange("adults", "increment")}
                     />
-                    <span>{option}</span>
-                  </label>
-                ))}
+                    <CounterField
+                      label="Number of Children"
+                      sublabel="(below 5 years)"
+                      value={formData.children}
+                      onDecrement={() => handleTravelerCountChange("children", "decrement")}
+                      onIncrement={() => handleTravelerCountChange("children", "increment")}
+                    />
+                  </div>
+                ) : null}
               </div>
             </section>
 
@@ -237,30 +344,47 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
               <h2 className="text-3xl font-medium leading-tight text-[#45a996] md:text-5xl">
                 2. When will you be traveling?
               </h2>
-              <p className="mt-5 text-base text-slate-700 md:text-lg">
-                Please select one <span className="text-red-500">(*)</span>
-              </p>
-              <div className="mt-6 space-y-4">
-                {[
-                  "I have my exact travel dates",
-                  "I have approximate dates",
-                  "I don't have my dates yet.",
-                ].map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center gap-3 text-xl text-slate-700 md:text-2xl"
-                  >
+              <div className="mt-5 grid gap-8 lg:grid-cols-[1fr_minmax(240px,340px)] lg:items-start">
+                <div>
+                  <p className="text-base text-slate-700 md:text-lg">
+                    Please select one <span className="text-red-500">(*)</span>
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    {[
+                      "I have my exact travel dates",
+                      "I have approximate dates",
+                      "I don't have my dates yet.",
+                    ].map((option) => (
+                      <label
+                        key={option}
+                        className="flex items-center gap-3 text-xl text-slate-700 md:text-2xl"
+                      >
+                        <input
+                          type="radio"
+                          name="travelDateType"
+                          value={option}
+                          checked={formData.travelDateType === option}
+                          onChange={handleChange}
+                          className="h-5 w-5 accent-[#45a996]"
+                        />
+                        <span>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {formData.travelDateType === "I have my exact travel dates" ||
+                formData.travelDateType === "I have approximate dates" ? (
+                  <div className="pt-11">
                     <input
-                      type="radio"
-                      name="travelDateType"
-                      value={option}
-                      checked={formData.travelDateType === option}
+                      type="date"
+                      name="travelDate"
+                      value={formData.travelDate}
                       onChange={handleChange}
-                      className="h-5 w-5 accent-[#45a996]"
+                      className="w-full rounded-none border border-slate-300 px-7 py-4 text-2xl text-slate-700 outline-none transition focus:border-[#45a996]"
                     />
-                    <span>{option}</span>
-                  </label>
-                ))}
+                  </div>
+                ) : null}
               </div>
             </section>
 
@@ -305,7 +429,7 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
                     name="hotelCategory"
                     value={formData.hotelCategory}
                     onChange={handleChange}
-                    className="w-full border border-slate-300 bg-white px-5 py-4 text-lg text-slate-700 outline-none transition focus:border-[#45a996]"
+                    className="w-full rounded-2xl border border-[#bfd0e7] bg-white px-5 py-4 text-lg text-[#384a6a] outline-none transition focus:border-[#70b6a7]"
                   >
                     {hotelOptions.map((option, index) => (
                       <option key={option} value={index === 0 ? "" : option}>
@@ -372,6 +496,7 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
                       onChange={handleChange}
                       placeholder="Cell Phone (include country code)"
                       className="w-full border border-slate-300 px-5 py-4 text-lg text-slate-700 outline-none transition focus:border-[#45a996]"
+                      autoComplete="tel"
                     />
                     <span className="text-xl text-red-500">*</span>
                   </div>
@@ -381,7 +506,8 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
                       name="passportCountry"
                       value={formData.passportCountry}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 bg-white px-5 py-4 text-lg text-slate-700 outline-none transition focus:border-[#45a996]"
+                      className="w-full rounded-2xl border border-[#bfd0e7] bg-white px-5 py-4 text-lg text-[#384a6a] outline-none transition focus:border-[#70b6a7]"
+                      autoComplete="country-name"
                     >
                       {passportCountries.map((option, index) => (
                         <option key={option} value={index === 0 ? "" : option}>
@@ -435,3 +561,38 @@ const CustomizeTripClient = ({ tripName = "", tripSlug = "" }) => {
 };
 
 export default CustomizeTripClient;
+
+function CounterField({
+  label,
+  sublabel = "",
+  value,
+  onDecrement,
+  onIncrement,
+}) {
+  return (
+    <div>
+      <p className="text-2xl font-medium text-slate-700 md:text-3xl">
+        {label} {sublabel ? <span className="text-xl font-normal">{sublabel}</span> : null}
+      </p>
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onDecrement}
+          className="inline-flex h-14 w-14 items-center justify-center border border-slate-300 text-3xl text-slate-700 transition hover:bg-slate-50"
+        >
+          -
+        </button>
+        <div className="flex h-14 min-w-[18rem] items-center border border-slate-300 px-5 text-2xl text-slate-700">
+          {value}
+        </div>
+        <button
+          type="button"
+          onClick={onIncrement}
+          className="inline-flex h-14 w-14 items-center justify-center border border-slate-300 text-3xl text-slate-700 transition hover:bg-slate-50"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
