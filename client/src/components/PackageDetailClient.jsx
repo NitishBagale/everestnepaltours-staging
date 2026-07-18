@@ -23,6 +23,7 @@ import {
   Utensils,
   Mountain,
   Flag,
+  Car,
 } from "lucide-react";
 import { BASE_URL } from "@/config/Config";
 import Faqs from "@/components/Faqs";

@@ -98,7 +98,7 @@ const Form = ({ packageName = "" }) => {
             fontFamily: "MuseoModerno, sans-serif",
           }}
         >
-          Ask to Expert about this trip
+          {packageName ? "Ask to Expert about this trip" : "Ask to Expert"}
         </h2>
         <p className="text-gray-600 mb-1 text-sm">
           Fill the form below for your interest.
