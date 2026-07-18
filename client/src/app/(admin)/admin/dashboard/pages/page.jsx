@@ -1366,6 +1366,21 @@ const CmsAdminPage = () => {
 
     if (section.type === "team") {
       const selected = data.selectedTeamMembers || [];
+
+      const handleTeamMembersDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = selected.findIndex((id) => String(id) === String(active.id));
+        const newIndex = selected.findIndex((id) => String(id) === String(over.id));
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        updateSectionDataLocal(section.id, (prev) => ({
+          ...prev,
+          selectedTeamMembers: arrayMove(selected, oldIndex, newIndex),
+        }));
+      };
+
       return (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1476,35 +1491,36 @@ const CmsAdminPage = () => {
 
             <div>
               <label className={labelClass}>Selected Team</label>
-              <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
-                {selected.map((memberId) => {
-                  const member = teamMembers.find(
-                    (item) => (item.id || item.name) === memberId
-                  );
-                  return (
-                    <div
-                      key={memberId}
-                      className="flex items-center justify-between px-3 py-2 rounded-md border border-gray-100 bg-gray-50"
-                    >
-                      <span className="text-sm text-gray-700">{member?.name || memberId}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateSectionDataLocal(section.id, (prev) => ({
-                            ...prev,
-                            selectedTeamMembers: (prev.selectedTeamMembers || []).filter(
-                              (id) => id !== memberId
-                            ),
-                          }))
-                        }
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleTeamMembersDragEnd}
+              >
+                <SortableContext items={selected.map(String)} strategy={verticalListSortingStrategy}>
+                  <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
+                    {selected.map((memberId) => {
+                      const member = teamMembers.find(
+                        (item) => String(item.id || item.name) === String(memberId)
+                      );
+                      return (
+                        <SortableSelectedItem
+                          key={String(memberId)}
+                          id={String(memberId)}
+                          title={member?.name || memberId}
+                          onRemove={() =>
+                            updateSectionDataLocal(section.id, (prev) => ({
+                              ...prev,
+                              selectedTeamMembers: (prev.selectedTeamMembers || []).filter(
+                                (id) => String(id) !== String(memberId)
+                              ),
+                            }))
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           </div>
         </div>

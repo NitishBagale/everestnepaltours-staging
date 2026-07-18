@@ -22,6 +22,11 @@ Team.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    has_detail_page: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     imageUrl: {
       type: DataTypes.STRING,
       allowNull: true,

@@ -20,6 +20,7 @@ const initialFormData = {
   name: "",
   designation: "",
   description: "",
+  has_detail_page: false,
   imageUrl: "",
   meta_title: "",
   meta_description: "",
@@ -128,6 +129,7 @@ const TeamMemberAdminPage = () => {
         name: nameValue,
         designation: designationValue,
         description: data.description || "",
+        has_detail_page: data.has_detail_page === true,
         imageUrl: normalizeImage(data.imageUrl),
         meta_title: data.meta_title || "",
         meta_description: data.meta_description || "",
@@ -172,6 +174,7 @@ const TeamMemberAdminPage = () => {
         name: formData.name,
         designation: formData.designation,
         description: formData.description,
+        has_detail_page: formData.has_detail_page,
         imageUrl: finalImageUrl,
         meta_title: formData.meta_title,
         meta_description: formData.meta_description,
@@ -447,6 +450,24 @@ const TeamMemberAdminPage = () => {
                   height="h-64"
                 />
               </div>
+
+              <label className="flex w-fit items-center gap-2 text-sm font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={formData.has_detail_page}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      has_detail_page: e.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-[var(--admin-primary)] focus:ring-[var(--admin-primary)]"
+                />
+                Enable team detail page
+              </label>
+              <p className="-mt-3 text-xs text-gray-500">
+                The profile link appears on the website only when this is enabled and a description is provided.
+              </p>
 
               <div className="mt-8">
                 <label className="block text-sm font-semibold mb-2">

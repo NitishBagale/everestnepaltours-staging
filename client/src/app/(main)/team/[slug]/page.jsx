@@ -1,4 +1,5 @@
 import React from "react";
+import { notFound } from "next/navigation";
 import { BASE_URL } from "@/config/Config";
 import { buildSeoMetadata } from "@/lib/seo";
 
@@ -9,7 +10,9 @@ const DEFAULT_KEYWORDS = "team, travel, guides, everest holidays";
 const DEFAULT_IMAGE = "";
 
 const stripHtml = (value) =>
-  typeof value === "string" ? value.replace(/<[^>]+>/g, "") : "";
+  typeof value === "string"
+    ? value.replace(/<[^>]+>/g, "").replace(/&nbsp;|&#160;/gi, " ").trim()
+    : "";
 
 const fetchTeamMemberBySlug = async (slug) => {
   const response = await fetch(`${BASE_URL}/team/`, { cache: "no-store" });
@@ -61,12 +64,8 @@ const TeamMemberDetailPage = async ({ params } = {}) => {
   const slug = resolvedParams?.slug ?? "";
   const memberData = await fetchTeamMemberBySlug(slug);
 
-  if (!memberData) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-red-500 font-semibold">
-        Team member not found
-      </div>
-    );
+  if (!memberData || !memberData.has_detail_page || !stripHtml(memberData.description)) {
+    notFound();
   }
 
   return (

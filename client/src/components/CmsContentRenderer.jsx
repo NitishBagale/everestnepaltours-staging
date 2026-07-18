@@ -549,6 +549,8 @@ const CmsContentRenderer = ({
                     <div className="mt-4">
                       <Link
                         href={data.founderCtaLink || "/meet-the-owner"}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="inline-flex items-center px-4 py-2 rounded-md bg-[#35a576] text-white font-medium hover:bg-[#2f9369] transition-colors"
                       >
                         {data.founderCtaLabel || "Meet the Owner"}
@@ -582,14 +584,16 @@ const CmsContentRenderer = ({
                                 {member.designation}
                               </p>
                             )}
-                            <div className="mt-4">
-                              <Link
-                                href={`/team/${encodeURIComponent(member.name || "")}`}
-                                className="inline-flex items-center text-[#35a576] font-medium hover:text-[#2f9369]"
-                              >
-                                View profile
-                              </Link>
-                            </div>
+                            {member.has_detail_page && hasMeaningfulHtml(member.description) && (
+                              <div className="mt-4">
+                                <Link
+                                  href={`/team/${encodeURIComponent(member.name || "")}`}
+                                  className="inline-flex items-center text-[#35a576] font-medium hover:text-[#2f9369]"
+                                >
+                                  View profile
+                                </Link>
+                              </div>
+                            )}
                           </div>
                         </article>
                       ))}

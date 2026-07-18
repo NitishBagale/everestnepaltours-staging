@@ -26,6 +26,9 @@ const slugify = (value = "") =>
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+const stripHtml = (value = "") =>
+  String(value).replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").trim();
+
 const normalizeDate = (value) => {
   const date = value ? new Date(value) : null;
   return Number.isNaN(date?.getTime()) ? new Date() : date;
@@ -125,8 +128,10 @@ const getTeamEntries = async () => {
     .map((member) => ({
       slug: encodeURIComponent(member?.name || ""),
       updatedAt: member?.updatedAt || member?.createdAt,
+      has_detail_page: member?.has_detail_page === true,
+      description: member?.description || "",
     }))
-    .filter((member) => member.slug)
+    .filter((member) => member.slug && member.has_detail_page && stripHtml(member.description).trim())
     .map((member) => toUrlEntry(`/team/${member.slug}`, member.updatedAt, 0.5, "monthly"));
 };
 
