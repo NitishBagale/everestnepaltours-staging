@@ -26,6 +26,7 @@ const RichEditor = ({
   const [mediaOpen, setMediaOpen] = useState(false);
   const [codeView, setCodeView] = useState(false);
   const [codeValue, setCodeValue] = useState(value || "");
+  const [linkDialog, setLinkDialog] = useState(null);
   const lastExternalValueRef = useRef(value || "");
   const [tableSupport, setTableSupport] = useState(null);
   const [tableSupportReady, setTableSupportReady] = useState(false);
@@ -102,8 +103,8 @@ const RichEditor = ({
     if (!quill) return;
     const range = quill.getSelection();
     const index = range?.index ?? quill.getLength();
-    quill.insertEmbed(index, "image", media.url);
-    quill.setSelection(index + 1, 0);
+    quill.insertEmbed(index, "image", media.url, Quill.sources.USER);
+    quill.setSelection(index + 1, 0, Quill.sources.SILENT);
   };
 
   const handleToggleCodeView = useCallback(() => {
@@ -118,12 +119,18 @@ const RichEditor = ({
 
   const handleUndo = useCallback(() => {
     const quill = getSafeEditor();
-    quill?.history.undo();
+    if (!quill) return;
+    quill.focus({ preventScroll: true });
+    quill.history.cutoff();
+    quill.history.undo();
   }, [getSafeEditor]);
 
   const handleRedo = useCallback(() => {
     const quill = getSafeEditor();
-    quill?.history.redo();
+    if (!quill) return;
+    quill.focus({ preventScroll: true });
+    quill.history.cutoff();
+    quill.history.redo();
   }, [getSafeEditor]);
 
   const handleLink = useCallback(() => {
@@ -136,27 +143,73 @@ const RichEditor = ({
     const currentFormat = quill.getFormat(range);
     const existingLink =
       typeof currentFormat.link === "string" ? currentFormat.link : "";
-    const nextLink = window.prompt(
-      "Enter URL",
-      existingLink || "https://"
-    );
+    const selectedAnchor = Array.from(quill.root.querySelectorAll("a"))
+      .map((anchor) => ({ anchor, blot: Quill.find(anchor) }))
+      .find(({ blot }) => {
+        if (!blot) return false;
+        const index = quill.getIndex(blot);
+        const end = index + blot.length();
+        return range.index >= index && range.index <= end;
+      });
+    const selectedRange =
+      range.length === 0 && selectedAnchor?.blot
+        ? {
+            index: quill.getIndex(selectedAnchor.blot),
+            length: selectedAnchor.blot.length(),
+          }
+        : range;
 
-    if (nextLink === null) return;
+    setLinkDialog({
+      range: selectedRange,
+      url: existingLink || "https://",
+      openInNewTab:
+        selectedAnchor?.anchor.target === "_blank" || !selectedAnchor,
+    });
+  }, [getSafeEditor]);
 
-    const trimmed = nextLink.trim();
-    if (!trimmed) {
-      quill.format("link", false);
+  const handleSaveLink = useCallback(() => {
+    const quill = getSafeEditor();
+    if (!quill || !linkDialog) return;
+
+    const url = linkDialog.url.trim();
+    const { range, openInNewTab } = linkDialog;
+
+    if (!url) {
+      quill.formatText(range.index, range.length, "link", false, Quill.sources.USER);
+      setLinkDialog(null);
       return;
     }
 
     if (range.length === 0) {
-      quill.insertText(range.index, trimmed, "link", trimmed);
-      quill.setSelection(range.index + trimmed.length, 0);
-      return;
+      quill.insertText(range.index, url, "link", url, Quill.sources.USER);
+      quill.setSelection(range.index + url.length, 0, Quill.sources.SILENT);
+    } else {
+      quill.formatText(range.index, range.length, "link", url, Quill.sources.USER);
     }
 
-    quill.format("link", trimmed);
-  }, [getSafeEditor]);
+    requestAnimationFrame(() => {
+      const selectionEnd = range.index + Math.max(range.length, url.length);
+      Array.from(quill.root.querySelectorAll("a")).forEach((anchor) => {
+        const blot = Quill.find(anchor);
+        if (!blot) return;
+
+        const index = quill.getIndex(blot);
+        const end = index + blot.length();
+        if (index >= selectionEnd || end <= range.index) return;
+
+        if (openInNewTab) {
+          anchor.setAttribute("target", "_blank");
+          anchor.setAttribute("rel", "noopener noreferrer");
+        } else {
+          anchor.removeAttribute("target");
+          anchor.removeAttribute("rel");
+        }
+      });
+      onChange(quill.root.innerHTML);
+    });
+
+    setLinkDialog(null);
+  }, [getSafeEditor, linkDialog, onChange]);
 
   const modules = useMemo(
     () => ({
@@ -278,6 +331,55 @@ const RichEditor = ({
         className={`${codeView ? "" : height} bg-white`}
         readOnly={codeView}
       />
+      {linkDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
+            <h2 className="text-base font-semibold text-gray-900">Insert link</h2>
+            <label className="mt-4 block text-sm font-medium text-gray-700" htmlFor="editor-link-url">
+              URL
+            </label>
+            <input
+              id="editor-link-url"
+              type="url"
+              value={linkDialog.url}
+              onChange={(event) =>
+                setLinkDialog((current) => ({ ...current, url: event.target.value }))
+              }
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              autoFocus
+            />
+            <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={linkDialog.openInNewTab}
+                onChange={(event) =>
+                  setLinkDialog((current) => ({
+                    ...current,
+                    openInNewTab: event.target.checked,
+                  }))
+                }
+              />
+              Open in a new tab
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLinkDialog(null)}
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveLink}
+                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Save link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {codeView && (
         <textarea
           className={`code-view-textarea ${height} w-full bg-white text-sm leading-relaxed`}
