@@ -19,6 +19,8 @@ const WelcomeSection = ({
           </p>
         )}
 
+        <p className="text-red-500 font-bold">STAGING TEST</p>
+
         {welcome.title && (
           <h2
             className="mt-2 text-4xl font-bold text-gray-800"
