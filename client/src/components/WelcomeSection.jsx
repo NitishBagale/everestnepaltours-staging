@@ -1,4 +1,3 @@
-
 const WelcomeSection = ({
   welcome = {
     subtitle: "",
@@ -20,7 +19,7 @@ const WelcomeSection = ({
           </p>
         )}
 
-        <p className="text-red-500 font-bold">STAGING TESTS</p>
+        <p className="text-red-500 font-bold">STAGING TEST</p>
 
         {welcome.title && (
           <h2
@@ -43,4 +42,3 @@ const WelcomeSection = ({
 };
 
 export default WelcomeSection;
-
