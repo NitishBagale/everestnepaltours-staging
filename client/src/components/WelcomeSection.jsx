@@ -20,7 +20,7 @@ const WelcomeSection = ({
           </p>
         )}
 
-        <p className="text-red-500 font-bold">STAGING TEST</p>
+        <p className="text-red-500 font-bold">STAGING TESTS</p>
 
         {welcome.title && (
           <h2
