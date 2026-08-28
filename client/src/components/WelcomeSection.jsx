@@ -1,3 +1,4 @@
+
 const WelcomeSection = ({
   welcome = {
     subtitle: "",
@@ -5,7 +6,6 @@ const WelcomeSection = ({
     description: "",
   },
 }) => {
-
   if (!welcome.subtitle && !welcome.title && !welcome.description) return null;
 
   return (
@@ -19,6 +19,9 @@ const WelcomeSection = ({
             {welcome.subtitle}
           </p>
         )}
+
+        <p className="text-red-500 font-bold">STAGING TEST</p>
+
         {welcome.title && (
           <h2
             className="mt-2 text-4xl font-bold text-gray-800"
@@ -27,6 +30,7 @@ const WelcomeSection = ({
             {welcome.title}
           </h2>
         )}
+
         {welcome.description && (
           <div
             className="mt-4 text-lg text-gray-600 leading-relaxed"
@@ -39,3 +43,4 @@ const WelcomeSection = ({
 };
 
 export default WelcomeSection;
+
