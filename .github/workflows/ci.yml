@@ -1,3 +1,4 @@
+
 name: build & deploy
 
 on:
@@ -39,7 +40,7 @@ jobs:
           file: client/Dockerfile
           push: true
           provenance: false
-          tags: ghcr.io/nitishbagale/stg-everestvacation-fe:${{ env.IMAGE_TAG }}
+          tags: ghcr.io/pasang-rumba/stg-everestvacation-fe:${{ env.IMAGE_TAG }}
 
       - name: Build and push backend image
         uses: docker/build-push-action@v6
@@ -48,7 +49,7 @@ jobs:
           file: server/Dockerfile
           push: true
           provenance: false
-          tags: ghcr.io/nitishbagale/stg-everestvacation-be:${{ env.IMAGE_TAG }}
+          tags: ghcr.io/pasang-rumba/stg-everestvacation-be:${{ env.IMAGE_TAG }}
 
   # 🚀 DEPLOY JOB
   deploy:
@@ -95,3 +96,4 @@ jobs:
 
           echo "Deployment complete"
           EOF
+
