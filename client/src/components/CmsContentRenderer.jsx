@@ -47,17 +47,37 @@ const sanitizeHtml = (html) =>
       "col",
       "caption",
     ],
-    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "class", "style", "colspan", "rowspan", "scope", "width", "height", "cellpadding", "cellspacing", "border"],
+    ALLOWED_ATTR: [
+      "href",
+      "src",
+      "alt",
+      "title",
+      "target",
+      "rel",
+      "class",
+      "style",
+      "colspan",
+      "rowspan",
+      "scope",
+      "width",
+      "height",
+      "cellpadding",
+      "cellspacing",
+      "border",
+    ],
   });
 
 const removeEmptyParagraphs = (html = "") =>
   html.replace(
     /<p>(?:\s|&nbsp;|&#160;|<br\s*\/?>|<span[^>]*>\s*<\/span>)*<\/p>/gi,
-    ""
+    "",
   );
 
 const stripHtml = (html = "") =>
-  html.replace(/<[^>]*>/g, "").replace(/&nbsp;|&#160;/gi, " ").trim();
+  html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .trim();
 
 const getCleanHtml = (html) => removeEmptyParagraphs(sanitizeHtml(html || ""));
 const hasMeaningfulHtml = (html) => stripHtml(getCleanHtml(html)).length > 0;
@@ -66,7 +86,12 @@ const listStyleClasses =
   "[&_ul]:list-none [&_ul]:pl-0 [&_ul]:space-y-2 [&_ol]:list-none [&_ol]:pl-0 [&_ol]:space-y-2 [&_ol]:ml-3 [&_li]:relative [&_li]:pl-7 [&_li]:text-[1.125rem] [&_li]:font-medium [&_li]:text-gray-700 [&_li]:leading-relaxed [&_li]:before:content-['›'] [&_li]:before:text-[1.9rem] [&_li]:before:font-semibold [&_li]:before:text-[#35a576] [&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-0 [&_li]:before:leading-none";
 
 const legacySections = (content = {}) => [
-  { type: "pageBanner", is_enabled: !!content.pageBannerImage, data: { pageBannerImage: content.pageBannerImage || null }, sort_order: 1 },
+  {
+    type: "pageBanner",
+    is_enabled: !!content.pageBannerImage,
+    data: { pageBannerImage: content.pageBannerImage || null },
+    sort_order: 1,
+  },
   {
     type: "team",
     is_enabled:
@@ -97,7 +122,9 @@ const legacySections = (content = {}) => [
       packagesSectionTitle: content.packagesSectionTitle || "",
       packagesSectionSubtitle: content.packagesSectionSubtitle || "",
       packagesSectionDescription: content.packagesSectionDescription || "",
-      packagesSectionPackageIds: (content.packagesSectionPackageIds || []).map(String),
+      packagesSectionPackageIds: (content.packagesSectionPackageIds || []).map(
+        String,
+      ),
     },
     sort_order: 3,
   },
@@ -128,7 +155,10 @@ const legacySections = (content = {}) => [
   {
     type: "faq",
     is_enabled: !!content.faqSectionTitle || (content.faq || []).length > 0,
-    data: { faqSectionTitle: content.faqSectionTitle || "Frequently Asked Questions", items: content.faq || [] },
+    data: {
+      faqSectionTitle: content.faqSectionTitle || "Frequently Asked Questions",
+      items: content.faq || [],
+    },
     sort_order: 8,
   },
 ];
@@ -146,7 +176,9 @@ const CmsContentRenderer = ({
   if (error || !pageData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50 px-4">
-        <p className="text-red-600 text-xl text-center">{error || "Page not found"}</p>
+        <p className="text-red-600 text-xl text-center">
+          {error || "Page not found"}
+        </p>
         {backLink && (
           <Link
             href={backLink}
@@ -164,7 +196,8 @@ const CmsContentRenderer = ({
   const subtitle = pageData.subtitle || content.subtitle;
   const description = content.description || pageData.description;
   const coverImage = content.coverImage || pageData.coverImage;
-  const coverImagePosition = content.coverImagePosition || pageData.coverImagePosition || "none";
+  const coverImagePosition =
+    content.coverImagePosition || pageData.coverImagePosition || "none";
   const tours = content.tours || pageData.tours;
 
   const sections = useMemo(() => {
@@ -179,16 +212,21 @@ const CmsContentRenderer = ({
 
   const enabledSections = useMemo(
     () => sections.filter((section) => section && section.is_enabled !== false),
-    [sections]
+    [sections],
   );
 
-  const shouldFetchTeam = enabledSections.some((section) => section.type === "team");
-  const shouldFetchPackages = enabledSections.some((section) => section.type === "packages");
+  const shouldFetchTeam = enabledSections.some(
+    (section) => section.type === "team",
+  );
+  const shouldFetchPackages = enabledSections.some(
+    (section) => section.type === "packages",
+  );
 
   const [teamMembers, setTeamMembers] = useState([]);
   const [packages, setPackages] = useState([]);
   const [reviewCountMap, setReviewCountMap] = useState({});
-  const [activeRelatedIndexBySection, setActiveRelatedIndexBySection] = useState({});
+  const [activeRelatedIndexBySection, setActiveRelatedIndexBySection] =
+    useState({});
   const relatedInfoRef = useRef(null);
 
   useEffect(() => {
@@ -221,7 +259,11 @@ const CmsContentRenderer = ({
         const reviewsPayload = await fetch(`${BASE_URL}/review/?limit=5000`)
           .then((response) => response.json())
           .catch(() => []);
-        const reviews = reviewsPayload?.data || reviewsPayload?.reviews || reviewsPayload || [];
+        const reviews =
+          reviewsPayload?.data ||
+          reviewsPayload?.reviews ||
+          reviewsPayload ||
+          [];
 
         if (active) {
           setPackages(list.map(normalizePackageRecord));
@@ -302,7 +344,10 @@ const CmsContentRenderer = ({
       const url = getMediaUrl(media, "large");
       if (!url) return null;
       return (
-        <div key={section.id || `banner-${index}`} className="w-full h-48 md:h-64 relative overflow-hidden bg-sky-200">
+        <div
+          key={section.id || `banner-${index}`}
+          className="w-full h-48 md:h-64 relative overflow-hidden bg-sky-200"
+        >
           <img
             src={url}
             alt={getMediaAlt(media, title || "Page banner")}
@@ -320,7 +365,10 @@ const CmsContentRenderer = ({
         {items.map((item, index) => {
           const imageMedia = getMediaObject(item.image);
           const imageUrl = getMediaUrl(imageMedia, "large");
-          const imageAlt = getMediaAlt(imageMedia, item.title || "Section image");
+          const imageAlt = getMediaAlt(
+            imageMedia,
+            item.title || "Section image",
+          );
           const isLight = item.background === "light";
           const imagePosition = item.imagePosition || "left-25";
           const imageLeft = !String(imagePosition).startsWith("right");
@@ -355,8 +403,17 @@ const CmsContentRenderer = ({
 
           const key = item.id || `${sectionKey}-${index}`;
           return (
-            <section key={key} className={`${isLight ? "bg-gray-50" : "bg-white"} py-4`}>
-              <div className={imageUrl ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}` : "grid grid-cols-1"}>
+            <section
+              key={key}
+              className={`${isLight ? "bg-gray-50" : "bg-white"} py-4`}
+            >
+              <div
+                className={
+                  imageUrl
+                    ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}`
+                    : "grid grid-cols-1"
+                }
+              >
                 {imageUrl && imageLeft && (
                   <div className="w-full">
                     <figure>
@@ -377,20 +434,25 @@ const CmsContentRenderer = ({
 
                 <div>
                   {item.title && (
-                    <h3 className="text-3xl font-semibold text-[#35a576] mb-4" style={{ fontFamily: '"MuseoModerno", sans-serif' }}>
+                    <h3
+                      className="text-3xl font-semibold text-[#35a576] mb-4"
+                      style={{ fontFamily: '"MuseoModerno", sans-serif' }}
+                    >
                       {item.title}
                     </h3>
                   )}
                   {hasMeaningfulHtml(item.description) && (
                     <div
                       className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
-                      dangerouslySetInnerHTML={{ __html: getCleanHtml(item.description) }}
+                      dangerouslySetInnerHTML={{
+                        __html: getCleanHtml(item.description),
+                      }}
                     />
                   )}
                 </div>
 
                 {imageUrl && !imageLeft && (
-                  <div className="w-full mt-10">
+                  <div className="w-full mt-8">
                     <figure>
                       <img
                         src={imageUrl}
@@ -420,9 +482,22 @@ const CmsContentRenderer = ({
       <div className={containerClassName}>
         {backLink && (
           <div className="mb-6">
-            <Link href={backLink} className="inline-flex items-center text-[#35a576] hover:text-[#2f9369] transition-colors">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <Link
+              href={backLink}
+              className="inline-flex items-center text-[#35a576] hover:text-[#2f9369] transition-colors"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
               {backLabel}
             </Link>
@@ -463,13 +538,17 @@ const CmsContentRenderer = ({
                 {hasMeaningfulHtml(description) && (
                   <div
                     className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
-                    dangerouslySetInnerHTML={{ __html: getCleanHtml(description) }}
+                    dangerouslySetInnerHTML={{
+                      __html: getCleanHtml(description),
+                    }}
                   />
                 )}
               </>
             ) : isObjectPositionCoverImage ? (
               <div className="mt-4">
-                <div className={`grid grid-cols-1 gap-8 items-start ${coverImageGridTemplate}`}>
+                <div
+                  className={`grid grid-cols-1 gap-8 items-start ${coverImageGridTemplate}`}
+                >
                   {isCoverImageLeft && (
                     <div className="w-full">
                       <img
@@ -482,7 +561,9 @@ const CmsContentRenderer = ({
                   )}
                   <div
                     className={`prose prose-base md:prose-lg max-w-none text-gray-600 leading-relaxed ${listStyleClasses}`}
-                    dangerouslySetInnerHTML={{ __html: getCleanHtml(description) }}
+                    dangerouslySetInnerHTML={{
+                      __html: getCleanHtml(description),
+                    }}
                   />
                   {!isCoverImageLeft && (
                     <div className="w-full">
@@ -540,11 +621,16 @@ const CmsContentRenderer = ({
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-semibold text-[#35a576] mb-4">
-                      {data.founderTitle || `Short Biography of ${founder.name || "Founder"}`}
+                      {data.founderTitle ||
+                        `Short Biography of ${founder.name || "Founder"}`}
                     </h3>
                     <div
                       className="prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: getCleanHtml(data.founderDetails || founder.description || "") }}
+                      dangerouslySetInnerHTML={{
+                        __html: getCleanHtml(
+                          data.founderDetails || founder.description || "",
+                        ),
+                      }}
                     />
                     <div className="mt-4">
                       <Link
@@ -584,16 +670,19 @@ const CmsContentRenderer = ({
                                 {member.designation}
                               </p>
                             )}
-                            {member.has_detail_page && hasMeaningfulHtml(member.description) && (
-                              <div className="mt-4">
-                                <Link
-                                  href={`/team/${encodeURIComponent(member.name || "")}`}
-                                  className="inline-flex items-center text-[#35a576] font-medium hover:text-[#2f9369]"
-                                >
-                                  View profile
-                                </Link>
-                              </div>
-                            )}
+                            {member.has_detail_page &&
+                              hasMeaningfulHtml(member.description) && (
+                                <div className="mt-4">
+                                  <Link
+                                    href={`/team/${encodeURIComponent(
+                                      member.name || "",
+                                    )}`}
+                                    className="inline-flex items-center text-[#35a576] font-medium hover:text-[#2f9369]"
+                                  >
+                                    View profile
+                                  </Link>
+                                </div>
+                              )}
                           </div>
                         </article>
                       ))}
@@ -609,32 +698,65 @@ const CmsContentRenderer = ({
             const selected = (data.packagesSectionPackageIds || [])
               .map((id) => packageLookup.get(String(id)))
               .filter(Boolean);
-            if (!data.packagesSectionTitle && !data.packagesSectionSubtitle && !hasMeaningfulHtml(data.packagesSectionDescription) && selected.length === 0) {
+            if (
+              !data.packagesSectionTitle &&
+              !data.packagesSectionSubtitle &&
+              !hasMeaningfulHtml(data.packagesSectionDescription) &&
+              selected.length === 0
+            ) {
               return null;
             }
             return (
               <section key={section.id || `packages-${index}`} className="mb-8">
                 {data.packagesSectionTitle && (
                   <div>
-                    <h2 className={headingClassName} style={{ ...headingStyle, fontFamily: '"MuseoModerno", sans-serif' }}>
+                    <h2
+                      className={headingClassName}
+                      style={{
+                        ...headingStyle,
+                        fontFamily: '"MuseoModerno", sans-serif',
+                      }}
+                    >
                       {data.packagesSectionTitle}
                     </h2>
                     {data.packagesSectionSubtitle && (
-                      <span className="mt-2 tracking-wide uppercase" style={{ color: "#35a576", fontSize: "120%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
+                      <span
+                        className="mt-2 tracking-wide uppercase"
+                        style={{
+                          color: "#35a576",
+                          fontSize: "120%",
+                          fontFamily: '"MuseoModerno", sans-serif',
+                          display: "block",
+                          fontWeight: 500,
+                          lineHeight: 1.5,
+                        }}
+                      >
                         {data.packagesSectionSubtitle}
                       </span>
                     )}
                   </div>
                 )}
                 {!data.packagesSectionTitle && data.packagesSectionSubtitle && (
-                  <span className="tracking-wide uppercase" style={{ color: "#35a576", fontSize: "150%", fontFamily: '"MuseoModerno", sans-serif', display: "block", fontWeight: 500, lineHeight: 1.5 }}>
+                  <span
+                    className="tracking-wide uppercase"
+                    style={{
+                      color: "#35a576",
+                      fontSize: "150%",
+                      fontFamily: '"MuseoModerno", sans-serif',
+                      display: "block",
+                      fontWeight: 500,
+                      lineHeight: 1.5,
+                    }}
+                  >
                     {data.packagesSectionSubtitle}
                   </span>
                 )}
                 {hasMeaningfulHtml(data.packagesSectionDescription) && (
                   <div
                     className="mt-4 text-gray-600 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: getCleanHtml(data.packagesSectionDescription) }}
+                    dangerouslySetInnerHTML={{
+                      __html: getCleanHtml(data.packagesSectionDescription),
+                    }}
                   />
                 )}
                 {selected.length > 0 && (
@@ -644,26 +766,50 @@ const CmsContentRenderer = ({
                       const slug =
                         item.slug ||
                         (rawTitle
-                          ? rawTitle.toLowerCase().replace(/,/g, "").replace(/\s+/g, "-")
+                          ? rawTitle
+                              .toLowerCase()
+                              .replace(/,/g, "")
+                              .replace(/\s+/g, "-")
                           : "");
-                      const media = getMediaObject(item.mainImage || item.image);
-                      const imageSrc = getMediaUrl(media, "medium") || "/bhutan.jpg";
-                      const reviewCount = getPackageReviewCount(item, reviewCountMap);
-                      const descriptionText = item.sub_description || item.subDescription || "";
+                      const media = getMediaObject(
+                        item.mainImage || item.image,
+                      );
+                      const imageSrc =
+                        getMediaUrl(media, "medium") || "/bhutan.jpg";
+                      const reviewCount = getPackageReviewCount(
+                        item,
+                        reviewCountMap,
+                      );
+                      const descriptionText =
+                        item.sub_description || item.subDescription || "";
 
                       return (
-                        <div key={item.id ?? item._id ?? itemIndex} className="flex flex-col bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200">
+                        <div
+                          key={item.id ?? item._id ?? itemIndex}
+                          className="flex flex-col bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200"
+                        >
                           {slug ? (
-                            <Link href={`/${slug}`} className="relative h-56 w-full overflow-hidden">
+                            <Link
+                              href={`/${slug}`}
+                              className="relative h-56 w-full overflow-hidden"
+                            >
                               <img
                                 src={imageSrc}
-                                alt={getPackageCardAlt(media, item, "Featured package image")}
+                                alt={getPackageCardAlt(
+                                  media,
+                                  item,
+                                  "Featured package image",
+                                )}
                                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                               />
                             </Link>
                           ) : (
                             <div className="relative h-56 w-full overflow-hidden">
-                              <img src={imageSrc} alt="Featured package image" className="w-full h-full object-cover" />
+                              <img
+                                src={imageSrc}
+                                alt="Featured package image"
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                           )}
                           <div className="pt-4 px-4 pb-5">
@@ -671,18 +817,33 @@ const CmsContentRenderer = ({
                               {item.title || "Featured Package"}
                             </h3>
                             {descriptionText ? (
-                              <p className="text-base text-[#35a576] leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(descriptionText) }} />
+                              <p
+                                className="text-base text-[#35a576] leading-relaxed"
+                                dangerouslySetInnerHTML={{
+                                  __html: sanitizeHtml(descriptionText),
+                                }}
+                              />
                             ) : (
-                              <p className="text-base text-[#35a576] leading-relaxed">Explore this featured package.</p>
+                              <p className="text-base text-[#35a576] leading-relaxed">
+                                Explore this featured package.
+                              </p>
                             )}
-                            <div className="mt-2 text-sm text-gray-400">({reviewCount} reviews)</div>
+                            <div className="mt-2 text-sm text-gray-400">
+                              ({reviewCount} reviews)
+                            </div>
                             <div className="mt-4 flex items-center justify-between">
                               <div className="flex items-center gap-1 text-gray-600 text-sm">
                                 <Clock className="w-4 h-4 text-[#35a576]" />
-                                <span>{item.duration || "5 Days"}, {item.tourType || item.type || "Private Tour"}</span>
+                                <span>
+                                  {item.duration || "5 Days"},{" "}
+                                  {item.tourType || item.type || "Private Tour"}
+                                </span>
                               </div>
                               {slug && (
-                                <Link href={`/${slug}`} className="bg-[#35a576] hover:bg-[#2f9369] text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200">
+                                <Link
+                                  href={`/${slug}`}
+                                  className="bg-[#35a576] hover:bg-[#2f9369] text-white text-sm font-medium px-4 py-2 rounded shadow-sm transition-colors duration-200"
+                                >
                                   View Details
                                 </Link>
                               )}
@@ -700,18 +861,29 @@ const CmsContentRenderer = ({
           if (section.type === "repeatableTextImage") {
             return (
               <div key={section.id || `repeatable-${index}`} className="mb-10">
-                {renderRepeatableItems(section.data?.items || [], section.id || `repeatable-${index}`)}
+                {renderRepeatableItems(
+                  section.data?.items || [],
+                  section.id || `repeatable-${index}`,
+                )}
               </div>
             );
           }
 
           if (section.type === "gallery") {
             const galleryImages = section.data?.galleryImages || [];
-            if (!Array.isArray(galleryImages) || galleryImages.length === 0) return null;
+            if (!Array.isArray(galleryImages) || galleryImages.length === 0)
+              return null;
             return (
-              <div key={section.id || `gallery-${index}`} className="mt-12 relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#35a576] py-12">
+              <div
+                key={section.id || `gallery-${index}`}
+                className="mt-12 relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#35a576] py-12"
+              >
                 <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12">
-                  <Gallery galleryImages={galleryImages} title="Photo/Visual Gallery" embedded />
+                  <Gallery
+                    galleryImages={galleryImages}
+                    title="Photo/Visual Gallery"
+                    embedded
+                  />
                 </div>
               </div>
             );
@@ -719,14 +891,23 @@ const CmsContentRenderer = ({
 
           if (section.type === "relatedInformation") {
             const items = Array.isArray(section.data?.items)
-              ? section.data.items.filter((item) => item && (item.title || item.description))
+              ? section.data.items.filter(
+                  (item) => item && (item.title || item.description),
+                )
               : [];
             if (items.length === 0) return null;
             const key = section.id || `related-${index}`;
-            const activeIndex = Math.min(activeRelatedIndexBySection[key] || 0, items.length - 1);
+            const activeIndex = Math.min(
+              activeRelatedIndexBySection[key] || 0,
+              items.length - 1,
+            );
             const activeItem = items[activeIndex];
             return (
-              <div key={key} className="mt-12 scroll-mt-24" ref={relatedInfoRef}>
+              <div
+                key={key}
+                className="mt-12 scroll-mt-24"
+                ref={relatedInfoRef}
+              >
                 <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
                   <div className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
                     {items.map((item, itemIndex) => {
@@ -736,13 +917,21 @@ const CmsContentRenderer = ({
                           key={`${key}-${item.id || itemIndex}`}
                           type="button"
                           onClick={() => {
-                            setActiveRelatedIndexBySection((prev) => ({ ...prev, [key]: itemIndex }));
+                            setActiveRelatedIndexBySection((prev) => ({
+                              ...prev,
+                              [key]: itemIndex,
+                            }));
                             requestAnimationFrame(() => {
-                              relatedInfoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                              relatedInfoRef.current?.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                              });
                             });
                           }}
                           className={`w-full text-left px-5 py-4 text-sm font-semibold uppercase tracking-wide transition-colors ${
-                            isActive ? "bg-[#35a576] text-white" : "text-gray-600 hover:bg-gray-100"
+                            isActive
+                              ? "bg-[#35a576] text-white"
+                              : "text-gray-600 hover:bg-gray-100"
                           }`}
                         >
                           {item.title || `Information ${itemIndex + 1}`}
@@ -752,12 +941,16 @@ const CmsContentRenderer = ({
                   </div>
                   <div className="p-6 md:p-8">
                     {activeItem?.title && (
-                      <h3 className="text-2xl font-semibold text-[#35a576] mb-4">{activeItem.title}</h3>
+                      <h3 className="text-2xl font-semibold text-[#35a576] mb-4">
+                        {activeItem.title}
+                      </h3>
                     )}
                     {hasMeaningfulHtml(activeItem?.description) && (
                       <div
                         className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
-                        dangerouslySetInnerHTML={{ __html: getCleanHtml(activeItem.description) }}
+                        dangerouslySetInnerHTML={{
+                          __html: getCleanHtml(activeItem.description),
+                        }}
                       />
                     )}
                   </div>
@@ -771,8 +964,12 @@ const CmsContentRenderer = ({
             if (!Array.isArray(items) || items.length === 0) return null;
             return (
               <div key={section.id || `faq-${index}`} className="mt-12">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6" style={{ fontFamily: '"MuseoModerno", sans-serif' }}>
-                  {section.data?.faqSectionTitle || "Frequently Asked Questions"}
+                <h2
+                  className="text-2xl font-bold text-gray-800 mb-6"
+                  style={{ fontFamily: '"MuseoModerno", sans-serif' }}
+                >
+                  {section.data?.faqSectionTitle ||
+                    "Frequently Asked Questions"}
                 </h2>
                 <div className="space-y-4">
                   {items.map((faqItem, faqIndex) => (
@@ -781,15 +978,29 @@ const CmsContentRenderer = ({
                       className="bg-white border border-gray-200 rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
                     >
                       <summary className="flex items-center justify-between p-4 cursor-pointer font-semibold text-gray-800 hover:bg-gray-50">
-                        <span className="text-base pr-4">{faqItem.question}</span>
-                        <svg className="w-5 h-5 text-[#35a576] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <span className="text-base pr-4">
+                          {faqItem.question}
+                        </span>
+                        <svg
+                          className="w-5 h-5 text-[#35a576] shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </summary>
                       {hasMeaningfulHtml(faqItem.answer) && (
                         <div
                           className="px-4 pb-4 text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: getCleanHtml(faqItem.answer) }}
+                          dangerouslySetInnerHTML={{
+                            __html: getCleanHtml(faqItem.answer),
+                          }}
                         />
                       )}
                     </details>
@@ -804,31 +1015,45 @@ const CmsContentRenderer = ({
 
         {Array.isArray(tours) && tours.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">{pageData.section || "Tours"}</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">
+              {pageData.section || "Tours"}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {tours.map((tour, index) => {
                 const rawImage = tour?.image || "";
-                const imageUrl = rawImage.startsWith("http") ? rawImage : `${BASE_URL}/uploads/${rawImage}`;
+                const imageUrl = rawImage.startsWith("http")
+                  ? rawImage
+                  : `${BASE_URL}/uploads/${rawImage}`;
                 return (
-                  <div key={`${tour.name}-${index}`} className="bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div
+                    key={`${tour.name}-${index}`}
+                    className="bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  >
                     <div className="h-48 overflow-hidden relative bg-gray-100">
                       <img
                         src={imageUrl}
                         alt={tour.name || "Tour"}
                         onError={(event) => {
-                          event.currentTarget.src = "https://placehold.co/600x400?text=No+Image";
+                          event.currentTarget.src =
+                            "https://placehold.co/600x400?text=No+Image";
                         }}
                         className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                       />
                     </div>
                     <div className="p-4">
-                      <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight h-12 line-clamp-2">{tour.name}</h3>
+                      <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight h-12 line-clamp-2">
+                        {tour.name}
+                      </h3>
                       {tour.reviews !== undefined && (
-                        <div className="text-xs text-gray-400 mb-3">( {tour.reviews} reviews )</div>
+                        <div className="text-xs text-gray-400 mb-3">
+                          ( {tour.reviews} reviews )
+                        </div>
                       )}
                       <div className="flex justify-between items-end border-t border-gray-100 pt-3 mt-2">
                         <div className="flex items-center text-xs text-gray-500">
-                          <span className="mr-1">🕒</span> {tour.duration || "Duration"}, {tour.difficulty || "Tour"}
+                          <span className="mr-1">🕒</span>{" "}
+                          {tour.duration || "Duration"},{" "}
+                          {tour.difficulty || "Tour"}
                         </div>
                         <button className="bg-[#35a576] hover:bg-[#2f9369] text-white text-xs font-bold py-1 px-3 rounded-sm">
                           View Details
