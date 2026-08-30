@@ -351,7 +351,7 @@ const CmsContentRenderer = ({
           <img
             src={url}
             alt={getMediaAlt(media, title || "Page banner")}
-            className="w-full h-full object-cover object-center"
+            className="w-full mt-10 h-full object-cover object-center"
           />
         </div>
       );
@@ -420,7 +420,7 @@ const CmsContentRenderer = ({
                       <img
                         src={imageUrl}
                         alt={imageAlt}
-                        className="w-full h-auto max-h-[32rem] object-contain rounded-lg"
+                        className="w-full mt-10 h-auto max-h-[32rem] object-contain rounded-lg"
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
@@ -531,7 +531,7 @@ const CmsContentRenderer = ({
                   <img
                     src={coverImageUrl}
                     alt={coverImageAlt}
-                    className="w-full max-h-[420px] object-cover rounded-xl"
+                    className="w-full max-h-[420px] mt-10 object-cover rounded-xl"
                     style={{ objectPosition: coverImageObjectPosition }}
                   />
                 </div>
@@ -554,7 +554,7 @@ const CmsContentRenderer = ({
                       <img
                         src={coverImageUrl}
                         alt={coverImageAlt}
-                        className="w-full h-full object-cover rounded-xl"
+                        className="w-full mt-10 h-full object-cover rounded-xl"
                         style={{ objectPosition: coverImageObjectPosition }}
                       />
                     </div>
