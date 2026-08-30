@@ -124,6 +124,7 @@ div[class*="prose"] img {
   max-width: 100%;
   height: auto;
   object-fit: contain;
+  margin-top: 10px;
 }
 
 .meet-the-owner-description img,
