@@ -390,12 +390,12 @@ const CmsContentRenderer = ({
                 </div>
 
                 {imageUrl && !imageLeft && (
-                  <div className="w-full">
+                  <div className="w-full mt-10">
                     <figure>
                       <img
                         src={imageUrl}
                         alt={imageAlt}
-                        className="w-full h-auto max-h-[32rem] object-contain rounded-lg"
+                        className="w-full mt-10 h-auto max-h-[32rem] object-contain rounded-lg"
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
