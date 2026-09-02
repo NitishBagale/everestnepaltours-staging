@@ -18,8 +18,8 @@ const Footer = () => {
 
   return (
     <>
-      <footer className="bg-[#35a576] text-white px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 relative">
-        <div className="container mx-auto">
+      <footer className="bg-[#35a576] text-white py-8 sm:py-10 md:py-12 relative">
+        <div className="max-w-6xl mx-auto px-5 md:px-10 lg:px-16 xl:px-20">
           {/* Main content grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 text-base">
             {/* Column 1: Nepal Office */}
