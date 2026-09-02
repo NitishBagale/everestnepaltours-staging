@@ -129,6 +129,7 @@ div[class*="prose"] img {
 
 /* Space only the Bhutan Team image beneath the About Us introduction. */
 .about-us-intro img[src*="we-are-with-bhutan-team"] {
+  display: block;
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
 }
