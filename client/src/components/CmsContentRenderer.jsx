@@ -371,7 +371,7 @@ const CmsContentRenderer = ({
                         src={imageUrl}
                         alt={imageAlt}
                         className={`w-full h-64 object-cover rounded-lg ${
-                          isDedicatedTeamSection ? "lg:h-full" : ""
+                          isDedicatedTeamSection ? "lg:h-full lg:max-h-[520px]" : ""
                         }`}
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
@@ -407,7 +407,7 @@ const CmsContentRenderer = ({
                         src={imageUrl}
                         alt={imageAlt}
                         className={`w-full h-64 object-cover rounded-lg ${
-                          isDedicatedTeamSection ? "lg:h-full" : ""
+                          isDedicatedTeamSection ? "lg:h-full lg:max-h-[520px]" : ""
                         }`}
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
