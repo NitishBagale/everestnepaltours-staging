@@ -4,7 +4,6 @@ WORKDIR /app
 
 # Install PM2
 RUN npm install -g pm2
-
 # Copy package files FROM client folder
 COPY client/package*.json ./
 

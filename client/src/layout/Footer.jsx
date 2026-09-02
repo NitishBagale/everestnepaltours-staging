@@ -133,28 +133,24 @@ const Footer = () => {
                   alt="American Express"
                   width={25}
                   height={16}
-                  className="h-auto"
                 />
                 <Image
                   src="/Visadebit.png"
                   alt="Visa Debit"
                   width={25}
                   height={16}
-                  className="h-auto"
                 />
                 <Image
                   src="/Mastercard.jpg"
                   alt="Mastercard"
                   width={25}
                   height={16}
-                  className="h-auto"
                 />
                 <Image
                   src="/UnionPay.png"
                   alt="UnionPay"
                   width={25}
                   height={16}
-                  className="h-auto"
                 />
               </div>
             </div>

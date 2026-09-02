@@ -348,3 +348,53 @@ div[class*="prose"] img {
     font-size: 8rem;
   }
 }
+
+/* Reduce excessive gaps in CMS-rendered content (prose) */
+.prose,
+.prose-lg,
+.meet-the-owner-description,
+.custom-section-description,
+.custom-section-note {
+  line-height: 1.6;
+}
+.prose p,
+.meet-the-owner-description p,
+.custom-section-description p {
+  margin-bottom: 0.65rem;
+}
+.prose p + p,
+.meet-the-owner-description p + p,
+.custom-section-description p + p {
+  margin-top: 0;
+}
+.prose ul,
+.prose ol,
+.meet-the-owner-description ul,
+.custom-section-description ul {
+  margin-top: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+.prose ul li,
+.prose ol li {
+  margin-bottom: 0.35rem;
+}
+
+/* Collapse repeated <br> into a single break when present */
+.prose br + br,
+.meet-the-owner-description br + br {
+  display: none;
+}
+
+/* Responsive two-column grid helper using CSS variable for column sizes */
+.two-column-grid-lg {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .two-column-grid-lg {
+    grid-template-columns: var(--grid-template, 1fr);
+  }
+}
+
