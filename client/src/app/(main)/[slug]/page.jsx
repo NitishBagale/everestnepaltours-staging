@@ -50,25 +50,30 @@ const getCmsOgImage = (pageData) => {
 const fetchPackageBySlug = cache(async (slug) => {
   if (!slug) return { tourRecord: null, tourData: null };
 
-  const res = await fetch(`${BASE_URL}/package-tour/`, {
-    cache: "no-store",
-  });
+  try {
+    const res = await fetch(`${BASE_URL}/package-tour/`, {
+      cache: "no-store",
+    });
 
-  if (!res.ok) {
+    if (!res.ok) {
+      return { tourRecord: null, tourData: null };
+    }
+
+    const data = await res.json();
+    const allPackages = data?.data || [];
+    const targetSlug = normalizeSlug(slug);
+    const found = allPackages.find(
+      (pkg) => normalizeSlug(getPackageSlug(pkg)) === targetSlug
+    );
+
+    return {
+      tourRecord: found || null,
+      tourData: found?.package || null,
+    };
+  } catch (error) {
+    console.error("Error fetching package data:", error);
     return { tourRecord: null, tourData: null };
   }
-
-  const data = await res.json();
-  const allPackages = data?.data || [];
-  const targetSlug = normalizeSlug(slug);
-  const found = allPackages.find(
-    (pkg) => normalizeSlug(getPackageSlug(pkg)) === targetSlug
-  );
-
-  return {
-    tourRecord: found || null,
-    tourData: found?.package || null,
-  };
 });
 
 const getCmsBySlug = async (slug) => {

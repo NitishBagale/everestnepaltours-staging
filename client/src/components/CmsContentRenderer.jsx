@@ -149,6 +149,12 @@ const CmsContentRenderer = ({
   const coverImage = content.coverImage || safePageData.coverImage;
   const coverImagePosition = content.coverImagePosition || safePageData.coverImagePosition || "none";
   const tours = content.tours || safePageData.tours;
+  const isAboutPage = [safePageData.slug, safePageData.section, title]
+    .filter(Boolean)
+    .some((value) => String(value).trim().toLowerCase().replace(/\s+/g, "-") === "about-us");
+  const resolvedContainerClassName = isAboutPage
+    ? "max-w-6xl mx-auto px-5 md:px-10 lg:px-16 xl:px-20 py-8 font-sans text-gray-700"
+    : containerClassName;
 
   const sections = useMemo(() => {
     const fromApi = Array.isArray(safePageData.sections) ? safePageData.sections : [];
@@ -372,7 +378,9 @@ const CmsContentRenderer = ({
                   )}
                   {hasMeaningfulHtml(item.description) && (
                     <div
-                      className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses}`}
+                      className={`prose prose-base md:prose-lg max-w-none text-gray-700 leading-relaxed ${listStyleClasses} ${
+                        isAboutPage && item.title === "About Us" ? "about-us-intro" : ""
+                      }`}
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(item.description) }}
                     />
                   )}
@@ -422,7 +430,7 @@ const CmsContentRenderer = ({
   return (
     <>
       {topBanners}
-      <div className={containerClassName}>
+      <div className={resolvedContainerClassName}>
         {backLink && (
           <div className="mb-6">
             <Link href={backLink} className="inline-flex items-center text-green-600 hover:text-green-800 transition-colors">

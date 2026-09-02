@@ -127,6 +127,12 @@ div[class*="prose"] img {
   margin-top: 10px;
 }
 
+/* Space only the Bhutan Team image beneath the About Us introduction. */
+.about-us-intro img[src*="we-are-with-bhutan-team"] {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
 .meet-the-owner-description img,
 .meet-the-owner-description p img {
   float: left;
@@ -397,4 +403,3 @@ div[class*="prose"] img {
     grid-template-columns: var(--grid-template, 1fr);
   }
 }
-
