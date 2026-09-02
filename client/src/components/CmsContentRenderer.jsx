@@ -317,7 +317,9 @@ const CmsContentRenderer = ({
           const imageUrl = getMediaUrl(imageMedia, "large");
           const imageAlt = getMediaAlt(imageMedia, item.title || "Section image");
           const isLight = item.background === "light";
-          const imagePosition = item.imagePosition || "left-25";
+          const isDedicatedTeamSection =
+            isAboutPage && String(item.title || "").trim().toLowerCase() === "our dedicated team";
+          const imagePosition = isDedicatedTeamSection ? "right-40" : item.imagePosition || "left-25";
           const imageLeft = !String(imagePosition).startsWith("right");
           const gridTemplateClass = (() => {
             switch (imagePosition) {
@@ -327,6 +329,8 @@ const CmsContentRenderer = ({
                 return "lg:grid-cols-[50%_minmax(0,1fr)]";
               case "right-25":
                 return "lg:grid-cols-[minmax(0,1fr)_25%]";
+              case "right-40":
+                return "lg:grid-cols-[minmax(0,1fr)_40%]";
               case "right-50":
                 return "lg:grid-cols-[minmax(0,1fr)_50%]";
               default:
@@ -341,6 +345,8 @@ const CmsContentRenderer = ({
                 return "50% center";
               case "right-25":
                 return "right 25%";
+              case "right-40":
+                return "right 40%";
               case "right-50":
                 return "right 50%";
               default:
