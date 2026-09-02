@@ -318,8 +318,10 @@ const CmsContentRenderer = ({
           const imageAlt = getMediaAlt(imageMedia, item.title || "Section image");
           const isLight = item.background === "light";
           const isDedicatedTeamSection =
-            isAboutPage && String(item.title || "").trim().toLowerCase() === "our dedicated team";
-          const imagePosition = isDedicatedTeamSection ? "right-40" : item.imagePosition || "left-25";
+            isAboutPage &&
+            (String(item.title || "").trim().toLowerCase() === "our dedicated team" ||
+              String(item.description || "").toLowerCase().includes("our dedicated team"));
+          const imagePosition = item.imagePosition || "left-25";
           const imageLeft = !String(imagePosition).startsWith("right");
           const gridTemplateClass = (() => {
             switch (imagePosition) {
@@ -329,8 +331,6 @@ const CmsContentRenderer = ({
                 return "lg:grid-cols-[50%_minmax(0,1fr)]";
               case "right-25":
                 return "lg:grid-cols-[minmax(0,1fr)_25%]";
-              case "right-40":
-                return "lg:grid-cols-[minmax(0,1fr)_40%]";
               case "right-50":
                 return "lg:grid-cols-[minmax(0,1fr)_50%]";
               default:
@@ -345,8 +345,6 @@ const CmsContentRenderer = ({
                 return "50% center";
               case "right-25":
                 return "right 25%";
-              case "right-40":
-                return "right 40%";
               case "right-50":
                 return "right 50%";
               default:
@@ -357,14 +355,24 @@ const CmsContentRenderer = ({
           const key = item.id || `${sectionKey}-${index}`;
           return (
             <section key={key} className={`${isLight ? "bg-gray-50" : "bg-white"} py-4`}>
-              <div className={imageUrl ? `grid grid-cols-1 gap-8 items-start ${gridTemplateClass}` : "grid grid-cols-1"}>
+              <div
+                className={
+                  imageUrl
+                    ? `grid grid-cols-1 gap-8 items-start ${
+                        isDedicatedTeamSection ? "lg:items-stretch" : ""
+                      } ${gridTemplateClass}`
+                    : "grid grid-cols-1"
+                }
+              >
                 {imageUrl && imageLeft && (
-                  <div className="w-full">
-                    <figure>
+                  <div className={`w-full ${isDedicatedTeamSection ? "lg:h-full" : ""}`}>
+                    <figure className={isDedicatedTeamSection ? "lg:h-full" : ""}>
                       <img
                         src={imageUrl}
                         alt={imageAlt}
-                        className="w-full h-64 object-cover rounded-lg"
+                        className={`w-full h-64 object-cover rounded-lg ${
+                          isDedicatedTeamSection ? "lg:h-full" : ""
+                        }`}
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
@@ -393,12 +401,14 @@ const CmsContentRenderer = ({
                 </div>
 
                 {imageUrl && !imageLeft && (
-                  <div className="w-full">
-                    <figure>
+                  <div className={`w-full ${isDedicatedTeamSection ? "lg:h-full" : ""}`}>
+                    <figure className={isDedicatedTeamSection ? "lg:h-full" : ""}>
                       <img
                         src={imageUrl}
                         alt={imageAlt}
-                        className="w-full h-64 object-cover rounded-lg"
+                        className={`w-full h-64 object-cover rounded-lg ${
+                          isDedicatedTeamSection ? "lg:h-full" : ""
+                        }`}
                         style={{ objectPosition: sectionImageObjectPosition }}
                       />
                       {item.imageCaption && (
