@@ -134,6 +134,117 @@ div[class*="prose"] img {
   margin-bottom: 1.5rem;
 }
 
+/* Compatibility for legacy WordPress/Bootstrap HTML stored in CMS content. */
+.cms-rich-content .cms-wp-caption {
+  display: table;
+  max-width: 100%;
+  margin: 1.5rem 0;
+}
+
+.cms-rich-content .cms-wp-caption img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+}
+
+.cms-rich-content .cms-wp-caption > em,
+.cms-rich-content .cms-wp-caption > figcaption {
+  display: table-caption;
+  caption-side: bottom;
+  padding-top: 0.5rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.cms-rich-content .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.75rem;
+}
+
+.cms-rich-content [class*="col-"] {
+  width: 100%;
+  padding: 0 0.75rem;
+}
+
+.cms-rich-content .img-thumbnail {
+  max-width: 100%;
+  height: auto;
+  padding: 0.25rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+.cms-rich-content .rounded-circle {
+  border-radius: 9999px;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.cms-rich-content .text-center {
+  text-align: center;
+}
+
+.cms-rich-content .mb-4 {
+  margin-bottom: 1.5rem;
+}
+
+.cms-rich-content .btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+}
+
+.cms-rich-content .btn-primary {
+  background: #35a576;
+  color: #fff;
+}
+
+/* The About Us "Our Dedicated Team" module is always an even split on
+   tablet/desktop, independent of generated arbitrary Tailwind classes. */
+.cms-dedicated-team-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .cms-dedicated-team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch;
+  }
+
+  .cms-dedicated-team-grid > div,
+  .cms-dedicated-team-grid figure {
+    min-width: 0;
+    height: 100%;
+  }
+
+  .cms-dedicated-team-grid figure > img {
+    width: 100%;
+    height: 100%;
+    max-height: 520px;
+    object-fit: cover;
+  }
+}
+
+@media (min-width: 576px) {
+  .cms-rich-content .col-sm-3 {
+    width: 25%;
+  }
+
+  .cms-rich-content .col-sm-9 {
+    width: 75%;
+  }
+}
+
+@media (min-width: 768px) {
+  .cms-rich-content .col-md-2 {
+    width: 16.666667%;
+  }
+}
+
 .meet-the-owner-description img,
 .meet-the-owner-description p img {
   float: left;
@@ -404,3 +515,4 @@ div[class*="prose"] img {
     grid-template-columns: var(--grid-template, 1fr);
   }
 }
+

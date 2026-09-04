@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { BASE_URL } from "@/config/Config";
+import { CONTENT_BASE_URL } from "@/config/Config";
 import CmsContentRenderer from "@/components/CmsContentRenderer";
 
 const slugify = (value) =>
@@ -16,6 +16,20 @@ const slugify = (value) =>
         .replace(/-+/g, "-")
         .replace(/^-+|-+$/g, "")
     : "";
+
+const getCmsBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return (
+        process.env.NEXT_PUBLIC_CONTENT_API_URL ||
+        "https://staging-api.everestnepaltours.com"
+      );
+    }
+  }
+
+  return CONTENT_BASE_URL;
+};
 
 const normalizeCmsData = (payload) => {
   if (!payload) return null;
@@ -73,10 +87,11 @@ const CmsContentPage = ({
 
         setLoading(true);
         setError(null);
+        const cmsBaseUrl = getCmsBaseUrl();
 
         if (section) {
           const response = await axios.get(
-            `${BASE_URL}/cms/${encodeURIComponent(section)}`
+            `${cmsBaseUrl}/cms/${encodeURIComponent(section)}`
           );
           const data = normalizeCmsData(response.data);
           if (!active) return;
@@ -89,7 +104,7 @@ const CmsContentPage = ({
         }
 
         if (slug) {
-          const response = await axios.get(`${BASE_URL}/cms/`);
+          const response = await axios.get(`${cmsBaseUrl}/cms/`);
           const list = response?.data?.data || [];
           const page = findCmsBySlug(list, slug);
           if (!active) return;

@@ -5,3 +5,7 @@
 **/.DS_Store
 
 .vercel/
+.chrome-local-profile/
+.edge-local-profile/
+local-about.png
+staging-about.png
